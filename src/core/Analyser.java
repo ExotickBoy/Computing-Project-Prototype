@@ -26,21 +26,13 @@ public class Analyser {
     private TargetDataLine targetLine;
     private JFrame frame;
 
-    public Analyser(Recording recording, JFrame frame) {
+    public Analyser(Recording recording, JFrame frame) throws IllegalArgumentException, LineUnavailableException {
 
         this.recording = recording;
         this.frame = frame;
         queueThread = new QueueThread();
 
-        try {
-
-            openMicrophoneStream();
-
-        } catch (LineUnavailableException e) {
-
-            e.printStackTrace();
-
-        }
+        openMicrophoneStream();
 
     }
 
@@ -105,7 +97,7 @@ public class Analyser {
 
     }
 
-    private void openMicrophoneStream() throws LineUnavailableException {
+    private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
 
         AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);

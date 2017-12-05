@@ -9,14 +9,24 @@ fun main(args: Array<String>) {
     val recording: Recording = Recording(tuning, "Nameless")
 
     val frame = JFrame("Fourier Transform Thingy")
-    val analyser = Analyser(recording, frame)
 
-    frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-    frame.contentPane = ContentsPane(analyser)
-    frame.pack()
-    frame.isVisible = true
+    try {
 
-    analyser.start()
+        val analyser = Analyser(recording, frame)
+
+        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        frame.contentPane = ContentsPane(analyser)
+        frame.pack()
+        frame.isVisible = true
+
+        analyser.start()
+
+    } catch (e: IllegalArgumentException) {
+
+        // TODO show a microphone is unavailable screen
+        println("Couldn't open a microphone line")
+
+    }
 
 }
 

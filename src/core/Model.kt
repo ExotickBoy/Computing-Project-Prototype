@@ -1,5 +1,7 @@
 package core
 
+import org.tensorflow.SavedModelBundle
+import org.tensorflow.Tensor
 import java.nio.FloatBuffer
 
 /**
@@ -28,7 +30,7 @@ object Model {
     private const val CLEAR_STATE: String = "clear_queue"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
 
-    private const val MODEL_LOCATION = "E:\\Project/model46" // the location of the model
+    private const val MODEL_LOCATION = "res/model46" // the location of the model
 
     private val session = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
