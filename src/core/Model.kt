@@ -26,11 +26,13 @@ object Model {
     private const val INPUT_TENSOR_NAME: String = "inputs"
     private const val OUTPUT_TENSOR_NAME: String = "predictions"
     private const val ENQUEUE_ZERO_STATE: String = "enqueue_zero_state"
+    private const val ENQUEUE_START_INPUTS: String = "enqueue_start_inputs"
     private const val ENQUEUE_NEW_STATE: String = "enqueue_new_state"
-    private const val CLEAR_STATE: String = "clear_queue"
+    private const val ENQUEUE_NEW_INPUT: String = "enqueue_new_inputs"
+    private const val CLEAR_STATE: String = "clear_state_queue"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
 
-    private const val MODEL_LOCATION = "res/model46" // the location of the model
+    private const val MODEL_LOCATION = "res/model47" // the location of the model
 
     private val session = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -70,6 +72,7 @@ object Model {
 
             val results = session.runner()
                     .addTarget(ENQUEUE_NEW_STATE)
+                    .addTarget(ENQUEUE_NEW_INPUT)
                     .fetch(OUTPUT_TENSOR_NAME)
                     .fetch(MEL_BINS_TENSOR)
                     .feed(INPUT_TENSOR_NAME,
@@ -95,7 +98,9 @@ object Model {
         synchronized(session) {
             // locks session to prevent concurrent modification
 
-            session.runner().addTarget(ENQUEUE_ZERO_STATE).run()
+            session.runner().addTarget(ENQUEUE_ZERO_STATE)
+                    .addTarget(ENQUEUE_START_INPUTS)
+                    .run()
 
         }
     }

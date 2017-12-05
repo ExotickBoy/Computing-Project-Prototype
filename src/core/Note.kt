@@ -43,10 +43,11 @@ val String.pitch: Int
             return this.replace("#", SHARP).replace("b", FLAT).pitch
         else {
 
-            val split = "[a-zA-Z]\\d".toRegex().find(this) ?: return -1
+            val split = "[a-gA-G]($SHARP|$FLAT)?".toRegex().find(this) ?: return -1
+            // split the note into the letter and the octave by finding the note part first
 
-            val letter: String = this.substring(0, split.range.start + 1)
-            val octave: Int = this.substring(split.range.start + 1, this.length).toInt()
+            val letter: String = this.substring(0, split.range.endInclusive + 1).toUpperCase()
+            val octave: Int = this.substring(split.range.endInclusive + 1, this.length).toInt()
 
             val letterIndex = noteLetters.indexOf(noteLetters.find {
                 it.split("/").any { it == letter }
