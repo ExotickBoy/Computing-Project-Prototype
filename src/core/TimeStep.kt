@@ -73,28 +73,50 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
         const val maxMagnitude = 5.0f
         const val minMagnitude = -20.0f
 
+        /**
+         * Converts the colour from hsv format to an int representation
+         * @param h The value of hue, in 0..1
+         * @param s The value of saturation, in 0..1
+         * @param v The value of value, in 0..1
+         * @return the 32 bit representation of the colour
+         */
         private fun hsvToInt(hue: Number, saturation: Number, value: Number): Int = hsvToInt(hue.toDouble(), saturation.toDouble(), value.toDouble())
-        private fun hsvToInt(hue: Double, saturation: Double, value: Double): Int {
 
-            var h = (hue * 6).toInt()
+        /**
+         * Converts the colour from hsv format to an int representation
+         * @param h The value of hue, in 0..1
+         * @param s The value of saturation, in 0..1
+         * @param v The value of value, in 0..1
+         * @return the 32 bit representation of the colour
+         */
+        private fun hsvToInt(h: Double, s: Double, v: Double): Int {
+
+            var h = (h * 6).toInt()
             if (h == 6)
                 h = 5
-            val f = hue * 6 - h
-            val p = value * (1 - saturation)
-            val q = value * (1 - f * saturation)
-            val t = value * (1 - (1 - f) * saturation)
+            val f = h * 6 - h
+            val p = v * (1 - s)
+            val q = v * (1 - f * s)
+            val t = v * (1 - (1 - f) * s)
 
             return when (h) {
-                0 -> rgbToInt(value, t, p)
-                1 -> rgbToInt(q, value, p)
-                2 -> rgbToInt(p, value, t)
-                3 -> rgbToInt(p, q, value)
-                4 -> rgbToInt(t, p, value)
-                5 -> rgbToInt(value, p, q)
+                0 -> rgbToInt(v, t, p)
+                1 -> rgbToInt(q, v, p)
+                2 -> rgbToInt(p, v, t)
+                3 -> rgbToInt(p, q, v)
+                4 -> rgbToInt(t, p, v)
+                5 -> rgbToInt(v, p, q)
                 else -> throw RuntimeException("Something went wrong when converting from HSV to RGB. Input was $hue, $saturation, $value")
             }
         }
 
+        /**
+         * Convert a colour in rbg [0-1] format to the integer that represents that colour
+         * @param r The amount of red, in 0..1
+         * @param g The amount of green, in 0..1
+         * @param b The amount of blue, in 0..1
+         * @return the 32 bit representation of the colour
+         */
         private fun rgbToInt(r: Double, g: Double, b: Double): Int =
                 (r * 255).toInt() shl 16 or ((g * 255).toInt() shl 8) or (b * 255).toInt()
 
