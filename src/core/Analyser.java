@@ -20,7 +20,6 @@ public class Analyser {
     private TimeStep lastTimeStep;
 
     private final Recording recording;
-    private int stepsMade;
     private int stepsShown;
 
     private TargetDataLine targetLine;
@@ -52,7 +51,6 @@ public class Analyser {
 
         queueThread.start();
 
-        stepsMade = 0;
         stepsShown = 0;
 
         while (targetLine.isOpen()) {
@@ -82,8 +80,7 @@ public class Analyser {
                         samples[i] = data[location - sampleBufferSize];
                     }
                 }
-                TimeStep current = new TimeStep(samples, stepsMade, lastTimeStep);
-                stepsMade++;
+                TimeStep current = new TimeStep(samples, lastTimeStep);
                 timeStepBufferQueue.add(current);
                 lastTimeStep = current;
 

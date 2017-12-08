@@ -2,6 +2,11 @@ package core
 
 import java.lang.Math.hypot
 
+/**
+ * The complex number class that's used for storing complex numbers
+ * @see FFT
+ */
+@Deprecated("This class shouldn't be used because it isn't efferent and only used to compute the fft")
 data class Complex(val re: Double = 0.0, val im: Double = 0.0) {
 
     operator fun plus(b: Complex) = Complex(this.re + b.re, this.im + b.im)

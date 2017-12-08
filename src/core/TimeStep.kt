@@ -4,17 +4,31 @@ import java.awt.image.BufferedImage
 import java.lang.Float.max
 import java.lang.Float.min
 
-class TimeStep(samples: FloatArray, val time: Int, val previous: TimeStep? = null) { // start in steps
+/**
+ * This class is for storing the data related to each section of time.
+ * This object interacts with the model by passing the samples to it.
+ * @author Kacper Lubisz
+ * @see Model
+ * @see StepOutput
+ * @see Note
+ * @property dePhased The reconstructed samples after the phase of the sinusoid that make it up is removed
+ * @property melImage The image that can be drawn on screen of the frequencies on the mel scale
+ * @property modelOutput The object that represents the outputs of the Model
+ * @property notes The notes that are present in the time step
+ */
+class TimeStep private constructor(samples: FloatArray, private val time: Int, private val previous: TimeStep? = null) { // start in steps
 
-    val magnitudes: Array<Double> = FFT.fft(samples).map(Complex::magnitude).toTypedArray()
+    constructor(samples: FloatArray, previous: TimeStep?) : this(samples, previous?.time ?: 0, previous)
+
+    val magnitudes: Array<Double> = FFT.fft(samples).map(Complex::magnitude).toTypedArray() // TODO remove this call
     val dePhased: Array<Double>
 
     val melImage: BufferedImage
-    val noteImage: BufferedImage
+    val noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
     val modelOutput: StepOutput = Model.feedForward(samples)
 
-    val pitches: List<Int>
+    val pitches: List<Int> // TODO move this into step output
     val notes: List<Note>
 
     init {
@@ -43,7 +57,7 @@ class TimeStep(samples: FloatArray, val time: Int, val previous: TimeStep? = nul
 
         melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
-            val hue = (1 - (min(max(modelOutput.spectrum[y], min), max) - min) / (max - min)) * 2.0 / 3
+            val hue = (1 - (min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude)) * 2.0 / 3
             melImage.setRGB(0, y, hsvToInt(hue, 1, 1))
         }
         noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
@@ -56,8 +70,8 @@ class TimeStep(samples: FloatArray, val time: Int, val previous: TimeStep? = nul
 
     companion object {
 
-        const val max = 5.0f
-        const val min = -20.0f
+        const val maxMagnitude = 5.0f
+        const val minMagnitude = -20.0f
 
         private fun hsvToInt(hue: Number, saturation: Number, value: Number): Int = hsvToInt(hue.toDouble(), saturation.toDouble(), value.toDouble())
         private fun hsvToInt(hue: Double, saturation: Double, value: Double): Int {

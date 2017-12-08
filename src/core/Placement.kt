@@ -33,8 +33,12 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
 
     }
 
+    /**
+     * This function finds the distance to a placement if it is the first one
+     */
     fun startDistance(): Double {
-        return fret / FRET_SCALING_FACTOR
+        return fret * FRET_SCALING_FACTOR
+        // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
 
     companion object {
