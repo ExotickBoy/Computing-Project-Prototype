@@ -50,7 +50,7 @@ class Recording(val tuning: Tuning, val name: String) {
                         Path(previousPaths[past].route + current,
                                 previousPaths[past].route.mapIndexed { index, place ->
                                     possiblePlacements[index][place] distance currentPlacements[current]
-                                }.sum())
+                                }.takeLast(10).sum())
 
                     }.minBy { it.distance }!!
 

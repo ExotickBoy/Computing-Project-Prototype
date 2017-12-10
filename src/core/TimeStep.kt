@@ -18,7 +18,7 @@ import java.lang.Float.min
  */
 class TimeStep private constructor(samples: FloatArray, private val time: Int, private val previous: TimeStep? = null) { // start in steps
 
-    constructor(samples: FloatArray, previous: TimeStep?) : this(samples, previous?.time ?: 0, previous)
+    constructor(samples: FloatArray, previous: TimeStep?) : this(samples, (previous?.time ?: -1) + 1, previous)
 
     val magnitudes: Array<Double> = FFT.fft(samples).map(Complex::magnitude).toTypedArray() // TODO remove this call
     val dePhased: Array<Double>
@@ -89,23 +89,22 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
          * @param v The value of value, in 0..1
          * @return the 32 bit representation of the colour
          */
-        private fun hsvToInt(h: Double, s: Double, v: Double): Int {
-
-            var h = (h * 6).toInt()
+        private fun hsvToInt(hue: Double, saturation: Double, value: Double): Int {
+            var h = (hue * 6).toInt()
             if (h == 6)
                 h = 5
-            val f = h * 6 - h
-            val p = v * (1 - s)
-            val q = v * (1 - f * s)
-            val t = v * (1 - (1 - f) * s)
+            val f = hue * 6 - h
+            val p = value * (1 - saturation)
+            val q = value * (1 - f * saturation)
+            val t = value * (1 - (1 - f) * saturation)
 
             return when (h) {
-                0 -> rgbToInt(v, t, p)
-                1 -> rgbToInt(q, v, p)
-                2 -> rgbToInt(p, v, t)
-                3 -> rgbToInt(p, q, v)
-                4 -> rgbToInt(t, p, v)
-                5 -> rgbToInt(v, p, q)
+                0 -> rgbToInt(value, t, p)
+                1 -> rgbToInt(q, value, p)
+                2 -> rgbToInt(p, value, t)
+                3 -> rgbToInt(p, q, value)
+                4 -> rgbToInt(t, p, value)
+                5 -> rgbToInt(value, p, q)
                 else -> throw RuntimeException("Something went wrong when converting from HSV to RGB. Input was $hue, $saturation, $value")
             }
         }
