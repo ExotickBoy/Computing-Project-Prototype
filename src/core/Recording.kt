@@ -12,9 +12,29 @@ class Recording(val tuning: Tuning, val name: String) {
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
+    val sections = mutableListOf<Section>()
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
+
+    fun cut(time: Int) {
+
+        var acc = 0
+        var cut = 0
+        for (i in 0 until sections.size) {
+            acc += sections[i].length
+            if (time <= acc) {
+                cut = i
+                break
+            }
+        }
+
+        val cutIn = sections[cut]
+        sections.removeAt(cut)
+        sections.add(cut, Section(time, cutIn.to))
+        sections.add(cut, Section(cutIn.from, time))
+
+    }
 
     /**
      * Adds a new time step to the end of the recording
@@ -139,6 +159,10 @@ class Recording(val tuning: Tuning, val name: String) {
      */
     class Section(val from: Int, val to: Int) {
         constructor(range: IntRange) : this(range.endInclusive, range.endInclusive - 1)
+
+        val length: Int
+            get() = to - from
+
     }
 
 }

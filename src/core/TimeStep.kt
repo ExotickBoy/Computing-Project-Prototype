@@ -80,7 +80,7 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
          * @param v The value of value, in 0..1
          * @return the 32 bit representation of the colour
          */
-        private fun hsvToInt(hue: Number, saturation: Number, value: Number): Int = hsvToInt(hue.toDouble(), saturation.toDouble(), value.toDouble())
+        private fun hsvToInt(h: Number, s: Number, v: Number): Int = hsvToInt(h.toDouble(), s.toDouble(), v.toDouble())
 
         /**
          * Converts the colour from hsv format to an int representation
