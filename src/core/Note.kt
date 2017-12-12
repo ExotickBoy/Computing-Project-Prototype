@@ -74,5 +74,16 @@ val Int.noteString: String
  */
 fun String.note(time: Int, duration: Int): Note = Note(this.pitch, time, duration)
 
-private fun getLetter(note: Int): String = noteLetters[note % 12]
-private fun getOctave(note: Int): Int = note / 12
+/**
+ * Get the letter that a pitch has
+ * @param pitch The pitch
+ * @return The letter of the note
+ */
+private fun getLetter(pitch: Int): String = noteLetters[pitch % 12]
+
+/**
+ * Get the octave a pitch is in
+ * @param pitch The pitch
+ * @return The octave of the pitch
+ */
+private fun getOctave(pitch: Int): Int = pitch / 12
