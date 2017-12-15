@@ -32,7 +32,7 @@ object Model {
     private const val CLEAR_STATE: String = "clear_state_queue"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
 
-    private const val MODEL_LOCATION = "res/model50" // the location of the model
+    private const val MODEL_LOCATION = "res/model48" // the location of the model
 
     private val session = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation

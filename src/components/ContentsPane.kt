@@ -1,12 +1,12 @@
 package components
 
-import core.Analyser
+import core.Session
 import java.awt.BorderLayout
 import java.awt.GridLayout
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 
-class ContentsPane(analyser: Analyser) : JPanel() {
+class ContentsPane(session: Session) : JPanel() {
 
     init {
 
@@ -25,10 +25,19 @@ class ContentsPane(analyser: Analyser) : JPanel() {
         outputPanel.border = BorderFactory.createEtchedBorder()
         outputPanel.add(outputPane)
 
+        val controlPane = ControlPane(analyser)
+        val controlPanel = JPanel(GridLayout())
+        controlPanel.border = BorderFactory.createEtchedBorder()
+        controlPanel.add(controlPane)
+
+        val topPanel = JPanel(BorderLayout())
+        topPanel.add(phaserPanel, BorderLayout.NORTH)
+        topPanel.add(historyPanel, BorderLayout.CENTER)
+        topPanel.add(outputPanel, BorderLayout.SOUTH)
+
         layout = BorderLayout()
-        add(phaserPanel, BorderLayout.NORTH)
-        add(historyPanel, BorderLayout.CENTER)
-        add(outputPanel, BorderLayout.SOUTH)
+        add(topPanel, BorderLayout.CENTER)
+        add(controlPanel, BorderLayout.SOUTH)
 
     }
 
