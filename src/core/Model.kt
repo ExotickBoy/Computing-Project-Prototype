@@ -32,7 +32,7 @@ object Model {
     private const val CLEAR_STATE: String = "clear_state_queue"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
 
-    private const val MODEL_LOCATION = "res/model50" // the location of the model
+    private const val MODEL_LOCATION = "res/model53" // the location of the model
 
     private val session = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -71,7 +71,7 @@ object Model {
             // locks session to prevent concurrent modification
 
             val results = session.runner()
-                    .addTarget(ENQUEUE_NEW_STATE)
+//                    .addTarget(ENQUEUE_NEW_STATE)
                     .addTarget(ENQUEUE_NEW_INPUT)
                     .fetch(OUTPUT_TENSOR_NAME)
                     .fetch(MEL_BINS_TENSOR)
@@ -98,7 +98,8 @@ object Model {
         synchronized(session) {
             // locks session to prevent concurrent modification
 
-            session.runner().addTarget(ENQUEUE_ZERO_STATE)
+            session.runner()
+//                    .addTarget(ENQUEUE_ZERO_STATE)
                     .addTarget(ENQUEUE_START_INPUTS)
                     .run()
 
@@ -112,8 +113,8 @@ object Model {
         synchronized(session) {
             // locks session to prevent concurrent modification
 
-            session.runner().addTarget(CLEAR_STATE).run()
-            session.runner().addTarget(ENQUEUE_ZERO_STATE).run()
+//            session.runner().addTarget(CLEAR_STATE).run()
+//            session.runner().addTarget(ENQUEUE_ZERO_STATE).run()
 
         }
     }
