@@ -6,20 +6,32 @@ package core
  */
 class Session(val recording: Recording) {
 
-    val analyser: Analyser?
+    val analyser: Analyser = Analyser(this)
+    val updateCallbacks: MutableList<() -> Unit> = mutableListOf()
+    var cursor = -1
+        set(value) {
+            if (value != field) {
+                field = value
+                runCallbacks()
+            }
+        }
 
-    var cursor = 0
-
-    init {
-
-        analyser = Analyser(this)
-
-    }
 
     fun addTimeStep(timeStep: TimeStep) {
 
         recording.addTimeStep(timeStep)
+        runCallbacks()
 
+    }
+
+    fun addCallback(callback: () -> Unit) {
+
+        updateCallbacks.add(callback)
+
+    }
+
+    private fun runCallbacks() {
+        updateCallbacks.forEach { it.invoke() }
     }
 
 }

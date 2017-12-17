@@ -21,7 +21,6 @@ object Model {
     const val CONFIDENCE_CUT_OFF = .5 // the confidence below which predictions will be discarded
     const val MEL_BINS_AMOUNT: Int = 124 // the size of the output spectrum
 
-
     // The names of tensors in the model
     private const val INPUT_TENSOR_NAME: String = "inputs"
     private const val OUTPUT_TENSOR_NAME: String = "predictions"
@@ -34,7 +33,7 @@ object Model {
 
     private const val MODEL_LOCATION = "res/model53" // the location of the model
 
-    private val session = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
+    private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
 
     private val samplesInputBuffer: FloatBuffer // The FloatBuffer used for writing the samples and feeding them into the Model
@@ -67,10 +66,10 @@ object Model {
         samplesInputBuffer.put(samples)
         samplesInputBuffer.rewind()
 
-        synchronized(session) {
+        synchronized(tensorFlowSession) {
             // locks session to prevent concurrent modification
 
-            val results = session.runner()
+            val results = tensorFlowSession.runner()
 //                    .addTarget(ENQUEUE_NEW_STATE)
                     .addTarget(ENQUEUE_NEW_INPUT)
                     .fetch(OUTPUT_TENSOR_NAME)
@@ -95,10 +94,10 @@ object Model {
      * Instantiates the sessions state queue with the start state
      */
     private fun setState() {
-        synchronized(session) {
+        synchronized(tensorFlowSession) {
             // locks session to prevent concurrent modification
 
-            session.runner()
+            tensorFlowSession.runner()
 //                    .addTarget(ENQUEUE_ZERO_STATE)
                     .addTarget(ENQUEUE_START_INPUTS)
                     .run()
@@ -110,11 +109,11 @@ object Model {
      * Removes the current state stored in the session and replaces it with the start state
      */
     fun resetState() {
-        synchronized(session) {
+        synchronized(tensorFlowSession) {
             // locks session to prevent concurrent modification
 
-//            session.runner().addTarget(CLEAR_STATE).run()
-//            session.runner().addTarget(ENQUEUE_ZERO_STATE).run()
+//            tensorFlowSession.runner().addTarget(CLEAR_STATE).run()
+//            tensorFlowSession.runner().addTarget(ENQUEUE_ZERO_STATE).run()
 
         }
     }

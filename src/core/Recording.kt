@@ -163,6 +163,11 @@ class Recording(val tuning: Tuning, val name: String) {
         val length: Int
             get() = to - from
 
+
     }
+
+    // TODO
+    val length: Int
+        get() = timeSteps.size
 
 }

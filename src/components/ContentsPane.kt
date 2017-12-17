@@ -10,22 +10,26 @@ class ContentsPane(session: Session) : JPanel() {
 
     init {
 
-        val historyPane = HistoryPane(analyser)
+        session.addCallback {
+            repaint()
+        }
+
+        val historyPane = HistoryPane(session)
         val historyPanel = JPanel(GridLayout())
         historyPanel.border = BorderFactory.createEtchedBorder()
         historyPanel.add(historyPane)
 
-        val phaserPane = PhaserPane(analyser.recording)
+        val phaserPane = PhaserPane(session)
         val phaserPanel = JPanel(GridLayout())
         phaserPanel.border = BorderFactory.createEtchedBorder()
         phaserPanel.add(phaserPane)
 
-        val outputPane = OutputPane(analyser)
+        val outputPane = OutputPane(session)
         val outputPanel = JPanel(GridLayout())
         outputPanel.border = BorderFactory.createEtchedBorder()
         outputPanel.add(outputPane)
 
-        val controlPane = ControlPane(analyser)
+        val controlPane = ControlPane(session)
         val controlPanel = JPanel(GridLayout())
         controlPanel.border = BorderFactory.createEtchedBorder()
         controlPanel.add(controlPane)

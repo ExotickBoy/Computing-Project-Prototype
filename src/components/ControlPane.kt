@@ -1,52 +1,51 @@
 package components
 
-import core.Analyser
+import core.Session
 import javax.swing.JButton
 import javax.swing.JPanel
 
-class ControlPane(val analyser: Analyser) : JPanel() {
+class ControlPane(private val session: Session) : JPanel() {
+
+    private val pauseButton = JButton("Pause")
+    private val resumeButton = JButton("Resume")
+    private val cutButton = JButton("Cut")
+    private val startButton = JButton("Start")
 
     init {
 
-        val pauseButton = JButton("Pause")
         pauseButton.isVisible = false
-
-        val cutButton = JButton("Cut")
-        cutButton.isVisible = false
-
-        val startButton = JButton("Start")
-        startButton.addActionListener {
-
-            if (analyser.isRunning) {
-
-                analyser.stop()
-                startButton.isVisible = false
-                pauseButton.isVisible = false
-                cutButton.isVisible = true
-
-            } else {
-
-                try {
-
-                    analyser.start()
-                    startButton.text = "Stop"
-                    pauseButton.isVisible = true
-
-                } catch (e: IllegalArgumentException) {
-
-                    // TODO show a microphone is unavailable screen
-                    println("Couldn't open a microphone line")
-
-                }
-
-
-            }
-
+        pauseButton.addActionListener {
+            session.analyser.pause()
+            pauseButton.isVisible = false
+            resumeButton.isVisible = true
+            cutButton.isVisible = true
         }
-
         add(pauseButton)
+
+        resumeButton.isVisible = false
+        resumeButton.addActionListener {
+            session.analyser.resume()
+            pauseButton.isVisible = true
+            resumeButton.isVisible = false
+            cutButton.isVisible = false
+        }
+        add(resumeButton)
+
+        cutButton.isVisible = false
+        cutButton.addActionListener {
+            if (session.cursor != -1) {
+                session.recording.cut(session.cursor)
+            }
+        }
         add(cutButton)
+
+        startButton.addActionListener {
+            session.analyser.start()
+            startButton.isVisible = false
+            pauseButton.isVisible = true
+        }
         add(startButton)
+
 
     }
 

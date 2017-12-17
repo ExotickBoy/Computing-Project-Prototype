@@ -1,21 +1,22 @@
 package components
 
-import core.Analyser
 import core.Model
-import core.Recording
+import core.Session
 import core.noteString
 import java.awt.*
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
+import java.awt.event.MouseMotionListener
 import java.awt.geom.AffineTransform
 import java.awt.geom.Line2D
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
+import kotlin.math.max
+import kotlin.math.min
 
-class OutputPane(private val analyser: Analyser) : JPanel(), MouseListener {
+class OutputPane(private val session: Session) : JPanel(), MouseListener, MouseMotionListener {
 
-    private val recording: Recording
-        get() = analyser.recording
+    private var lastX: Int = 0
 
     init {
 
@@ -23,7 +24,6 @@ class OutputPane(private val analyser: Analyser) : JPanel(), MouseListener {
         addMouseListener(this)
 
     }
-
 
     override fun paintComponent(g2: Graphics?) {
 
@@ -34,13 +34,26 @@ class OutputPane(private val analyser: Analyser) : JPanel(), MouseListener {
 
         g.stroke = BasicStroke(.5f)
 
-        synchronized(recording) {
 
-            for (x in 0 until minOf(width, recording.timeSteps.size)) {
+        synchronized(session) {
 
-                g.drawImage(recording.timeSteps[recording.timeSteps.size - 1 - x].noteImage, width - x, 0, 1, Model.PITCH_RANGE, null)
+            val recording = session.recording
+            val analyser = session.analyser
+
+            val cursor = if (session.cursor != -1) session.cursor else session.recording.length
+            val onScreenCursor = min(max(width - (session.recording.length - cursor), width / 2), cursor)
+            val from = max(cursor - onScreenCursor, 0)
+            val to = min(cursor + (width - onScreenCursor), session.recording.length)
+
+            synchronized(recording) {
+
+                for (x in from until to) {
+                    g.drawImage(recording.timeSteps[x].noteImage, onScreenCursor + x - cursor, 0, 1, Model.PITCH_RANGE, null)
+                }
 
             }
+            g.color = Color.RED
+            g.draw(Line2D.Double(onScreenCursor.toDouble(), 0.0, onScreenCursor.toDouble(), Model.PITCH_RANGE.toDouble()))
 
             recording.timeSteps
                     .flatMap { it.notes }
@@ -93,16 +106,37 @@ class OutputPane(private val analyser: Analyser) : JPanel(), MouseListener {
 
     }
 
+    override fun mouseMoved(e: MouseEvent) {}
+    override fun mouseDragged(e: MouseEvent) {
 
-    override fun mouseClicked(e: MouseEvent?) {
+        if (!session.analyser.isRunning) {
 
-        Model.resetState()
+            val dx = e.x - lastX
+            lastX = e.x
+
+            if (session.cursor == -1) {
+                session.cursor = session.recording.length - 1
+            }
+
+            session.cursor = max(min(session.cursor - dx, session.recording.length), 0)
+
+        }
 
     }
 
-    override fun mouseReleased(e: MouseEvent?) {}
-    override fun mouseEntered(e: MouseEvent?) {}
-    override fun mouseExited(e: MouseEvent?) {}
-    override fun mousePressed(e: MouseEvent?) {}
+
+    override fun mouseClicked(e: MouseEvent) {
+
+
+    }
+
+    override fun mouseReleased(e: MouseEvent) {}
+    override fun mouseEntered(e: MouseEvent) {}
+    override fun mouseExited(e: MouseEvent) {}
+    override fun mousePressed(e: MouseEvent) {
+
+        lastX = e.x
+
+    }
 
 }
