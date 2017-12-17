@@ -20,20 +20,17 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
 
     constructor(samples: FloatArray, previous: TimeStep?) : this(samples, (previous?.time ?: -1) + 1, previous)
 
-    val magnitudes: Array<Double> = FFT.fft(samples).map(Complex::magnitude).toTypedArray() // TODO remove this call
-    val dePhased: Array<Double>
+    private val modelOutput: StepOutput = Model.feedForward(samples)
 
     val melImage: BufferedImage
     val noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
-    val modelOutput: StepOutput = Model.feedForward(samples)
-
     val pitches: List<Int> // TODO move this into step output
     val notes: List<Note>
 
-    init {
+    val dePhased: FloatArray = modelOutput.depased
 
-        dePhased = FFT.ifft(magnitudes.map { Complex(it, 0.0) }.toTypedArray()).map { it.re }.toTypedArray()
+    init {
 
         pitches = modelOutput.predictions
                 .mapIndexed { index, confidence -> index to confidence }

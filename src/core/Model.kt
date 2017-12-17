@@ -30,8 +30,9 @@ object Model {
     private const val ENQUEUE_NEW_INPUT: String = "enqueue_new_inputs"
     private const val CLEAR_STATE: String = "clear_state_queue"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
+    private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
 
-    private const val MODEL_LOCATION = "res/model53" // the location of the model
+    private const val MODEL_LOCATION = "res/model54" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -39,6 +40,7 @@ object Model {
     private val samplesInputBuffer: FloatBuffer // The FloatBuffer used for writing the samples and feeding them into the Model
     private val noteOutputBuffer: FloatBuffer // The buffer used for reading predictions from the Model
     private val spectrumOutputBuffer: FloatBuffer // The buffer used for reading the spectrum output from the Model
+    private val dephasedBuffer: FloatBuffer // The buffer used for reading the depahsed samples from the Model
 
     init {
 
@@ -46,6 +48,7 @@ object Model {
         samplesInputBuffer = FloatBuffer.allocate(FFT_SIZE)
         noteOutputBuffer = FloatBuffer.allocate(PITCH_RANGE)
         spectrumOutputBuffer = FloatBuffer.allocate(MEL_BINS_AMOUNT)
+        dephasedBuffer = FloatBuffer.allocate(FFT_SIZE)
 
         // initialise the state of the LSTM to the start state
         setState()
@@ -74,6 +77,7 @@ object Model {
                     .addTarget(ENQUEUE_NEW_INPUT)
                     .fetch(OUTPUT_TENSOR_NAME)
                     .fetch(MEL_BINS_TENSOR)
+                    .fetch(DEPHASED_SAMPLES)
                     .feed(INPUT_TENSOR_NAME,
                             Tensor.create(longArrayOf(1, 1, Model.FFT_SIZE.toLong()), samplesInputBuffer))
                     .run()
@@ -81,12 +85,14 @@ object Model {
 
             noteOutputBuffer.rewind()
             spectrumOutputBuffer.rewind()
+            dephasedBuffer.rewind()
             results[0].writeTo(noteOutputBuffer) // result[0] = OUTPUT_TENSOR_NAME
             results[1].writeTo(spectrumOutputBuffer) // result[1] = MEL_BINS_TENSOR
+            results[2].writeTo(dephasedBuffer) // result[1] = DEPHASED_SAMPLES
 
         }
 
-        return StepOutput(noteOutputBuffer.array(), spectrumOutputBuffer.array());
+        return StepOutput(noteOutputBuffer.array(), spectrumOutputBuffer.array(), dephasedBuffer.array())
 
     }
 

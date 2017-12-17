@@ -43,9 +43,9 @@ class HistoryPane internal constructor(private val session: Session) : JPanel(),
             }
 
         }
+        g.stroke = BasicStroke(2f)
         g.color = Color.RED
         g.draw(Line2D.Double(onScreenCursor.toDouble(), 0.0, onScreenCursor.toDouble(), height.toDouble()))
-
 
     }
 
@@ -57,11 +57,18 @@ class HistoryPane internal constructor(private val session: Session) : JPanel(),
             val dx = e.x - lastX
             lastX = e.x
 
-            if (session.cursor == -1) {
-                session.cursor = session.recording.length - 1
-            }
+            val before = (if (session.cursor == -1)
+                session.recording.length - 1
+            else
+                session.cursor)
 
-            session.cursor = max(min(session.cursor - dx, session.recording.length), 0)
+            val after = max(min(before - dx, session.recording.length), 0)
+
+            if (after == session.recording.length) {
+                session.cursor = -1
+            } else {
+                session.cursor = after
+            }
 
         }
 

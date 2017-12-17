@@ -12,11 +12,12 @@ class Recording(val tuning: Tuning, val name: String) {
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
-    val sections = mutableListOf<Section>()
+    val sections = mutableListOf<Section>(Section(this, 0, -1))
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
+    // TODO
     fun cut(time: Int) {
 
         var acc = 0
@@ -31,8 +32,10 @@ class Recording(val tuning: Tuning, val name: String) {
 
         val cutIn = sections[cut]
         sections.removeAt(cut)
-        sections.add(cut, Section(time, cutIn.to))
-        sections.add(cut, Section(cutIn.from, time))
+        sections.add(cut, Section(this, time + 1, cutIn.to))
+        sections.add(cut, Section(this, cutIn.from, time))
+
+        println(sections)
 
     }
 
@@ -155,14 +158,17 @@ class Recording(val tuning: Tuning, val name: String) {
      * This class is for storing the sections of recording that the use can split the entire recording into
      * @see Recording
      * @property from The inclusive start of the section in time steps
-     * @property to The exclusive end of the section in time steps
+     * @property to The exclusive end of the section in time steps, a value of -1 means that it goes to the end
      */
-    class Section(val from: Int, val to: Int) {
-        constructor(range: IntRange) : this(range.endInclusive, range.endInclusive - 1)
+    class Section(private val recording: Recording, val from: Int, val to: Int) {
+        constructor(recording: Recording, range: IntRange) : this(recording, range.endInclusive, range.endInclusive - 1)
 
         val length: Int
-            get() = to - from
+            get() = (if (to == -1) recording.length - 1 else to) - from
 
+        override fun toString(): String {
+            return "Section(recording=$recording, from=$from, to=$to)"
+        }
 
     }
 

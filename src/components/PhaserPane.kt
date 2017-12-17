@@ -61,7 +61,7 @@ class PhaserPane internal constructor(private val session: Session) : JPanel() {
 
     companion object {
 
-        private const val SCALE = 100.0
+        private const val SCALE = 250.0
 
     }
 
