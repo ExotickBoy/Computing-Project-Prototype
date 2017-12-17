@@ -1,7 +1,6 @@
 package core;
 
 import javax.sound.sampled.*;
-import javax.swing.*;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -19,23 +18,24 @@ public class Analyser {
     private final QueueThread queueThread;
     private TimeStep lastTimeStep;
 
-    private final Recording recording;
+
     private int stepsShown;
 
     private TargetDataLine targetLine;
-    private JFrame frame;
 
-    public Analyser(Recording recording, JFrame frame) throws IllegalArgumentException, LineUnavailableException {
+    private boolean isPaused = false;
+    private Session session;
 
-        this.recording = recording;
-        this.frame = frame;
+    public Analyser(Session session) {
+
+        this.session = session;
         queueThread = new QueueThread();
-
-        openMicrophoneStream();
 
     }
 
-    public void start() {
+    public void start() throws IllegalArgumentException, LineUnavailableException {
+
+        openMicrophoneStream();
 
         targetLine.start();
 
@@ -58,6 +58,9 @@ public class Analyser {
             numBytesRead = targetLine.read(read, 0, read.length);
             if (numBytesRead == -1)
                 break;
+
+            if (isPaused)
+                continue;
 
             float[] temp = buffer;
             buffer = data;
@@ -94,6 +97,20 @@ public class Analyser {
 
     }
 
+    public void pause() {
+        isPaused = true;
+    }
+
+    public void resume() {
+        isPaused = false;
+    }
+
+    public void stop() {
+        if (targetLine != null && targetLine.isOpen()) {
+            targetLine.close();
+        }
+    }
+
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
 
         AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
@@ -102,6 +119,10 @@ public class Analyser {
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
         targetLine.open(format, SAMPLE_RATE / 5);
 
+    }
+
+    public boolean isRunning() {
+        return targetLine != null && targetLine.isOpen();
     }
 
     private final class QueueThread extends Thread {
@@ -130,11 +151,10 @@ public class Analyser {
                     difference -= mspt;
 
                     if (!timeStepBufferQueue.isEmpty()) {
-                        synchronized (recording) {
-                            recording.addTimeStep(timeStepBufferQueue.poll());
+                        synchronized (session) {
+                            session.addTimeStep(timeStepBufferQueue.poll());
                             stepsShown++;
                         }
-                        frame.repaint();
                     }
 
                 }
@@ -154,10 +174,6 @@ public class Analyser {
 
         }
 
-    }
-
-    public Recording getRecording() {
-        return recording;
     }
 
     public int getStepsShown() {

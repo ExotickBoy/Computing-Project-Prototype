@@ -70,8 +70,8 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
 
     companion object {
 
-        const val maxMagnitude = 5.0f
-        const val minMagnitude = -20.0f
+        const val maxMagnitude = 0.0f
+        const val minMagnitude = -13.0f
 
         /**
          * Converts the colour from hsv format to an int representation
