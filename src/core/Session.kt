@@ -15,13 +15,22 @@ class Session(val recording: Recording) {
                 runCallbacks()
             }
         }
-
+    var swapMode: Boolean = false
+        set(value) {
+            field = value
+            runCallbacks()
+        }
 
     fun addTimeStep(timeStep: TimeStep) {
 
         recording.addTimeStep(timeStep)
         runCallbacks()
 
+    }
+
+    fun makeCut(cursor: Int) {
+        recording.cut(cursor)
+        runCallbacks()
     }
 
     fun addCallback(callback: () -> Unit) {
@@ -32,6 +41,12 @@ class Session(val recording: Recording) {
 
     private fun runCallbacks() {
         updateCallbacks.forEach { it.invoke() }
+    }
+
+    companion object {
+
+        const val swapModeZoom = 5.0
+
     }
 
 }

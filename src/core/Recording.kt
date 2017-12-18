@@ -18,8 +18,29 @@ class Recording(val tuning: Tuning, val name: String) {
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
     // TODO
-    fun cut(time: Int) {
+    internal fun cut(time: Int) {
 
+        val cutIndex = sectionAt(time)
+        val cutSection = sections[cutIndex]
+
+        println("${time - cutSection.from} ${cutSection.to - time - 1}")
+
+        if (time - cutSection.from > Section.minLength && cutSection.correctedTo - time - 1 > Section.minLength) {
+
+            val leftNew = Section(this, cutSection.from, time)
+            val rightNew = Section(this, time + 1, cutSection.to)
+
+            sections.removeAt(cutIndex)
+            sections.add(cutIndex, rightNew)
+            sections.add(cutIndex, leftNew)
+
+        }
+
+        println(sections)
+
+    }
+
+    internal fun sectionAt(time: Int): Int {
         var acc = 0
         var cut = 0
         for (i in 0 until sections.size) {
@@ -30,20 +51,14 @@ class Recording(val tuning: Tuning, val name: String) {
             }
         }
 
-        val cutIn = sections[cut]
-        sections.removeAt(cut)
-        sections.add(cut, Section(this, time + 1, cutIn.to))
-        sections.add(cut, Section(this, cutIn.from, time))
-
-        println(sections)
-
+        return cut
     }
 
     /**
      * Adds a new time step to the end of the recording
      * @param timeStep The TimeStep that is to be added
      */
-    fun addTimeStep(timeStep: TimeStep) {
+    internal fun addTimeStep(timeStep: TimeStep) {
 
         synchronized(possiblePlacements) {
             // synchronised to prevent concurrent modification
@@ -164,10 +179,19 @@ class Recording(val tuning: Tuning, val name: String) {
         constructor(recording: Recording, range: IntRange) : this(recording, range.endInclusive, range.endInclusive - 1)
 
         val length: Int
-            get() = (if (to == -1) recording.length - 1 else to) - from
+            get() = correctedTo - from
+
+        val correctedTo: Int
+            get() = if (to == -1) recording.length - 1 else to
 
         override fun toString(): String {
             return "Section(recording=$recording, from=$from, to=$to)"
+        }
+
+        companion object {
+
+            const val minLength = 10
+
         }
 
     }

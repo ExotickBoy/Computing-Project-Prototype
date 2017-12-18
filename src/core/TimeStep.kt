@@ -1,8 +1,9 @@
 package core
 
+import java.awt.Color
 import java.awt.image.BufferedImage
-import java.lang.Float.max
-import java.lang.Float.min
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * This class is for storing the data related to each section of time.
@@ -54,67 +55,59 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
 
         melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
-            val hue = (1 - (min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude)) * 2.0 / 3
-            melImage.setRGB(0, y, hsvToInt(hue, 1, 1))
+            val value = ((min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
+            melImage.setRGB(0, y, mapToColour(value))
         }
         noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.PITCH_RANGE) {
-            val hue = (1 - min(max(modelOutput.predictions[y], 0f), 1f)) * 2.0 / 3
-            noteImage.setRGB(0, y, hsvToInt(hue, 1, 1))
+            val value = min(max(modelOutput.predictions[y], 0f), 1f)
+            noteImage.setRGB(0, y, mapToColour(value))
         }
 
     }
 
     companion object {
 
-        const val maxMagnitude = 0.0f
-        const val minMagnitude = -13.0f
+        private const val maxMagnitude = 0.0f
+        private const val minMagnitude = -13.0f
 
-        /**
-         * Converts the colour from hsv format to an int representation
-         * @param h The value of hue, in 0..1
-         * @param s The value of saturation, in 0..1
-         * @param v The value of value, in 0..1
-         * @return the 32 bit representation of the colour
-         */
-        private fun hsvToInt(h: Number, s: Number, v: Number): Int = hsvToInt(h.toDouble(), s.toDouble(), v.toDouble())
+        private val colourMapColours: Array<Color> = arrayOf(
+                Color(70, 6, 90),
+                Color(54, 91, 141),
+                Color(47, 180, 124),
+                Color(248, 230, 33)
+        )
 
-        /**
-         * Converts the colour from hsv format to an int representation
-         * @param h The value of hue, in 0..1
-         * @param s The value of saturation, in 0..1
-         * @param v The value of value, in 0..1
-         * @return the 32 bit representation of the colour
-         */
-        private fun hsvToInt(hue: Double, saturation: Double, value: Double): Int {
-            var h = (hue * 6).toInt()
-            if (h == 6)
-                h = 5
-            val f = hue * 6 - h
-            val p = value * (1 - saturation)
-            val q = value * (1 - f * saturation)
-            val t = value * (1 - (1 - f) * saturation)
+        private fun mapToColour(x: Float, colours: Array<Color> = colourMapColours): Int {
+            val h = (x * (colours.size - 1)).toInt()
+            val f = (x * (colours.size - 1)) % 1
 
-            return when (h) {
-                0 -> rgbToInt(value, t, p)
-                1 -> rgbToInt(q, value, p)
-                2 -> rgbToInt(p, value, t)
-                3 -> rgbToInt(p, q, value)
-                4 -> rgbToInt(t, p, value)
-                5 -> rgbToInt(value, p, q)
-                else -> throw RuntimeException("Something went wrong when converting from HSV to RGB. Input was $hue, $saturation, $value")
-            }
+            return if (h == colours.size - 1)
+                rgbToInt(colours[h])
+            else
+                interpolateColourToInt(colours[h], colours[h + 1], f)
         }
 
+        private fun interpolateColourToInt(a: Color, b: Color, x: Float): Int {
+
+            return rgbToInt(a.red * (1 - x) + b.red * x,
+                    a.green * (1 - x) + b.green * x,
+                    a.blue * (1 - x) + b.blue * x)
+
+        }
+
+        private fun rgbToInt(r: Float, g: Float, b: Float): Int = rgbToInt(r.toInt(), g.toInt(), b.toInt())
+
         /**
-         * Convert a colour in rbg [0-1] format to the integer that represents that colour
-         * @param r The amount of red, in 0..1
-         * @param g The amount of green, in 0..1
-         * @param b The amount of blue, in 0..1
+         * Convert a colour in rbg [0-255] format to the integer that represents that colour
+         * @param r The amount of red, in 0..255
+         * @param g The amount of green, in 0..255
+         * @param b The amount of blue, in 0..255
          * @return the 32 bit representation of the colour
          */
-        private fun rgbToInt(r: Double, g: Double, b: Double): Int =
-                (r * 255).toInt() shl 16 or ((g * 255).toInt() shl 8) or (b * 255).toInt()
+        private fun rgbToInt(r: Int, g: Int, b: Int): Int = (r shl 16) or (g shl 8) or b
+
+        private fun rgbToInt(col: Color): Int = rgbToInt(col.red, col.green, col.blue)
 
     }
 

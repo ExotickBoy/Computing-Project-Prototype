@@ -3,23 +3,23 @@ package components
 import core.Recording
 import core.Session
 import java.awt.*
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
-import java.awt.event.MouseMotionListener
+import java.awt.geom.AffineTransform
 import java.awt.geom.Line2D
 import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
 
-class HistoryPane internal constructor(private val session: Session) : JPanel(), MouseMotionListener, MouseListener {
+class HistoryPane internal constructor(private val session: Session) : JPanel() {
 
     private var lastX: Int = 0
 
     init {
 
         preferredSize = Dimension(500, 300)
-        addMouseMotionListener(this)
-        addMouseListener(this)
+
+        val scrollController = ScrollController(false, session)
+        addMouseMotionListener(scrollController)
+        addMouseListener(scrollController)
     }
 
     override fun paintComponent(g2: Graphics) {
@@ -37,54 +37,66 @@ class HistoryPane internal constructor(private val session: Session) : JPanel(),
         val to = min(cursor + (width - onScreenCursor), session.recording.length)
 
         synchronized(recording) {
+            if (session.swapMode) {
 
-            for (x in from until to) {
-                g.drawImage(recording.timeSteps[x].melImage, onScreenCursor + x - cursor, 0, 1, height, null)
+                session.recording.sections.filter {
+                    to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
+                }.forEach {
+
+                    val start = max(it.from, from)
+                    val length = min(it.correctedTo, to) - start
+
+                    val transformBefore = g.transform
+                    g.transform(AffineTransform(
+                            1 - (Session.swapModeZoom * 2 / it.length),
+                            0.0,
+                            0.0,
+                            1 - (Session.swapModeZoom * 2 / height),
+                            Session.swapModeZoom + onScreenCursor - cursor + start,
+                            Session.swapModeZoom
+                    ))
+
+                    for (x in 0..length) {
+
+                        g.drawImage(recording.timeSteps[x].melImage, x, 0, 1, height, null)
+
+                    } // TODO fix this
+
+                    g.transform = transformBefore
+
+                }
+
+            } else {
+
+                session.recording.sections.filter {
+                    to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
+                }.forEach {
+
+                    for (x in max(it.from, from)..min(it.correctedTo, to)) {
+
+                        g.drawImage(recording.timeSteps[x].melImage, onScreenCursor + x - cursor, 0, 1, height, null)
+
+                    }
+
+                }
+
             }
 
         }
+
         g.stroke = BasicStroke(2f)
         g.color = Color.RED
         g.draw(Line2D.Double(onScreenCursor.toDouble(), 0.0, onScreenCursor.toDouble(), height.toDouble()))
 
-    }
 
-    override fun mouseMoved(e: MouseEvent) {}
-    override fun mouseDragged(e: MouseEvent) {
-
-        if (!session.analyser.isRunning) {
-
-            val dx = e.x - lastX
-            lastX = e.x
-
-            val before = (if (session.cursor == -1)
-                session.recording.length - 1
-            else
-                session.cursor)
-
-            val after = max(min(before - dx, session.recording.length), 0)
-
-            if (after == session.recording.length) {
-                session.cursor = -1
-            } else {
-                session.cursor = after
-            }
-
-        }
+        g.stroke = BasicStroke(.75f)
+        session.recording.sections.filter { it.correctedTo in from..to }.filter { it.to != -1 }
+                .forEach {
+                    g.color = Color.MAGENTA
+                    g.draw(Line2D.Double((it.correctedTo - from).toDouble(), 0.0, (it.correctedTo - from).toDouble(), height.toDouble()))
+                }
 
     }
-
-    override fun mousePressed(e: MouseEvent) {
-
-        lastX = e.x
-
-    }
-
-    override fun mouseReleased(e: MouseEvent) {}
-    override fun mouseEntered(e: MouseEvent) {}
-    override fun mouseExited(e: MouseEvent) {}
-
-    override fun mouseClicked(e: MouseEvent) {}
 
     private val recording: Recording
         get() = session.recording

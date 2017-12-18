@@ -3,24 +3,22 @@ package components
 import core.Session
 import core.noteString
 import java.awt.*
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
-import java.awt.event.MouseMotionListener
 import java.awt.geom.Line2D
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
-import kotlin.math.max
-import kotlin.math.min
 
-class NoteOutputPane(private val session: Session) : JPanel(), MouseListener, MouseMotionListener {
+class NoteOutputPane(private val session: Session) : JPanel() {
 
     private var lastX: Int = 0
 
     init {
 
         preferredSize = Dimension(500, 150)
-        addMouseListener(this)
-        addMouseMotionListener(this)
+
+        val scrollController = ScrollController(true, session)
+        addMouseMotionListener(scrollController)
+        addMouseListener(scrollController)
+
 
     }
 
@@ -34,7 +32,6 @@ class NoteOutputPane(private val session: Session) : JPanel(), MouseListener, Mo
         g.stroke = BasicStroke(.5f)
 
         synchronized(session) {
-
 
             val recording = session.recording
 
@@ -69,42 +66,5 @@ class NoteOutputPane(private val session: Session) : JPanel(), MouseListener, Mo
 
 
     }
-
-    override fun mouseMoved(e: MouseEvent) {}
-    override fun mouseDragged(e: MouseEvent) {
-
-        if (!session.analyser.isRunning) {
-
-            val dx = e.x - lastX
-            lastX = e.x
-
-            val before = (if (session.cursor == -1)
-                session.recording.length - 1
-            else
-                session.cursor)
-
-            val after = max(min(before - dx, session.recording.length), 0)
-
-            if (after == session.recording.length) {
-                session.cursor = -1
-            } else {
-                session.cursor = after
-            }
-
-        }
-
-    }
-
-    override fun mousePressed(e: MouseEvent) {
-
-        lastX = e.x
-
-    }
-
-
-    override fun mouseClicked(e: MouseEvent) {}
-    override fun mouseReleased(e: MouseEvent) {}
-    override fun mouseEntered(e: MouseEvent) {}
-    override fun mouseExited(e: MouseEvent) {}
 
 }

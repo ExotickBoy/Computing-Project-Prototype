@@ -34,7 +34,7 @@ class ControlPane(private val session: Session) : JPanel() {
         cutButton.isVisible = false
         cutButton.addActionListener {
             if (session.cursor != -1) {
-                session.recording.cut(session.cursor)
+                session.makeCut(session.cursor)
             }
         }
         add(cutButton)
