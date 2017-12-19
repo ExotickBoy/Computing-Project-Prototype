@@ -11,7 +11,7 @@ class ContentsPane(session: Session) : JPanel() {
 
     init {
 
-        session.addCallback {
+        session.addOnUpdateListener {
             repaint()
         }
 

@@ -17,13 +17,21 @@ class Recording(val tuning: Tuning, val name: String) {
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
-    // TODO
+    /**
+     * The length of the recording in timeSteps
+     */
+    val length: Int
+        get() = timeSteps.size
+
+    /**
+     * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
+     * It may do nothing if one of the created sections is less than the minimum section length
+     * @param time The time to cut the recording at
+     */
     internal fun cut(time: Int) {
 
         val cutIndex = sectionAt(time)
         val cutSection = sections[cutIndex]
-
-        println("${time - cutSection.from} ${cutSection.to - time - 1}")
 
         if (time - cutSection.from > Section.minLength && cutSection.correctedTo - time - 1 > Section.minLength) {
 
@@ -36,10 +44,13 @@ class Recording(val tuning: Tuning, val name: String) {
 
         }
 
-        println(sections)
-
     }
 
+    /**
+     * Finds the section at the time given
+     * @param time The time in question
+     * @return The index of the section
+     */
     internal fun sectionAt(time: Int): Int {
         var acc = 0
         var cut = 0
@@ -81,6 +92,7 @@ class Recording(val tuning: Tuning, val name: String) {
 
     /**
      * This optimised the possible placements from a particular placement forward
+     * @param from The time at which the optimisation should start
      */
     private fun optimiseForward(from: Int) {
 
@@ -142,6 +154,19 @@ class Recording(val tuning: Tuning, val name: String) {
 
     }
 
+    /**
+     * Swaps two sections of the recording by their incises
+     * @param a The index of the first section
+     * @param b The index of the second section
+     */
+    fun swapSections(a: Int, b: Int) {
+
+        val temp = sections[a]
+        sections[a] = sections[b]
+        sections[b] = temp
+
+    }
+
     companion object {
 
         /**
@@ -168,36 +193,5 @@ class Recording(val tuning: Tuning, val name: String) {
      * @property distance The distance for the particular path
      */
     private data class Path(val route: List<Int>, val distance: Double)
-
-    /**
-     * This class is for storing the sections of recording that the use can split the entire recording into
-     * @see Recording
-     * @property from The inclusive start of the section in time steps
-     * @property to The exclusive end of the section in time steps, a value of -1 means that it goes to the end
-     */
-    class Section(private val recording: Recording, val from: Int, val to: Int) {
-        constructor(recording: Recording, range: IntRange) : this(recording, range.endInclusive, range.endInclusive - 1)
-
-        val length: Int
-            get() = correctedTo - from
-
-        val correctedTo: Int
-            get() = if (to == -1) recording.length - 1 else to
-
-        override fun toString(): String {
-            return "Section(recording=$recording, from=$from, to=$to)"
-        }
-
-        companion object {
-
-            const val minLength = 10
-
-        }
-
-    }
-
-    // TODO
-    val length: Int
-        get() = timeSteps.size
 
 }

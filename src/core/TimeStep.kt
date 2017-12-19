@@ -71,6 +71,11 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
         private const val maxMagnitude = 0.0f
         private const val minMagnitude = -13.0f
 
+        /**
+         * The colours can interpolate between to create a scale.
+         * I chose these colors because I wanted to reduce the amount of colours that the heat map uses so that
+         * I can use other colours over it
+         */
         private val colourMapColours: Array<Color> = arrayOf(
                 Color(70, 6, 90),
                 Color(54, 91, 141),
@@ -78,6 +83,11 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
                 Color(248, 230, 33)
         )
 
+        /**
+         * Makes a value between 0 and 1 to a colour for the heat map
+         * @param x The value to be mapped
+         * @param colours The list of colours that are to be interpolated between, by default colourMapColours
+         */
         private fun mapToColour(x: Float, colours: Array<Color> = colourMapColours): Int {
             val h = (x * (colours.size - 1)).toInt()
             val f = (x * (colours.size - 1)) % 1
@@ -88,6 +98,13 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
                 interpolateColourToInt(colours[h], colours[h + 1], f)
         }
 
+        /**
+         * Interpolates between two colours and then converts the resulting colour to the 32 bit integer that
+         * represents that colour
+         * @param a The start colour
+         * @param b The end colour
+         * @param x the point in the interpolation
+         */
         private fun interpolateColourToInt(a: Color, b: Color, x: Float): Int {
 
             return rgbToInt(a.red * (1 - x) + b.red * x,
@@ -96,6 +113,13 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
 
         }
 
+        /**
+         * A wrapper function which automatically casts floats to integers
+         * @param r The amount of red, in 0f..255f
+         * @param g The amount of green, in 0f..255f
+         * @param b The amount of blue, in 0f..255f
+         * @return the 32 bit representation of the colour
+         */
         private fun rgbToInt(r: Float, g: Float, b: Float): Int = rgbToInt(r.toInt(), g.toInt(), b.toInt())
 
         /**
@@ -107,6 +131,11 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
          */
         private fun rgbToInt(r: Int, g: Int, b: Int): Int = (r shl 16) or (g shl 8) or b
 
+        /**
+         * Converts the colour object into the 32 bit integer that represents it
+         * @col The colour to be converted
+         * @return the 32 bit representation of the colour
+         */
         private fun rgbToInt(col: Color): Int = rgbToInt(col.red, col.green, col.blue)
 
     }

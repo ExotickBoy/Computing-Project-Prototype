@@ -7,11 +7,18 @@ import java.awt.event.MouseMotionListener
 import kotlin.math.max
 import kotlin.math.min
 
+/**
+ * This class is the mouse listener that is reused int he various output panes.
+ * It controls scrolling of the cursor and swapping of sections
+ * @property isNote If the scrolling should wrap to the closest note
+ * @property session The session that this controller is responsible for
+ */
 class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionListener, MouseListener {
 
     private var lastX = 0
 
     override fun mouseMoved(e: MouseEvent) {}
+
     override fun mouseDragged(e: MouseEvent) {
         if (!session.analyser.isRunning) {
 
@@ -51,12 +58,6 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
     override fun mouseEntered(e: MouseEvent) {}
     override fun mouseExited(e: MouseEvent) {}
 
-    override fun mouseClicked(e: MouseEvent) {
-
-        if (e.button == MouseEvent.BUTTON2) { // Middle mouse
-            session.swapMode = !session.swapMode
-        }
-
-    }
+    override fun mouseClicked(e: MouseEvent) {}
 
 }

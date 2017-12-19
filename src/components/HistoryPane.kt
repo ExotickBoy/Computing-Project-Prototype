@@ -11,8 +11,6 @@ import kotlin.math.min
 
 class HistoryPane internal constructor(private val session: Session) : JPanel() {
 
-    private var lastX: Int = 0
-
     init {
 
         preferredSize = Dimension(500, 300)
@@ -20,6 +18,7 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
         val scrollController = ScrollController(false, session)
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
+
     }
 
     override fun paintComponent(g2: Graphics) {
@@ -37,7 +36,7 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
         val to = min(cursor + (width - onScreenCursor), session.recording.length)
 
         synchronized(recording) {
-            if (session.swapMode) {
+            if (session.swap != null) {
 
                 session.recording.sections.filter {
                     to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
@@ -58,7 +57,7 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
 
                     for (x in 0..length) {
 
-                        g.drawImage(recording.timeSteps[x].melImage, x, 0, 1, height, null)
+                        g.drawImage(recording.timeSteps[start + x].melImage, x, 0, 1, height, null)
 
                     } // TODO fix this
 
