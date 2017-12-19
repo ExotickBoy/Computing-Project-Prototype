@@ -6,8 +6,9 @@ package core
  * @property from The inclusive start of the section in time steps
  * @property to The exclusive end of the section in time steps, a value of -1 means that it goes to the end
  */
-class Section(private val recording: Recording, val from: Int, val to: Int) {
-    constructor(recording: Recording, range: IntRange) : this(recording, range.endInclusive, range.endInclusive - 1)
+class Section(private val recording: Recording, val from: Int, val to: Int, var absoluteStart: Int) {
+    constructor(recording: Recording, range: IntRange, absoluteStart: Int) :
+            this(recording, range.endInclusive, range.endInclusive - 1, absoluteStart)
 
     /**
      * The length of the section in samples

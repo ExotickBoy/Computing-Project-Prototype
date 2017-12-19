@@ -3,7 +3,6 @@ package components
 import core.Recording
 import core.Session
 import java.awt.*
-import java.awt.geom.AffineTransform
 import java.awt.geom.Line2D
 import javax.swing.JPanel
 import kotlin.math.max
@@ -36,46 +35,14 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
         val to = min(cursor + (width - onScreenCursor), session.recording.length)
 
         synchronized(recording) {
-            if (session.swap != null) {
 
-                session.recording.sections.filter {
-                    to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
-                }.forEach {
+            session.recording.sections.filter {
+                to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
+            }.forEach {
 
-                    val start = max(it.from, from)
-                    val length = min(it.correctedTo, to) - start
+                for (x in max(it.from, from)..min(it.correctedTo, to)) {
 
-                    val transformBefore = g.transform
-                    g.transform(AffineTransform(
-                            1 - (Session.swapModeZoom * 2 / it.length),
-                            0.0,
-                            0.0,
-                            1 - (Session.swapModeZoom * 2 / height),
-                            Session.swapModeZoom + onScreenCursor - cursor + start,
-                            Session.swapModeZoom
-                    ))
-
-                    for (x in 0..length) {
-
-                        g.drawImage(recording.timeSteps[start + x].melImage, x, 0, 1, height, null)
-
-                    } // TODO fix this
-
-                    g.transform = transformBefore
-
-                }
-
-            } else {
-
-                session.recording.sections.filter {
-                    to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
-                }.forEach {
-
-                    for (x in max(it.from, from)..min(it.correctedTo, to)) {
-
-                        g.drawImage(recording.timeSteps[x].melImage, onScreenCursor + x - cursor, 0, 1, height, null)
-
-                    }
+                    g.drawImage(recording.timeSteps[x].melImage, onScreenCursor + x - cursor, 0, 1, height, null)
 
                 }
 

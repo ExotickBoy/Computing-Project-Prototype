@@ -12,7 +12,7 @@ class Recording(val tuning: Tuning, val name: String) {
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
-    val sections = mutableListOf<Section>(Section(this, 0, -1))
+    val sections = mutableListOf<Section>(Section(this, 0, -1, 0))
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
@@ -35,8 +35,8 @@ class Recording(val tuning: Tuning, val name: String) {
 
         if (time - cutSection.from > Section.minLength && cutSection.correctedTo - time - 1 > Section.minLength) {
 
-            val leftNew = Section(this, cutSection.from, time)
-            val rightNew = Section(this, time + 1, cutSection.to)
+            val leftNew = Section(this, cutSection.from, time, cutSection.absoluteStart)
+            val rightNew = Section(this, time + 1, cutSection.to, cutSection.absoluteStart + leftNew.length)
 
             sections.removeAt(cutIndex)
             sections.add(cutIndex, rightNew)
