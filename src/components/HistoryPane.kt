@@ -1,9 +1,7 @@
 package components
 
-import core.Recording
 import core.Session
 import java.awt.*
-import java.awt.geom.Line2D
 import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
@@ -29,20 +27,15 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
         rh.put(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.setRenderingHints(rh)
 
-        val cursor = if (session.cursor != -1) session.cursor else session.recording.length
-        val onScreenCursor = min(max(width - (session.recording.length - cursor), width / 2), cursor)
-        val from = max(cursor - onScreenCursor, 0)
-        val to = min(cursor + (width - onScreenCursor), session.recording.length)
-
-        synchronized(recording) {
+        synchronized(session.recording) {
 
             session.recording.sections.filter {
-                to in it.from..it.correctedTo || from in it.from..it.correctedTo || it.from in from..to || it.to in from..to
+                it.range overlaps session.visibleRange
             }.forEach {
 
-                for (x in max(it.from, from)..min(it.correctedTo, to)) {
+                for (x in max(it.from, session.from)..min(it.correctedTo, session.to)) {
 
-                    g.drawImage(recording.timeSteps[x].melImage, onScreenCursor + x - cursor, 0, 1, height, null)
+                    g.drawImage(session.recording.timeSteps[x].melImage, session.onScreenCursor + x - session.correctedCursor, 0, 1, height, null)
 
                 }
 
@@ -52,19 +45,15 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
 
         g.stroke = BasicStroke(2f)
         g.color = Color.RED
-        g.draw(Line2D.Double(onScreenCursor.toDouble(), 0.0, onScreenCursor.toDouble(), height.toDouble()))
-
+        g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, height))
 
         g.stroke = BasicStroke(.75f)
-        session.recording.sections.filter { it.correctedTo in from..to }.filter { it.to != -1 }
+        session.recording.sections.filter { it.correctedTo in session.visibleRange }.filter { it.to != -1 }
                 .forEach {
                     g.color = Color.MAGENTA
-                    g.draw(Line2D.Double((it.correctedTo - from).toDouble(), 0.0, (it.correctedTo - from).toDouble(), height.toDouble()))
+                    g.draw(line(it.correctedTo - session.from, 0, it.correctedTo - session.from, height))
                 }
 
     }
-
-    private val recording: Recording
-        get() = session.recording
 
 }

@@ -51,19 +51,8 @@ class Recording(val tuning: Tuning, val name: String) {
      * @param time The time in question
      * @return The index of the section
      */
-    internal fun sectionAt(time: Int): Int {
-        var acc = 0
-        var cut = 0
-        for (i in 0 until sections.size) {
-            acc += sections[i].length
-            if (time <= acc) {
-                cut = i
-                break
-            }
-        }
-
-        return cut
-    }
+    internal fun sectionAt(time: Int): Int = (0 until sections.size).firstOrNull { time <= sections[it].absoluteStart }
+            ?: 0
 
     /**
      * Adds a new time step to the end of the recording

@@ -3,6 +3,7 @@ package components
 import core.Session
 import java.awt.BorderLayout
 import java.awt.GridLayout
+import java.awt.geom.Line2D
 import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.JPanel
@@ -54,3 +55,9 @@ class ContentsPane(session: Session) : JPanel() {
     }
 
 }
+
+fun line(x1: Number, y1: Number, x2: Number, y2: Number): Line2D.Double =
+        Line2D.Double(x1.toDouble(), y1.toDouble(), x2.toDouble(), y2.toDouble())
+
+infix fun IntRange.overlaps(other: IntRange): Boolean
+        = first in other || endInclusive in other || other.first in this || other.endInclusive in this

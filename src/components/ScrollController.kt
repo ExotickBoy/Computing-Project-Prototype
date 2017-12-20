@@ -4,8 +4,10 @@ import core.Session
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sign
 
 /**
  * This class is the mouse listener that is reused int he various output panes.
@@ -17,13 +19,14 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
     private var lastX = 0
     private var longPressTimer: LongPressThread? = null
+    private var draggingThread: DraggingThread? = null
 
     override fun mouseMoved(e: MouseEvent) {
-        longPressTimer?.end()
+        longPressTimer?.interrupt()
     }
 
     override fun mouseDragged(e: MouseEvent) {
-        longPressTimer?.end()
+        longPressTimer?.interrupt()
 
         if (!session.analyser.isRunning) {
 
@@ -40,12 +43,7 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
                 val after = max(min(before - dx, session.recording.length), 0)
 
-
-                if (after == session.recording.length) {
-                    session.cursor = -1
-                } else {
-                    session.cursor = after
-                }
+                session.cursor = after
 
             }
 
@@ -57,13 +55,14 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
         lastX = e.x
 
-        longPressTimer?.end()
+        longPressTimer?.interrupt()
         longPressTimer = LongPressThread(this)
 
     }
 
     override fun mouseReleased(e: MouseEvent) {
-        longPressTimer?.end()
+        longPressTimer?.interrupt()
+        draggingThread?.interrupt()
     }
 
     override fun mouseEntered(e: MouseEvent) {}
@@ -74,22 +73,64 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
     fun mouseLongPressed() {
         println("longPress")
         session.swap = session.recording.sectionAt(lastX + session.cursor
-//                - session.onScreenCursor
+                - session.onScreenCursor
         )
-        println(session.swap ?: "null")
+        draggingThread = DraggingThread(this)
+    }
+
+    fun mouseLongUnpressed() {
+        session.swap = null
     }
 
     companion object {
 
-        const val holdTime: Int = (5 * 1000).toInt()
+        const val holdTime: Int = (.5 * 1000).toInt()
+
+    }
+
+    class DraggingThread(private val controller: ScrollController) : Thread() {
+
+        init {
+            name = "Drag Thread"
+            start()
+        }
+
+        override fun run() {
+
+            val mspt = 1000.0 / 30 // miliseconds per tick
+            var last = System.currentTimeMillis()
+            var current = last
+            var difference = 0.0
+
+            while (!isInterrupted) {
+
+                println("dragging")
+
+                last = current
+                current = System.currentTimeMillis()
+                difference += (current - last).toDouble()
+
+                while (difference > mspt) {
+                    difference -= mspt
+
+                    controller.session.cursor = controller.session.cursor + controller.movementDirection(controller.lastX)
+                }
+
+            }
+
+        }
+
+    }
+
+    fun movementDirection(x: Int): Int {
+
+        return (0.2 * max(0.0, abs(x - session.width / 2) - 150.0) * sign(x - session.width / 2.0)).toInt()
 
     }
 
     class LongPressThread(private val controller: ScrollController) : Thread() {
 
-        private val startTime = System.currentTimeMillis()
-        private val endAt = startTime + holdTime
-        private var stopped = false
+        private val endAt = System.currentTimeMillis() + holdTime
 
         init {
 
@@ -100,16 +141,17 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
         override fun run() {
 
-            while (System.currentTimeMillis() < endAt && !stopped) {
-            }
-            if (!stopped) {
+            try {
+
+                while (System.currentTimeMillis() < endAt) {
+                    sleep(1)
+                }
+
                 controller.mouseLongPressed()
+
+            } catch (e: InterruptedException) {
             }
 
-        }
-
-        internal fun end() {
-            stopped = true
         }
 
     }

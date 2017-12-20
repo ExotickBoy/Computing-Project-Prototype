@@ -1,5 +1,8 @@
 package core
 
+import kotlin.math.max
+import kotlin.math.min
+
 /**
  * This class is for storing a session of editing the recording
  * @see Recording
@@ -13,15 +16,32 @@ package core
  */
 class Session(val recording: Recording) {
 
+    private val updateCallbacks: MutableList<() -> Unit> = mutableListOf()
+    var width = 500
+
     val analyser: Analyser = Analyser(this)
-    val updateCallbacks: MutableList<() -> Unit> = mutableListOf()
     var cursor = -1
         set(value) {
             if (value != field) {
-                field = value
+                field = if (value >= recording.length) -1 else value
+                updateLocations()
                 runCallbacks()
             }
         }
+    val correctedCursor: Int
+        get() = if (cursor == -1) recording.length - 1 else cursor
+    var onScreenCursor: Int = 0
+    var from: Int = 0
+    var to: Int = 0
+    val visibleRange
+        get() = from..to
+
+    private fun updateLocations() {
+        onScreenCursor = min(max(width - (recording.length - correctedCursor), width / 2), correctedCursor)
+        from = max(correctedCursor - onScreenCursor, 0)
+        to = min(correctedCursor + (width - onScreenCursor), recording.length)
+    }
+
     var swap: Int? = null
 
     /**
@@ -30,6 +50,7 @@ class Session(val recording: Recording) {
     fun addTimeStep(timeStep: TimeStep) {
 
         recording.addTimeStep(timeStep)
+        updateLocations()
         runCallbacks()
 
     }

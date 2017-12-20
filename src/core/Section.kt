@@ -10,6 +10,8 @@ class Section(private val recording: Recording, val from: Int, val to: Int, var 
     constructor(recording: Recording, range: IntRange, absoluteStart: Int) :
             this(recording, range.endInclusive, range.endInclusive - 1, absoluteStart)
 
+    val range get() = from..correctedTo
+
     /**
      * The length of the section in samples
      */
@@ -23,7 +25,7 @@ class Section(private val recording: Recording, val from: Int, val to: Int, var 
         get() = if (to == -1) recording.length - 1 else to
 
     override fun toString(): String {
-        return "Section(recording=$recording, from=$from, to=$to)"
+        return "Section(recording=$recording, from=$from, to=$to, absoluteStart=$absoluteStart)"
     }
 
     companion object {
