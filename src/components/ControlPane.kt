@@ -15,7 +15,7 @@ class ControlPane(private val session: Session) : JPanel() {
 
         pauseButton.isVisible = false
         pauseButton.addActionListener {
-            session.analyser.pause()
+            session.pause()
             pauseButton.isVisible = false
             resumeButton.isVisible = true
             cutButton.isVisible = true
@@ -24,7 +24,7 @@ class ControlPane(private val session: Session) : JPanel() {
 
         resumeButton.isVisible = false
         resumeButton.addActionListener {
-            session.analyser.resume()
+            session.resume()
             pauseButton.isVisible = true
             resumeButton.isVisible = false
             cutButton.isVisible = false
@@ -40,7 +40,7 @@ class ControlPane(private val session: Session) : JPanel() {
         add(cutButton)
 
         startButton.addActionListener {
-            session.analyser.start()
+            session.start()
             startButton.isVisible = false
             pauseButton.isVisible = true
         }

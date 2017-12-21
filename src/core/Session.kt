@@ -22,12 +22,15 @@ class Session(val recording: Recording) {
     val analyser: Analyser = Analyser(this)
     var cursor = -1
         set(value) {
-            if (value != field) {
-                field = if (value >= recording.length) -1 else value
-                updateLocations()
-                runCallbacks()
+            synchronized(recording) {
+                if (value != field) {
+                    field = if (value >= recording.length) -1 else max(value, 0)
+                    updateLocations()
+                    runCallbacks()
+                }
             }
         }
+
     val correctedCursor: Int
         get() = if (cursor == -1) recording.length - 1 else cursor
     var onScreenCursor: Int = 0
@@ -43,6 +46,20 @@ class Session(val recording: Recording) {
     }
 
     var swap: Int? = null
+
+    fun start() {
+        analyser.start()
+        cursor = -1
+    }
+
+    fun pause() {
+        analyser.pause()
+    }
+
+    fun resume() {
+        analyser.resume()
+        cursor = -1
+    }
 
     /**
      * Adds a new TimeStep through the session to the recording

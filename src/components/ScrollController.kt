@@ -28,7 +28,8 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
     override fun mouseDragged(e: MouseEvent) {
         longPressTimer?.interrupt()
 
-        if (!session.analyser.isRunning) {
+        if (!session.analyser.isRunning && draggingThread?.isAlive != true) {
+            // im using == true, because it cold be null
 
             val dx = e.x - lastX
             lastX = e.x
@@ -72,14 +73,12 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
     fun mouseLongPressed() {
         println("longPress")
-        session.swap = session.recording.sectionAt(lastX + session.cursor
-                - session.onScreenCursor
-        )
-        draggingThread = DraggingThread(this)
-    }
-
-    fun mouseLongUnpressed() {
-        session.swap = null
+        if (!session.analyser.isRunning) {
+            session.swap = session.recording.sectionAt(lastX + session.cursor
+                    - session.onScreenCursor
+            )
+            draggingThread = DraggingThread(this)
+        }
     }
 
     companion object {

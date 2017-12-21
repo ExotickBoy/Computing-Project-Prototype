@@ -67,7 +67,7 @@ public class Analyser {
     }
 
     public boolean isRunning() {
-        return isAlive() && !isPaused;
+        return isAlive() && !isPaused();
     }
 
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
