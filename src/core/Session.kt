@@ -11,7 +11,7 @@ import kotlin.math.min
  * @property recording  The recording that concerns this session
  * @property analyser The analyser for this current session
  * @property updateCallbacks A list of lambdas used for adding onUpdate listeners to anything that needs it
- * @property cursor The position of the cursor for editing (-1 means the end)
+ * @property cursor The position of the cursor for editing (null means the end)
  * @property swap A nullable index of the current section being held to be swapped
  */
 class Session(val recording: Recording) {
@@ -20,11 +20,12 @@ class Session(val recording: Recording) {
     var width = 500
 
     val analyser: Analyser = Analyser(this)
-    var cursor = -1
+    var cursor: Int? = null
         set(value) {
             synchronized(recording) {
-                if (value != field) {
-                    field = if (value >= recording.length) -1 else max(value, 0)
+                val toBecome = if (value == null || value >= recording.length) null else max(value, 0)
+                if (toBecome != field) {
+                    field = toBecome
                     updateLocations()
                     runCallbacks()
                 }
@@ -32,7 +33,8 @@ class Session(val recording: Recording) {
         }
 
     val correctedCursor: Int
-        get() = if (cursor == -1) recording.length - 1 else cursor
+        get() = cursor ?: (recording.length - 1)
+
     var onScreenCursor: Int = 0
     var from: Int = 0
     var to: Int = 0
@@ -49,7 +51,7 @@ class Session(val recording: Recording) {
 
     fun start() {
         analyser.start()
-        cursor = -1
+        cursor = null
     }
 
     fun pause() {
@@ -58,7 +60,7 @@ class Session(val recording: Recording) {
 
     fun resume() {
         analyser.resume()
-        cursor = -1
+        cursor = null
     }
 
     /**
@@ -96,12 +98,6 @@ class Session(val recording: Recording) {
      */
     private fun runCallbacks() {
         updateCallbacks.forEach { it.invoke() }
-    }
-
-    companion object {
-
-        const val swapModeZoom = 5.0
-
     }
 
 }

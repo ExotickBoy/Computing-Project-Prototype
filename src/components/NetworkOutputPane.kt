@@ -35,15 +35,14 @@ class NetworkOutputPane(private val session: Session) : JPanel() {
 
             val recording = session.recording
 
-            val cursor = if (session.cursor != -1) session.cursor else session.recording.length
-            val onScreenCursor = min(max(width - (session.recording.length - cursor), width / 2), cursor)
-            val from = max(cursor - onScreenCursor, 0)
-            val to = min(cursor + (width - onScreenCursor), session.recording.length)
+            val onScreenCursor = min(max(width - (session.recording.length - session.correctedCursor), width / 2), session.correctedCursor)
+            val from = max(session.correctedCursor - onScreenCursor, 0)
+            val to = min(session.correctedCursor + (width - onScreenCursor), session.recording.length)
 
             synchronized(recording) {
 
                 for (x in from until to) {
-                    g.drawImage(recording.timeSteps[x].noteImage, onScreenCursor + x - cursor, 0, 1, Model.PITCH_RANGE, null)
+                    g.drawImage(recording.timeSteps[x].noteImage, onScreenCursor + x - session.correctedCursor, 0, 1, Model.PITCH_RANGE, null)
                 }
 
             }
@@ -52,10 +51,10 @@ class NetworkOutputPane(private val session: Session) : JPanel() {
             g.draw(Line2D.Double(onScreenCursor.toDouble(), 0.0, onScreenCursor.toDouble(), Model.PITCH_RANGE.toDouble()))
 
             g.stroke = BasicStroke(.75f)
-            session.recording.sections.filter { it.to in from..to }
+            session.recording.sections.filter { it.correctedTo in from..to }.filter { it.to != null }
                     .forEach {
                         g.color = Color.MAGENTA
-                        g.draw(Line2D.Double((it.to - from).toDouble(), 0.0, (it.to - from).toDouble(), Model.PITCH_RANGE.toDouble()))
+                        g.draw(Line2D.Double((it.correctedTo - from).toDouble(), 0.0, (it.correctedTo - from).toDouble(), Model.PITCH_RANGE.toDouble()))
                     }
 
         }

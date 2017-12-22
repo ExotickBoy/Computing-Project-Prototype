@@ -36,15 +36,7 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
             if (!isNote) {
 
-                val before = (if (session.cursor == -1)
-                    session.recording.length - 1
-                else
-                    session.cursor)
-
-
-                val after = max(min(before - dx, session.recording.length), 0)
-
-                session.cursor = after
+                session.cursor = max(min(session.correctedCursor - dx, session.recording.length), 0)
 
             }
 
@@ -72,13 +64,14 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
     override fun mouseClicked(e: MouseEvent) {}
 
     fun mouseLongPressed() {
-        println("longPress")
+
         if (!session.analyser.isRunning) {
-            session.swap = session.recording.sectionAt(lastX + session.cursor
+            session.swap = session.recording.sectionAt(lastX + session.correctedCursor
                     - session.onScreenCursor
             )
             draggingThread = DraggingThread(this)
         }
+
     }
 
     companion object {
@@ -103,16 +96,13 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
             while (!isInterrupted) {
 
-                println("dragging")
-
                 last = current
                 current = System.currentTimeMillis()
                 difference += (current - last).toDouble()
 
                 while (difference > mspt) {
                     difference -= mspt
-
-                    controller.session.cursor = controller.session.cursor + controller.movementDirection(controller.lastX)
+                    controller.session.cursor = controller.session.correctedCursor + controller.movementDirection(controller.lastX)
                 }
 
             }

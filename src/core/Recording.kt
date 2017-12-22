@@ -12,7 +12,7 @@ class Recording(val tuning: Tuning, val name: String) {
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
-    val sections = mutableListOf<Section>(Section(this, 0, -1, 0))
+    val sections = mutableListOf<Section>(Section(this, 0, null, 0))
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()

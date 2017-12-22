@@ -32,7 +32,6 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
             session.recording.sections.filter {
                 it.range overlaps session.visibleRange
             }.forEach {
-
                 for (x in max(it.from, session.from)..min(it.correctedTo, session.to)) {
 
                     g.drawImage(session.recording.timeSteps[x].melImage, session.onScreenCursor + x - session.correctedCursor, 0, 1, height, null)
@@ -48,7 +47,7 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
         g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, height))
 
         g.stroke = BasicStroke(.75f)
-        session.recording.sections.filter { it.correctedTo in session.visibleRange }.filter { it.to != -1 }
+        session.recording.sections.filter { it.correctedTo in session.visibleRange }.filter { it.to != null }
                 .forEach {
                     g.color = Color.MAGENTA
                     g.draw(line(it.correctedTo - session.from, 0, it.correctedTo - session.from, height))
