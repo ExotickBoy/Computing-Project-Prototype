@@ -24,7 +24,7 @@ public class Analyser {
 
     private TargetDataLine targetLine;
 
-    private boolean isPaused = false;
+    private boolean isPaused = true;
     private final Session session;
 
     public Analyser(Session session) {
@@ -49,7 +49,6 @@ public class Analyser {
 
     public void resume() {
         isPaused = false;
-        session.setCursor(-1);
     }
 
     public void stop() {
@@ -179,6 +178,10 @@ public class Analyser {
 
                 while (difference > mspt) {
                     difference -= mspt;
+
+                    while (isPaused) {
+                        timeStepBufferQueue.poll();
+                    }
 
                     if (!timeStepBufferQueue.isEmpty()) {
                         synchronized (session) {

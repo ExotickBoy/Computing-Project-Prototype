@@ -9,7 +9,7 @@ package core
  */
 data class Tuning(val strings: List<Int>, val maxFret: Int = 20) {
 
-    constructor(vararg strings: String) : this(strings.map { it.pitch })
+    constructor(vararg strings: String) : this(strings.map { it.pitch }.sorted())
     // an easy to use constructor for testing the Tuning class
     // e.g. Tuning("E2","A3")
 

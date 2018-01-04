@@ -1,6 +1,5 @@
 package core
 
-import java.lang.Math.exp
 import kotlin.math.pow
 
 /**
@@ -28,7 +27,6 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
             euclideanNorm(fretDistance(this.fret, other.fret), string - other.string) *
                     timeDistance(note.end - other.note.start)
 
-
         }
 
     }
@@ -37,7 +35,7 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
      * This function finds the distance to a placement if it is the first one
      */
     fun startDistance(): Double {
-        return fret * FRET_SCALING_FACTOR
+        return fret * FRET_SCALING_FACTOR.pow(2)
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
 
@@ -46,12 +44,14 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
         /**
          * The scaling factor for the distance function, used for optimising the distance function
          */
-        private const val FRET_SCALING_FACTOR: Double = 2.5
+        private const val FRET_SCALING_FACTOR: Double = 4.0
 
         /**
          * The base in the exponential function relating to time's significance
          */
-        private const val TIME_FACTOR_BASE = 1.08
+        private const val TIME_FACTOR_BASE = 1.04
+
+        private const val FRET_DROPOFF = 1.04
 
         /**
          * The importance of the distance between the frets
@@ -59,10 +59,10 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
          * @param b the second fret
          * @return the distance between the frets
          */
-        private fun fretDistance(a: Int, b: Int): Double {
+        fun fretDistance(a: Int, b: Int): Double {
 
             return if (a == 0 || b == 0) 0.0
-            else 1 - exp(-a * Math.pow(a - b.toDouble(), 2.0))
+            else FRET_SCALING_FACTOR * (1 - FRET_DROPOFF.pow(-Math.pow(a - b.toDouble(), 2.0)))
             // this is because a placement on the 0th fret is the open string, which can be played from anywhere
 
         }
@@ -73,7 +73,7 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
          * @param time the time between the steps
          * @return a function representing the significance of this time
          */
-        private fun timeDistance(time: Int): Double = TIME_FACTOR_BASE.pow(time)
+        private fun timeDistance(time: Int): Double = TIME_FACTOR_BASE.pow(-time)
 
         /**
          * The Euclidean normal returns the distance in euclidean space given the difference in each dimension.
@@ -81,7 +81,7 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
          * @param dims the variable argument list of distances in each dimension
          * @return the euclidean distance
          */
-        private fun euclideanNorm(vararg dims: Number): Double = Math.sqrt(dims.map { it.toDouble() }.map { it * it }.sum())
+        private fun euclideanNorm(vararg dims: Number): Double = Math.sqrt(dims.map { it.toDouble() }.map { it.pow(2) }.sum())
 
     }
 

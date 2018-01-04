@@ -2,17 +2,21 @@ package components
 
 import core.Session
 import java.awt.*
+import java.awt.geom.AffineTransform
+import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
 
 class HistoryPane internal constructor(private val session: Session) : JPanel() {
 
+    private val scrollController: ScrollController
+
     init {
 
         preferredSize = Dimension(500, 300)
 
-        val scrollController = ScrollController(false, session)
+        scrollController = ScrollController(false, session)
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
 
@@ -29,29 +33,72 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
 
         synchronized(session.recording) {
 
-            session.recording.sections.filter {
-                it.range overlaps session.visibleRange
-            }.forEach {
-                for (x in max(it.from, session.from)..min(it.correctedTo, session.to)) {
+            g.stroke = BasicStroke(1f)
+            g.color = Color.MAGENTA
+            (0 until session.recording.sections.size).filter { it != session.swap }.map { session.recording.sections[it] }.filter {
+                it.recordingRange overlaps session.visibleRange
+            }.forEachIndexed { index, it ->
 
-                    g.drawImage(session.recording.timeSteps[x].melImage, session.onScreenCursor + x - session.correctedCursor, 0, 1, height, null)
+                for (x in max(0, session.from - it.recordingStart) until min(it.correctedLength, session.to - it.recordingStart)) {
+
+                    g.drawImage(session.recording.timeSteps[x + it.timeStepStart].melImage, x + it.recordingStart - session.from, 0, 1, height, null)
 
                 }
+
+                if (index != 0)
+                    g.draw(line(it.recordingStart - session.from + 0.5, 0, it.recordingStart - session.from + 0.5, height))
+            }
+
+
+            g.stroke = BasicStroke(2f)
+            g.color = Color.RED
+            g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, height))
+
+            val swap = session.swap
+            val swapWith = session.swapWith
+            // I am making these local variables because making them final means that they are automatically cast as none null
+
+            if (swap != null) {
+
+                if (session.swapWithSection) {
+
+                    val sectionTo = session.recording.sections[swapWith]
+                    val from = sectionTo.recordingStart - session.from.toDouble()
+
+                    g.color = Color(0f, 1f, 0f, .5f)
+                    g.fill(Rectangle2D.Double(from, 0.0, min(sectionTo.correctedLength.toDouble() + 1, width - from), height.toDouble()))
+
+                } else {
+
+                    val from: Double
+                    from = if (swapWith == session.recording.sections.size) {
+                        session.recording.timeSteps.size
+                    } else {
+                        val sectionTo = session.recording.sections[swapWith]
+                        sectionTo.recordingStart - session.from
+                    }.toDouble()
+
+                    g.color = Color(0f, 1f, 0f, 1f)
+                    g.stroke = BasicStroke(2f)
+                    g.draw(line(from, 0, from, height))
+
+                }
+
+                val section = session.recording.sections[swap]
+
+                val transformBefore = g.transform
+                g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, height * .1))
+                for (x in 0 until min(section.correctedLength, width - session.lastX)) {
+
+                    g.drawImage(session.recording.timeSteps[section.timeStepStart + x].melImage, session.lastX + x, 0, 1, height, null)
+
+                }
+
+                g.transform = transformBefore
 
             }
 
         }
-
-        g.stroke = BasicStroke(2f)
-        g.color = Color.RED
-        g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, height))
-
-        g.stroke = BasicStroke(.75f)
-        session.recording.sections.filter { it.correctedTo in session.visibleRange }.filter { it.to != null }
-                .forEach {
-                    g.color = Color.MAGENTA
-                    g.draw(line(it.correctedTo - session.from, 0, it.correctedTo - session.from, height))
-                }
 
     }
 

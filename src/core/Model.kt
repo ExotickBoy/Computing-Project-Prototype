@@ -32,7 +32,7 @@ object Model {
     private const val MEL_BINS_TENSOR: String = "mel_bins"
     private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
 
-    private const val MODEL_LOCATION = "res/model56" // the location of the model
+    private const val MODEL_LOCATION = "res/model63" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -103,10 +103,10 @@ object Model {
         synchronized(tensorFlowSession) {
             // locks session to prevent concurrent modification
 
-            tensorFlowSession.runner()
+//            tensorFlowSession.runner()
 //                    .addTarget(ENQUEUE_ZERO_STATE)
-                    .addTarget(ENQUEUE_START_INPUTS)
-                    .run()
+//                    .addTarget(ENQUEUE_START_INPUTS)
+//                    .run()
 
         }
     }
@@ -121,6 +121,22 @@ object Model {
 //            tensorFlowSession.runner().addTarget(CLEAR_STATE).run()
 //            tensorFlowSession.runner().addTarget(ENQUEUE_ZERO_STATE).run()
 
+        }
+    }
+
+    fun setQueue(samples: FloatArray) {
+
+        samplesInputBuffer.rewind()
+        samplesInputBuffer.put(samples)
+        samplesInputBuffer.rewind()
+
+        synchronized(tensorFlowSession) {
+
+            tensorFlowSession.runner()
+                    .addTarget(ENQUEUE_START_INPUTS)
+                    .feed(INPUT_TENSOR_NAME,
+                            Tensor.create(longArrayOf(1, 1, Model.FFT_SIZE.toLong()), samplesInputBuffer))
+                    .run()
         }
     }
 

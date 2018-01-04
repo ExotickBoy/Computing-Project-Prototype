@@ -60,4 +60,9 @@ fun line(x1: Number, y1: Number, x2: Number, y2: Number): Line2D.Double =
         Line2D.Double(x1.toDouble(), y1.toDouble(), x2.toDouble(), y2.toDouble())
 
 infix fun IntRange.overlaps(other: IntRange): Boolean
-        = first in other || endInclusive in other || other.first in this || other.endInclusive in this
+        = this.start in other || this.endInclusive in other || other.start in this || other.endInclusive in this
+
+infix fun ClosedFloatingPointRange<Double>.overlaps(other: ClosedFloatingPointRange<Double>): Boolean
+        = this.start in other || this.endInclusive in other || other.start in this || other.endInclusive in this
+// These need to be two separate methods because the superclass both these types of range share, only store comparators
+// for if something is in range, thus you can't know the start and end values

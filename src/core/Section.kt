@@ -1,31 +1,25 @@
 package core
 
-/**
- * This class is for storing the sections of recording that the use can split the entire recording into
- * @see Recording
- * @property from The inclusive start of the section in time steps
- * @property to The exclusive end of the section in time steps, a null value means that it goes to the end
- */
-class Section(private val recording: Recording, val from: Int, val to: Int?, var absoluteStart: Int) {
-    constructor(recording: Recording, range: IntRange, absoluteStart: Int) :
-            this(recording, range.endInclusive, range.endInclusive - 1, absoluteStart)
+// TODO
+data class Section(private val recording: Recording, val timeStepStart: Int, val recordingStart: Int, val noteStart: Int, val length: Int?, val noteLength: Int?) {
 
-    val range get() = from..correctedTo
+    val correctedLength
+        get() = length ?: recording.timeSteps.size - timeStepStart
 
-    /**
-     * The length of the section in samples
-     */
-    val length: Int
-        get() = correctedTo - from
+    val correctedNoteLength
+        get() = noteLength ?: recording.notes.size - noteStart
 
-    /**
-     * The end of the section corrected for the fact that -1 means all the way to the end
-     */
-    val correctedTo: Int
-        get() = to ?: (recording.length - 1)
+    val recordingRange
+        get() = recordingStart until (recordingStart + correctedLength)
+
+    val timeStepRange
+        get() = timeStepStart until (timeStepStart + correctedLength)
+
+    val noteRange
+        get() = noteStart until (noteStart + correctedNoteLength)
 
     override fun toString(): String {
-        return "Section(recording=$recording, from=$from, to=$to, absoluteStart=$absoluteStart)"
+        return "Section(timeStepRange=$timeStepRange, recordingRange=$recordingRange, length=$length, correctedLength=$correctedLength, noteRange=$noteRange, noteLength=$noteLength, correctedNoteLength=$correctedNoteLength)"
     }
 
     companion object {

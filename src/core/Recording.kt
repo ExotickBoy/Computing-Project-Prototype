@@ -12,16 +12,10 @@ class Recording(val tuning: Tuning, val name: String) {
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
-    val sections = mutableListOf<Section>(Section(this, 0, null, 0))
+    val sections = mutableListOf<Section>()
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
-
-    /**
-     * The length of the recording in timeSteps
-     */
-    val length: Int
-        get() = timeSteps.size
 
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
@@ -31,18 +25,53 @@ class Recording(val tuning: Tuning, val name: String) {
     internal fun cut(time: Int) {
 
         val cutIndex = sectionAt(time)
-        val cutSection = sections[cutIndex]
 
-        if (time - cutSection.from > Section.minLength && cutSection.correctedTo - time - 1 > Section.minLength) {
+        if (cutIndex != null) {
 
-            val leftNew = Section(this, cutSection.from, time, cutSection.absoluteStart)
-            val rightNew = Section(this, time + 1, cutSection.to, cutSection.absoluteStart + leftNew.length)
 
-            sections.removeAt(cutIndex)
-            sections.add(cutIndex, rightNew)
-            sections.add(cutIndex, leftNew)
+            val cutSection = sections[cutIndex]
+            val left = Section(
+                    this,
+                    cutSection.timeStepStart,
+                    cutSection.recordingStart,
+                    cutSection.noteStart,
+                    time - cutSection.recordingStart + 1,
+                    cutSection.noteRange.map { it to notes[it] }.firstOrNull { it.second.start >= time - cutSection.recordingStart + cutSection.timeStepStart }?.first ?: 0
+            )
+            val right = Section(
+                    this,
+                    cutSection.timeStepStart + time + 1 - cutSection.recordingStart,
+                    time + 1,
+                    left.noteStart + left.correctedNoteLength,
+                    cutSection.recordingStart + cutSection.correctedLength - time - 1,
+                    cutSection.correctedNoteLength - left.correctedNoteLength
+            )
+
+            if (left.correctedLength >= Section.minLength && right.correctedLength >= Section.minLength) {
+
+                sections.removeAt(cutIndex)
+                sections.add(cutIndex, right)
+                sections.add(cutIndex, left)
+
+            }
 
         }
+
+    }
+
+    internal fun startSection() {
+
+        if (sections.size == 0)
+            sections.add(Section(this, 0, 0, 0, null, null))
+        else
+            sections.add(Section(this, timeSteps.size, timeSteps.size, notes.size, null, null))
+
+    }
+
+    internal fun endSection() {
+
+        val last = sections[sections.size - 1]
+        sections[sections.size - 1] = last.copy(length = last.correctedLength, noteLength = last.correctedNoteLength)
 
     }
 
@@ -51,8 +80,8 @@ class Recording(val tuning: Tuning, val name: String) {
      * @param time The time in question
      * @return The index of the section
      */
-    internal fun sectionAt(time: Int): Int = (0 until sections.size).firstOrNull { time <= sections[it].absoluteStart }
-            ?: 0
+    internal fun sectionAt(time: Int) = (0 until sections.size)
+            .firstOrNull { time <= sections[it].recordingStart + sections[it].correctedLength }
 
     /**
      * Adds a new time step to the end of the recording
@@ -148,11 +177,29 @@ class Recording(val tuning: Tuning, val name: String) {
      * @param a The index of the first section
      * @param b The index of the second section
      */
-    fun swapSections(a: Int, b: Int) {
+    internal fun swapSections(a: Int, b: Int) {
 
         val temp = sections[a]
         sections[a] = sections[b]
         sections[b] = temp
+
+        sections[0] = sections[0].copy(recordingStart = 0)
+        for (i in 1 until sections.size) {
+            sections[i] = sections[i].copy(recordingStart = sections[i - 1].recordingStart + sections[i - 1].correctedLength)
+        }
+
+    }
+
+    internal fun reInsertSection(from: Int, to: Int) {
+        val it = sections[from]
+        val corrected = if (to > from) to - 1 else to
+        sections.removeAt(from)
+        sections.add(corrected, it)
+
+        sections[0] = sections[0].copy(recordingStart = 0)
+        for (i in 1 until sections.size) {
+            sections[i] = sections[i].copy(recordingStart = sections[i - 1].recordingStart + sections[i - 1].correctedLength)
+        }
 
     }
 
@@ -164,7 +211,7 @@ class Recording(val tuning: Tuning, val name: String) {
          * @param tuning The tuning to be searched
          * @return All the possible placements for a tuning
          */
-        fun findPlacements(note: Note, tuning: Tuning): List<Placement> {
+        private fun findPlacements(note: Note, tuning: Tuning): List<Placement> {
 
             return tuning.strings.mapIndexed { index, it ->
                 Placement(note.pitch - it, index, note)

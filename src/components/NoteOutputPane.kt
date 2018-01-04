@@ -3,22 +3,38 @@ package components
 import core.Session
 import core.noteString
 import java.awt.*
-import java.awt.geom.Line2D
+import java.awt.event.ComponentEvent
+import java.awt.event.ComponentListener
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
+import kotlin.math.max
+import kotlin.math.min
 
-class NoteOutputPane(private val session: Session) : JPanel() {
+class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener {
 
-    private var lastX: Int = 0
+    private var lineHeight: Double = 0.0
+    private val margin: Int
+    private val spacing: Float
+    private val padding: Int
 
     init {
 
         preferredSize = Dimension(500, 150)
 
+        val fontMetrics = getFontMetrics(font)
+
+        margin = session.recording.tuning.strings
+                .map { it.noteString }
+                .map { fontMetrics.stringWidth(it) }
+                .max() ?: 0
+
+        spacing = ((0..session.recording.tuning.maxFret).map { fontMetrics.stringWidth(it.toString()) }.max() ?: 0) + 2.5f
+        padding = 5
+
         val scrollController = ScrollController(true, session)
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
-
+        addComponentListener(this)
 
     }
 
@@ -31,40 +47,81 @@ class NoteOutputPane(private val session: Session) : JPanel() {
 
         g.stroke = BasicStroke(.5f)
 
-        synchronized(session) {
+        synchronized(session.recording) {
 
-            val recording = session.recording
 
-            val h = 150.0 / recording.tuning.size
-            val margin = recording.tuning.strings
-                    .map { it.noteString }
-                    .map { g.fontMetrics.stringWidth(it) }
-                    .max() ?: 0
+            val stringHeaderOffset = min(max((session.noteWidth / 2 - session.onScreenNoteCursor) * spacing, 0.0), margin + 2.0 * padding)
 
-            for (index in 0 until recording.tuning.size) {
-
+            for (index in 0 until session.recording.tuning.size) {
                 g.color = when (index % 2) {
                     1 -> Color(232, 232, 232)
                     else -> Color(245, 245, 245)
                 }
-                g.fill(Rectangle2D.Double(0.0, index * h, width.toDouble(), h))
+                g.fill(Rectangle2D.Double(0.0, index * lineHeight, width.toDouble(), lineHeight))
+            }
+
+            session.recording.sections.filter {
+                it.noteRange.toDoubleRange() overlaps session.visibleNoteRange
+            }.forEach {
 
                 g.color = Color(86, 86, 86)
-                g.drawString(recording.tuning[index].noteString, 5F, (h * (index + 1) - (h - g.font.size) / 2).toFloat())
+                it.noteRange.forEachIndexed { indexOfIndex, index ->
+
+                    val placement = session.recording.placements[index]
+                    g.drawString(placement.fret.toString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f + indexOfIndex).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (lineHeight * (placement.string + 1) - (lineHeight - g.font.size) / 2).toFloat())
+
+                }
+                if (it.correctedLength != 0 || it.recordingStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
+
+                    g.color = Color.MAGENTA
+                    g.draw(line(stringHeaderOffset + (it.noteStart - session.noteFrom) * spacing, 0, stringHeaderOffset + (it.noteStart - session.noteFrom) * spacing, height))
+
+                }
+
             }
-            g.draw(Line2D.Double(margin.toDouble() + 10, 0.0, margin.toDouble() + 10, height.toDouble()))
 
-            val spacing = ((0..25).map { g.fontMetrics.stringWidth(it.toString()) }.max() ?: 0) + 2.5f
-
-            recording.placements.forEachIndexed { i, placement ->
-
-                g.drawString(placement.fret.toString(), 15f + margin + (i + .5f) * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (h * (placement.string + 1) - (h - g.font.size) / 2).toFloat())
-
+            for (index in 0 until session.recording.tuning.size) {
+                g.color = when (index % 2) {
+                    1 -> Color(232, 232, 232)
+                    else -> Color(245, 245, 245)
+                }
+                g.fill(Rectangle2D.Double(-(margin + 2 * padding) + stringHeaderOffset, index * lineHeight, margin + 2.0 * padding, lineHeight))
+                g.color = Color(86, 86, 86)
+                g.drawString(session.recording.tuning[index].noteString, (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(), (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat())
             }
+            g.draw(line(-(margin + 2 * padding) + stringHeaderOffset, 0.0, -(margin + 2 * padding) + stringHeaderOffset, height.toDouble()))
+
+            g.stroke = BasicStroke(2f)
+            g.color = Color.RED
+
+            g.draw(line(
+                    stringHeaderOffset + session.onScreenNoteCursor * spacing,
+                    0.0,
+                    stringHeaderOffset + session.onScreenNoteCursor * spacing,
+                    height
+            ))
 
         }
 
+    }
+
+    override fun componentResized(e: ComponentEvent) {
+
+        lineHeight = height / session.recording.tuning.size.toDouble()
+
+        session.width = e.component.width
+        session.noteWidth = e.component.width.toDouble() / spacing
 
     }
 
+    override fun componentMoved(e: ComponentEvent?) {}
+
+    override fun componentHidden(e: ComponentEvent?) {}
+
+    override fun componentShown(e: ComponentEvent?) {}
+
 }
+
+private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double>
+        = start.toDouble()..endInclusive.toDouble()
+

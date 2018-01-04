@@ -4,10 +4,8 @@ import core.Session
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.sign
+import kotlin.concurrent.thread
+import kotlin.math.*
 
 /**
  * This class is the mouse listener that is reused int he various output panes.
@@ -15,9 +13,8 @@ import kotlin.math.sign
  * @property isNote If the scrolling should wrap to the closest note
  * @property session The session that this controller is responsible for
  */
-class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionListener, MouseListener {
+class ScrollController(private val isNote: Boolean, internal val session: Session) : MouseMotionListener, MouseListener {
 
-    private var lastX = 0
     private var longPressTimer: LongPressThread? = null
     private var draggingThread: DraggingThread? = null
 
@@ -28,25 +25,25 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
     override fun mouseDragged(e: MouseEvent) {
         longPressTimer?.interrupt()
 
-        if (!session.analyser.isRunning && draggingThread?.isAlive != true) {
-            // im using == true, because it cold be null
+        val dx = e.x - session.lastX
 
-            val dx = e.x - lastX
-            lastX = e.x
+        if (dx != 0 && !session.analyser.isRunning && draggingThread?.isAlive != true) {
+            // im using != true, because it cold be null
 
             if (!isNote) {
-
-                session.cursor = max(min(session.correctedCursor - dx, session.recording.length), 0)
-
+                session.cursor = max(min(session.correctedCursor - dx, session.recording.timeSteps.size), 0)
+            } else {
+                session.noteCursor = session.correctedNoteCursor - session.noteWidth * dx / session.width
             }
 
         }
+        session.lastX = e.x
 
     }
 
     override fun mousePressed(e: MouseEvent) {
 
-        lastX = e.x
+        session.lastX = e.x
 
         longPressTimer?.interrupt()
         longPressTimer = LongPressThread(this)
@@ -61,16 +58,41 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
     override fun mouseEntered(e: MouseEvent) {}
     override fun mouseExited(e: MouseEvent) {}
 
-    override fun mouseClicked(e: MouseEvent) {}
+    override fun mouseClicked(e: MouseEvent) {
 
-    fun mouseLongPressed() {
+        if (isNote)
+
+            thread {
+
+                for (i in 0 until 100) {
+
+                    session.noteCursor = 8.5 + i / 100.0
+                    println("$i\t${2.5 + i / 100.0}")
+                    Thread.sleep(15)
+
+                }
+
+            }
+        else
+            session.cursor = session.from + e.x
+
+    }
+
+    private fun mouseLongPressed() {
 
         if (!session.analyser.isRunning) {
-            session.swap = session.recording.sectionAt(lastX + session.correctedCursor
+            session.swap = session.recording.sectionAt(session.lastX + session.correctedCursor
                     - session.onScreenCursor
             )
+            session.updateSwapWith()
             draggingThread = DraggingThread(this)
         }
+
+    }
+
+    private fun movementDirection(x: Int): Int {
+
+        return ((1.025.pow(max(abs(x - session.width / 2.0) - session.width / 5.0, 0.0)) - 1) * sign(x - session.width / 2.0)).toInt()
 
     }
 
@@ -89,7 +111,7 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
         override fun run() {
 
-            val mspt = 1000.0 / 30 // miliseconds per tick
+            val mspt = 1000.0 / 30 // milliseconds per tick
             var last = System.currentTimeMillis()
             var current = last
             var difference = 0.0
@@ -102,18 +124,16 @@ class ScrollController(val isNote: Boolean, val session: Session) : MouseMotionL
 
                 while (difference > mspt) {
                     difference -= mspt
-                    controller.session.cursor = controller.session.correctedCursor + controller.movementDirection(controller.lastX)
+                    controller.session.cursor = controller.session.correctedCursor + controller.movementDirection(controller.session.lastX)
+                    controller.session.updateSwapWith()
+
                 }
 
             }
 
+            controller.session.executeSwap()
+
         }
-
-    }
-
-    fun movementDirection(x: Int): Int {
-
-        return (0.2 * max(0.0, abs(x - session.width / 2) - 150.0) * sign(x - session.width / 2.0)).toInt()
 
     }
 

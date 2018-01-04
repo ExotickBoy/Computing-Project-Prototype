@@ -21,7 +21,7 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
 
     constructor(samples: FloatArray, previous: TimeStep?) : this(samples, (previous?.time ?: -1) + 1, previous)
 
-    private val modelOutput: StepOutput = Model.feedForward(samples)
+    private val modelOutput: StepOutput
 
     val melImage: BufferedImage
     val noteImage: BufferedImage // TODO this is only for debugging in the desktop version
@@ -29,9 +29,16 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
     val pitches: List<Int> // TODO move this into step output
     val notes: List<Note>
 
-    val dePhased: FloatArray = modelOutput.depased
+    val dePhased: FloatArray
 
     init {
+
+        if (time == 0) {
+            Model.setQueue(samples)
+        }
+
+        modelOutput = Model.feedForward(samples)
+        dePhased = modelOutput.depased
 
         pitches = modelOutput.predictions
                 .mapIndexed { index, confidence -> index to confidence }
