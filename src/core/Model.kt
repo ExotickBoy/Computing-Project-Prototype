@@ -32,7 +32,7 @@ object Model {
     private const val MEL_BINS_TENSOR: String = "mel_bins"
     private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
 
-    private const val MODEL_LOCATION = "res/model63" // the location of the model
+    private const val MODEL_LOCATION = "res/model65" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation

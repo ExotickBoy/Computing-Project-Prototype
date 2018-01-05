@@ -4,7 +4,6 @@ import core.Session
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
-import kotlin.concurrent.thread
 import kotlin.math.*
 
 /**
@@ -60,27 +59,14 @@ class ScrollController(private val isNote: Boolean, internal val session: Sessio
 
     override fun mouseClicked(e: MouseEvent) {
 
-        if (isNote)
-
-            thread {
-
-                for (i in 0 until 100) {
-
-                    session.noteCursor = 8.5 + i / 100.0
-                    println("$i\t${2.5 + i / 100.0}")
-                    Thread.sleep(15)
-
-                }
-
-            }
-        else
+        if (!isNote)
             session.cursor = session.from + e.x
 
     }
 
     private fun mouseLongPressed() {
 
-        if (!session.analyser.isRunning) {
+        if (!session.analyser.isRunning && !isNote) {
             session.swap = session.recording.sectionAt(session.lastX + session.correctedCursor
                     - session.onScreenCursor
             )

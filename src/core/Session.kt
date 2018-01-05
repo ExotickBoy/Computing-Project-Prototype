@@ -172,10 +172,11 @@ class Session(val recording: Recording) {
      * Adds a new TimeStep through the session to the recording
      */
     fun addTimeStep(timeStep: TimeStep) {
-
-        recording.addTimeStep(timeStep)
-        updateLocations()
-        runCallbacks()
+        synchronized(recording) {
+            recording.addTimeStep(timeStep)
+            updateLocations()
+            runCallbacks()
+        }
 
     }
 
@@ -184,8 +185,10 @@ class Session(val recording: Recording) {
      * @param cursor The time at which the cut should happen
      */
     fun makeCut(cursor: Int) {
-        recording.cut(cursor)
-        runCallbacks()
+        synchronized(recording) {
+            recording.cut(cursor)
+            runCallbacks()
+        }
     }
 
     /**

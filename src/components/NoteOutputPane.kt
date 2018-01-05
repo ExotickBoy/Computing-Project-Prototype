@@ -38,7 +38,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
     }
 
-    override fun paintComponent(g2: Graphics?) {
+    override fun paintComponent(g2: Graphics) {
 
         val g: Graphics2D = g2 as Graphics2D
         val rh = RenderingHints(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
@@ -48,7 +48,6 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
         g.stroke = BasicStroke(.5f)
 
         synchronized(session.recording) {
-
 
             val stringHeaderOffset = min(max((session.noteWidth / 2 - session.onScreenNoteCursor) * spacing, 0.0), margin + 2.0 * padding)
 
@@ -66,15 +65,18 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
                 g.color = Color(86, 86, 86)
                 it.noteRange.forEachIndexed { indexOfIndex, index ->
-
                     val placement = session.recording.placements[index]
-                    g.drawString(placement.fret.toString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f + indexOfIndex).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (lineHeight * (placement.string + 1) - (lineHeight - g.font.size) / 2).toFloat())
-
+                    g.drawString(placement.fret.toString(), (stringHeaderOffset).toFloat() + (it.noteRecordingStart - session.noteFrom + 0.5f + indexOfIndex).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (lineHeight * (placement.string + 1) - (lineHeight - g.font.size) / 2).toFloat())
                 }
-                if (it.correctedLength != 0 || it.recordingStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
+                if (it.correctedLength != 0 && it.recordingStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
 
                     g.color = Color.MAGENTA
-                    g.draw(line(stringHeaderOffset + (it.noteStart - session.noteFrom) * spacing, 0, stringHeaderOffset + (it.noteStart - session.noteFrom) * spacing, height))
+                    g.draw(line(
+                            stringHeaderOffset + (it.noteRecordingStart - session.noteFrom) * spacing,
+                            0,
+                            stringHeaderOffset + (it.noteRecordingStart - session.noteFrom) * spacing,
+                            height
+                    ))
 
                 }
 
@@ -89,7 +91,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
                 g.color = Color(86, 86, 86)
                 g.drawString(session.recording.tuning[index].noteString, (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(), (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat())
             }
-            g.draw(line(-(margin + 2 * padding) + stringHeaderOffset, 0.0, -(margin + 2 * padding) + stringHeaderOffset, height.toDouble()))
+            g.draw(line(stringHeaderOffset, 0.0, stringHeaderOffset, height.toDouble()))
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
@@ -114,14 +116,14 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
     }
 
-    override fun componentMoved(e: ComponentEvent?) {}
+    override fun componentMoved(e: ComponentEvent) {}
 
-    override fun componentHidden(e: ComponentEvent?) {}
+    override fun componentHidden(e: ComponentEvent) {}
 
-    override fun componentShown(e: ComponentEvent?) {}
+    override fun componentShown(e: ComponentEvent) {}
+
+    private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double>
+            = start.toDouble()..endInclusive.toDouble()
 
 }
-
-private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double>
-        = start.toDouble()..endInclusive.toDouble()
 
