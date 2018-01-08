@@ -9,7 +9,7 @@ package core
  */
 class Recording(val tuning: Tuning, val name: String) {
 
-    val samples: MutableList<Float> = mutableListOf()
+    val samples: MutableList<FloatArray> = mutableListOf()
 
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
@@ -89,6 +89,10 @@ class Recording(val tuning: Tuning, val name: String) {
      */
     internal fun sectionAt(time: Int) = (0 until sections.size)
             .firstOrNull { time <= sections[it].recordingStart + sections[it].correctedLength }
+
+    fun addSamples(newSamples: FloatArray) {
+        samples.add(newSamples)
+    }
 
     /**
      * Adds a new time step to the end of the recording

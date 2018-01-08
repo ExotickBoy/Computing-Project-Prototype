@@ -168,16 +168,8 @@ class Session(val recording: Recording) {
         analyser.resume()
     }
 
-    /**
-     * Adds a new TimeStep through the session to the recording
-     */
-    fun addTimeStep(timeStep: TimeStep) {
-        synchronized(recording) {
-            recording.addTimeStep(timeStep)
-            updateLocations()
-            runCallbacks()
-        }
-
+    fun addSamples(samples: FloatArray) {
+        recording.addSamples(samples)
     }
 
     /**
@@ -263,6 +255,6 @@ class Session(val recording: Recording) {
 
     }
 
-    data class PlayedNote(val recordingStart: Int, val index: Int, val section: Section)
+    private data class PlayedNote(val recordingStart: Int, val index: Int, val section: Section)
 
 }

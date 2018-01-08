@@ -49,15 +49,6 @@ class NetworkOutputPane(private val session: Session) : JPanel() {
 
 
             }
-            g.font = g.font.deriveFont(10f)
-            session.recording.sections.flatMap {
-                it.noteRange.map { note ->
-                    return@map Session.PlayedNote(it.recordingStart + session.recording.notes[note].start - it.timeStepStart, note, it)
-                }
-            }.forEachIndexed { index, playedNote ->
-                g.drawString(index.toString(), playedNote.recordingStart.toFloat() - session.from, height - 20f)
-            }
-
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
