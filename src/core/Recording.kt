@@ -9,6 +9,8 @@ package core
  */
 class Recording(val tuning: Tuning, val name: String) {
 
+    val samples: MutableList<Float> = mutableListOf()
+
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()

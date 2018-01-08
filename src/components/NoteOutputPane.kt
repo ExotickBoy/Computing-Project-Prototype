@@ -51,6 +51,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
             val stringHeaderOffset = min(max((session.noteWidth / 2 - session.onScreenNoteCursor) * spacing, 0.0), margin + 2.0 * padding)
 
+            // stripes
             for (index in 0..session.recording.tuning.size) {
                 g.color = when (index % 2) {
                     1 -> Color(232, 232, 232)
@@ -58,6 +59,8 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
                 }
                 g.fill(Rectangle2D.Double(0.0, index * lineHeight, width.toDouble(), lineHeight))
             }
+
+            // sections and their notes
 
             session.recording.sections.filter {
                 it.noteRange.toDoubleRange() overlaps session.visibleNoteRange
@@ -82,7 +85,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
             }
 
-            session.recording.chordController.clear()
+            session.recording.chordController.clear() // TODO remove after debugging is done
             session.recording.chordController.feed(session.recording.notes)
 
             session.recording.chordController.states.map { it.chord }.forEach {
@@ -90,7 +93,9 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
                     g.drawString(it.asString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f).toFloat() * spacing - g.fontMetrics.stringWidth(it.asString()) / 2, (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat())
             }
 
-            for (index in 0..session.recording.tuning.size) {
+            // Tuning header
+
+            for (index in 1..session.recording.tuning.size) {
                 g.color = when (index % 2) {
                     1 -> Color(232, 232, 232)
                     else -> Color(245, 245, 245)
@@ -101,7 +106,9 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
                     g.drawString(session.recording.tuning[index - 1].noteString, (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(), (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat())
                 }
             }
-            g.draw(line(stringHeaderOffset, 0, stringHeaderOffset, height.toDouble()))
+            g.draw(line(stringHeaderOffset, lineHeight, stringHeaderOffset, height.toDouble()))
+
+            // Cursor
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED

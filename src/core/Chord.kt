@@ -71,9 +71,11 @@ class ChordController {
         var chord: Chord? = null
 
         fun add(note: Note) {
-            if (index == 0) {
-                println(notes.size)
-            }
+
+//            if (index == 0) {
+//                println(notes.size)
+//            }
+
             if (notes.isEmpty()) {
                 possibleChords = Chord.chordPatters.flatMap { pattern ->
                     pattern.notes.map { root ->
@@ -82,35 +84,53 @@ class ChordController {
                 }
                 notes.add(note)
             } else {
-                if (index == 0)
-                    print(possibleChords.map { it.pattern.name }.distinct())
+
+//                if (index == 0)
+//                    print(possibleChords.map { it.pattern.name }.distinct())
+
                 possibleChords = possibleChords.filter { chord ->
                     chord.pattern.notes.any {
-                        it == note.pitch - chord.rootPitch
+                        note.pitch - chord.rootPitch > 0 && it == note.pitch - chord.rootPitch
                     }
                 }
-                if (index == 0)
-                    println(" ${possibleChords.map { it.pattern.name }.distinct()}")
+
+//                if (index == 0)
+//                    println(" ${possibleChords.map { it.pattern.name }.distinct()}")
+
                 if (possibleChords.isEmpty()) {
                     isDead = true
                 } else {
                     possibleChords = possibleChords
                     notes.add(note)
 
-                    chord = possibleChords.filter { chord ->
+//                    println("$notes is already ${
+//                        possibleChords.filter { chord ->
+//                            chord.pattern.notes.all { note ->
+//                                notes.any {
+//                                    it.pitch == note + chord.rootPitch
+//                                }
+//                            }
+//                        }
+//                    }")
+
+                    val newChord = possibleChords.filter { chord ->
                         chord.pattern.notes.all { note ->
                             notes.any {
-                                note == note - chord.rootPitch
+                                it.pitch == note + chord.rootPitch
                             }
                         }
                     }.maxBy { it.pattern.notes.size }
 
+                    if (newChord != null) {
+                        chord = newChord
+                    }
+
                 }
             }
 
-            if (index == 0) {
-                println("notes=${notes.map { it.pitch.noteStringShort }}, dead=$isDead, chord=$chord, pos=${possibleChords.map { it.asString() }}")
-            }
+//            if (index == 0) {
+//                println("notes=${notes.map { it.pitch.noteStringShort }}, dead=$isDead, chord=$chord, pos=${possibleChords.map { it.asString() }}")
+//            }
 
         }
 
