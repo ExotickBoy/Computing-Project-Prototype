@@ -26,10 +26,10 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
     val melImage: BufferedImage
     val noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
-    val pitches: List<Int> // TODO move this into step output
-    val notes: List<Note>
+    val dePhased
+        get() = modelOutput.depased
 
-    val dePhased: FloatArray
+    val notes: List<Note>
 
     init {
 
@@ -38,18 +38,14 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
         }
 
         modelOutput = Model.feedForward(samples)
-        dePhased = modelOutput.depased
-
-        pitches = modelOutput.predictions
-                .mapIndexed { index, confidence -> index to confidence }
-                .filter { it.second >= Model.CONFIDENCE_CUT_OFF }
-                .map { it.first + Model.START_PITCH }
 
         notes = if (previous == null) {
-            pitches.map { Note(it, time, 1) }
+            modelOutput.pitches.map {
+                Note(it, time, 1)
+            }
         } else {
-            pitches.map {
-                if (previous.pitches.contains(it)) {
+            modelOutput.pitches.map {
+                if (previous.modelOutput.pitches.contains(it)) {
                     val note = previous.notes.find { p -> p.pitch == it }!!
                     note.duration++
                     return@map note

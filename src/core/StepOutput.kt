@@ -12,6 +12,16 @@ import java.util.*
  * @property spectrum The spectrum of the samples of a TimeStep
  */
 data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val depased: FloatArray) {
+
+    var pitches: List<Int>
+
+    init {
+
+        pitches = predictions.mapIndexed { index, confidence -> index to confidence }
+                .filter { it.second >= Model.CONFIDENCE_CUT_OFF }
+                .map { it.first + Model.START_PITCH }
+
+    }
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

@@ -12,11 +12,12 @@ class Recording(val tuning: Tuning, val name: String) {
     val timeSteps: MutableList<TimeStep> = mutableListOf()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
+    val chords = mutableListOf<Chord>()
     val sections = mutableListOf<Section>()
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
-
+    private val chordFSMM = ChordFSMM()
 
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
@@ -103,6 +104,7 @@ class Recording(val tuning: Tuning, val name: String) {
                     .forEach {
                         notes.add(it)
                         possiblePlacements.add(findPlacements(it, tuning))
+                        chordFSMM.feed(it)
                     }
 
             optimiseForward(0) // re-optimise the placements
