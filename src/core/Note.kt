@@ -67,23 +67,16 @@ val String.pitch: Int
  * This extension function makes it easy to change an int that represents a pitch to the string that describes it
  */
 val Int.noteString: String
-    get() = getLetter(this).replace("/", getOctave(this).toString() + "/") + getOctave(this)
+    get() = this.noteLetter.replace("/", this.noteOctave.toString() + "/") + this.noteOctave
 
-/**
- * This extension function makes it easy to change a string into the note it represents
- */
-fun String.note(time: Int, duration: Int): Note = Note(this.pitch, time, duration)
+val Int.noteStringShort: String
+    get() = this.noteLetterShort.replace("/", this.noteOctave.toString() + "/") + this.noteOctave
 
-/**
- * Get the letter that a pitch has
- * @param pitch The pitch
- * @return The letter of the note
- */
-private fun getLetter(pitch: Int): String = noteLetters[pitch % 12]
+val Int.noteLetter: String
+    get() = noteLetters[this % 12]
 
-/**
- * Get the octave a pitch is in
- * @param pitch The pitch
- * @return The octave of the pitch
- */
-private fun getOctave(pitch: Int): Int = pitch / 12
+val Int.noteLetterShort: String
+    get() = noteLetters[this % 12].split("/")[0]
+
+val Int.noteOctave: Int
+    get() = this / 12

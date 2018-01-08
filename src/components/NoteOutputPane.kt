@@ -19,7 +19,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
     init {
 
-        preferredSize = Dimension(500, 150)
+        preferredSize = Dimension(500, 140)
 
         val fontMetrics = getFontMetrics(font)
 
@@ -51,7 +51,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
             val stringHeaderOffset = min(max((session.noteWidth / 2 - session.onScreenNoteCursor) * spacing, 0.0), margin + 2.0 * padding)
 
-            for (index in 0 until session.recording.tuning.size) {
+            for (index in 0..session.recording.tuning.size) {
                 g.color = when (index % 2) {
                     1 -> Color(232, 232, 232)
                     else -> Color(245, 245, 245)
@@ -66,7 +66,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
                 g.color = Color(86, 86, 86)
                 it.noteRange.forEachIndexed { indexOfIndex, index ->
                     val placement = session.recording.placements[index]
-                    g.drawString(placement.fret.toString(), (stringHeaderOffset).toFloat() + (it.noteRecordingStart - session.noteFrom + 0.5f + indexOfIndex).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (lineHeight * (placement.string + 1) - (lineHeight - g.font.size) / 2).toFloat())
+                    g.drawString(placement.fret.toString(), (stringHeaderOffset).toFloat() + (it.noteRecordingStart - session.noteFrom + 0.5f + indexOfIndex).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (lineHeight * (placement.string + 2) - (lineHeight - g.font.size) / 2).toFloat())
                 }
                 if (it.correctedLength != 0 && it.recordingStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
 
@@ -82,16 +82,26 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
             }
 
-            for (index in 0 until session.recording.tuning.size) {
+            session.recording.chordController.clear()
+            session.recording.chordController.feed(session.recording.notes)
+
+            session.recording.chordController.states.map { it.chord }.forEach {
+                if (it != null)
+                    g.drawString(it.asString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f).toFloat() * spacing - g.fontMetrics.stringWidth(it.asString()) / 2, (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat())
+            }
+
+            for (index in 0..session.recording.tuning.size) {
                 g.color = when (index % 2) {
                     1 -> Color(232, 232, 232)
                     else -> Color(245, 245, 245)
                 }
                 g.fill(Rectangle2D.Double(-(margin + 2 * padding) + stringHeaderOffset, index * lineHeight, margin + 2.0 * padding, lineHeight))
                 g.color = Color(86, 86, 86)
-                g.drawString(session.recording.tuning[index].noteString, (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(), (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat())
+                if (index != 0) {
+                    g.drawString(session.recording.tuning[index - 1].noteString, (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(), (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat())
+                }
             }
-            g.draw(line(stringHeaderOffset, 0.0, stringHeaderOffset, height.toDouble()))
+            g.draw(line(stringHeaderOffset, 0, stringHeaderOffset, height.toDouble()))
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
@@ -109,7 +119,7 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
 
     override fun componentResized(e: ComponentEvent) {
 
-        lineHeight = height / session.recording.tuning.size.toDouble()
+        lineHeight = height / (session.recording.tuning.size + 1.0)
 
         session.width = e.component.width
         session.noteWidth = e.component.width.toDouble() / spacing

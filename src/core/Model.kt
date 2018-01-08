@@ -14,11 +14,11 @@ object Model {
 
     const val FFT_SIZE: Int = 4096 // the size of the fft used, equivalent to the input size
 
-    const val START_PITCH: Int = 28 // the lowest pitch the model outputs
-    const val END_PITCH: Int = 84
+    const val START_PITCH: Int = 24 // the lowest pitch the model outputs
+    const val END_PITCH: Int = 60
     const val PITCH_RANGE: Int = END_PITCH - START_PITCH
 
-    const val CONFIDENCE_CUT_OFF = .5 // the confidence below which predictions will be discarded
+    const val CONFIDENCE_CUT_OFF = .95 // the confidence below which predictions will be discarded
     const val MEL_BINS_AMOUNT: Int = 124 // the size of the output spectrum
 
     // The names of tensors in the model
@@ -32,7 +32,7 @@ object Model {
     private const val MEL_BINS_TENSOR: String = "mel_bins"
     private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
 
-    private const val MODEL_LOCATION = "res/model65" // the location of the model
+    private const val MODEL_LOCATION = "res/model66" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
