@@ -10,7 +10,7 @@ import java.nio.FloatBuffer
  * @see org.tensorflow.Tensor
  * @author Kacper Lubisz
  */
-object Model {
+internal object Model {
 
     const val FFT_SIZE: Int = 4096 // the size of the fft used, equivalent to the input size
 
@@ -24,11 +24,8 @@ object Model {
     // The names of tensors in the model
     private const val INPUT_TENSOR_NAME: String = "inputs"
     private const val OUTPUT_TENSOR_NAME: String = "predictions"
-    private const val ENQUEUE_ZERO_STATE: String = "enqueue_zero_state"
     private const val ENQUEUE_START_INPUTS: String = "enqueue_start_inputs"
-    private const val ENQUEUE_NEW_STATE: String = "enqueue_new_state"
     private const val ENQUEUE_NEW_INPUT: String = "enqueue_new_inputs"
-    private const val CLEAR_STATE: String = "clear_state_queue"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
     private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
 
@@ -50,9 +47,6 @@ object Model {
         spectrumOutputBuffer = FloatBuffer.allocate(MEL_BINS_AMOUNT)
         dephasedBuffer = FloatBuffer.allocate(FFT_SIZE)
 
-        // initialise the state of the LSTM to the start state
-        setState()
-
     }
 
     /**
@@ -63,7 +57,7 @@ object Model {
      * @see TimeStep
      * @see StepOutput
      */
-    fun feedForward(samples: FloatArray): StepOutput {
+    internal fun feedForward(samples: FloatArray): StepOutput {
 
         samplesInputBuffer.rewind()
         samplesInputBuffer.put(samples)
@@ -96,35 +90,7 @@ object Model {
 
     }
 
-    /**
-     * Instantiates the sessions state queue with the start state
-     */
-    private fun setState() {
-        synchronized(tensorFlowSession) {
-            // locks session to prevent concurrent modification
-
-//            tensorFlowSession.runner()
-//                    .addTarget(ENQUEUE_ZERO_STATE)
-//                    .addTarget(ENQUEUE_START_INPUTS)
-//                    .run()
-
-        }
-    }
-
-    /**
-     * Removes the current state stored in the session and replaces it with the start state
-     */
-    fun resetState() {
-        synchronized(tensorFlowSession) {
-            // locks session to prevent concurrent modification
-
-//            tensorFlowSession.runner().addTarget(CLEAR_STATE).run()
-//            tensorFlowSession.runner().addTarget(ENQUEUE_ZERO_STATE).run()
-
-        }
-    }
-
-    fun setQueue(samples: FloatArray) {
+    internal fun setQueue(samples: FloatArray) {
 
         samplesInputBuffer.rewind()
         samplesInputBuffer.put(samples)

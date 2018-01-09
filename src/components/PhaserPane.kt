@@ -6,7 +6,7 @@ import java.awt.geom.Line2D
 import java.awt.geom.Path2D
 import javax.swing.JPanel
 
-class PhaserPane internal constructor(private val session: Session) : JPanel() {
+internal class PhaserPane internal constructor(private val session: Session) : JPanel() {
 
     init {
 
@@ -26,7 +26,7 @@ class PhaserPane internal constructor(private val session: Session) : JPanel() {
         val size = size
         g.stroke = BasicStroke(.2f)
 
-        if (recording.timeSteps.size > 0 && session.analyser.isRunning) {
+        if (recording.timeSteps.size > 0 && !session.analyser.isPaused) {
 
             val dePhased = recording.timeSteps[recording.timeSteps.size - 1].dePhased
             val graph = Path2D.Double()

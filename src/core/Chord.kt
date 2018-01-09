@@ -1,6 +1,48 @@
 package core
 
-data class Chord(val recordingStart: Int, val noteStart: Int, val rootPitch: Int, val pattern: ChordPattern) {
+import core.Note.Companion.noteLetterShort
+import core.Note.Companion.noteString
+import java.io.Serializable
+
+data class Chord(val recordingStart: Int, val noteStart: Int, val notes: MutableList<Note>, val pattern: ChordPattern) : Serializable {
+
+    val rootPitch
+        get() = notes[0].pitch
+
+    fun asString(): String = "${rootPitch.noteLetterShort}${pattern.suffix}"
+
+    internal val isValid: Boolean
+        get() {
+            val root = notes.find { possibleRoot ->
+                // none of the notes from pattern are missed out
+                pattern.notes.none {
+                    (it + possibleRoot.pitch) !in notes.map { it.pitch }
+                }
+            }
+            return if (root == null) {
+                false
+            } else {
+                notes.remove(root)
+                notes.add(0, root)
+                true
+            }
+        }
+
+    internal val isPossible: Boolean
+        get() {
+            val root = notes.find { possibleRoot ->
+                notes.all {
+                    it.pitch - possibleRoot.pitch in pattern.notes
+                }
+            }
+            return if (root == null) {
+                false
+            } else {
+                notes.remove(root)
+                notes.add(0, root)
+                true
+            }
+        }
 
     companion object {
 
@@ -15,18 +57,19 @@ data class Chord(val recordingStart: Int, val noteStart: Int, val rootPitch: Int
 
     }
 
-    fun asString(): String = "${rootPitch.noteLetterShort}${pattern.suffix}"
-
-    data class ChordPattern(val name: String, val suffix: String, val notes: List<Int>) {
-        constructor(name: String, suffix: String, vararg notes: Int) : this(name, suffix, notes.asList())
+    class ChordPattern private constructor(val title: String, val suffix: String, val notes: List<Int>) {
+        constructor(title: String, suffix: String, vararg notes: Int) : this(title, suffix, notes.asList())
     }
+
 }
 
-class ChordController {
+class ChordController : Serializable {
 
-    val chords: MutableList<Chord> = mutableListOf()
+    internal val chords
+        get() = chordStates.map { it.chord!! }
 
-    val states: MutableList<ChordControllerState> = mutableListOf()
+    private val chordStates: MutableList<ChordControllerState> = mutableListOf()
+    private val states: MutableList<ChordControllerState> = mutableListOf()
     private val liveStates: MutableList<ChordControllerState> = mutableListOf()
 
     fun feed(note: Note) {
@@ -35,14 +78,27 @@ class ChordController {
         states.add(newState)
         liveStates.add(newState)
 
+        val newChord = mutableListOf<ChordControllerState>()
         liveStates.forEach { it.add(note) }
-        val newChords = mutableListOf<ChordControllerState>()
         liveStates.removeIf {
             if (it.chord != null) {
-                newChords.add(it)
+                newChord.add(it)
             }
-
             return@removeIf it.isDead
+        }
+
+        newChord.forEach {
+            if (chordStates.isEmpty()) {
+                chordStates.add(it)
+            } else {
+                if (!chordStates.last().isDead && chordStates.last().notes.all { last ->
+                    it.notes.contains(last)
+                }) { // if the last chord added contains all the notes of this chord
+                    chordStates[chordStates.lastIndex] = it
+                } else {
+                    chordStates.add(it)
+                }
+            }
         }
 
     }
@@ -53,56 +109,45 @@ class ChordController {
 
     fun clear() {
 
-        chords.clear()
+        chordStates.clear()
         states.clear()
         liveStates.clear()
 
     }
 
-    class ChordControllerState(private val index: Int) {
+}
 
-        val notes = mutableListOf<Note>()
-        val start
-            get() = notes.minBy { it.start }!!
+internal class ChordControllerState(private val index: Int) : Serializable {
 
-        var isDead = false
-        var possibleChords = listOf<Chord>()
+    val notes = mutableListOf<Note>()
+    val start
+        get() = notes.minBy { it.start }!!
 
-        var chord: Chord? = null
+    var isDead = false
+    var possibleChords = listOf<Chord>()
 
-        fun add(note: Note) {
+    var chord: Chord? = null
 
+    fun add(note: Note) {
 //            if (index == 0) {
 //                println(notes.size)
 //            }
-
-            if (notes.isEmpty()) {
-                possibleChords = Chord.chordPatters.flatMap { pattern ->
-                    pattern.notes.map { root ->
-                        Chord(note.start, index, note.pitch + root, pattern)
-                    }
-                }
-                notes.add(note)
-            } else {
-
+        notes.add(note)
+        if (notes.isEmpty()) {
+            possibleChords = Chord.chordPatters.map { pattern ->
+                Chord(note.start, index, mutableListOf(note), pattern)
+            }
+        } else {
 //                if (index == 0)
 //                    print(possibleChords.map { it.pattern.name }.distinct())
+            possibleChords.forEach { it.notes.add(note) }
+            possibleChords = possibleChords.filter { it.isPossible }
 
-                possibleChords = possibleChords.filter { chord ->
-                    chord.pattern.notes.any {
-                        note.pitch - chord.rootPitch > 0 && it == note.pitch - chord.rootPitch
-                    }
-                }
-
-//                if (index == 0)
+            //                if (index == 0)
 //                    println(" ${possibleChords.map { it.pattern.name }.distinct()}")
-
-                if (possibleChords.isEmpty()) {
-                    isDead = true
-                } else {
-                    possibleChords = possibleChords
-                    notes.add(note)
-
+            if (possibleChords.isEmpty()) {
+                isDead = true
+            } else {
 //                    println("$notes is already ${
 //                        possibleChords.filter { chord ->
 //                            chord.pattern.notes.all { note ->
@@ -112,35 +157,28 @@ class ChordController {
 //                            }
 //                        }
 //                    }")
-
-                    val newChord = possibleChords.filter { chord ->
-                        chord.pattern.notes.all { note ->
-                            notes.any {
-                                it.pitch == note + chord.rootPitch
-                            }
-                        }
-                    }.maxBy { it.pattern.notes.size }
-
-                    if (newChord != null) {
-                        chord = newChord
-                    }
-
+                val chordFound = possibleChords.filter { it.isValid }.maxBy { it.pattern.notes.size }
+                if (chordFound != null) {
+                    chord = chordFound
                 }
+
             }
+        }
 
 //            if (index == 0) {
 //                println("notes=${notes.map { it.pitch.noteStringShort }}, dead=$isDead, chord=$chord, pos=${possibleChords.map { it.asString() }}")
 //            }
 
-        }
+    }
 
-        override fun toString(): String {
-            return "ChordFSMState(isDead=$isDead, ${possibleChords.map { it.rootPitch.noteString + it.pattern.name }})"
-        }
+    override fun toString(): String {
+        return "ChordFSMState(isDead=$isDead, ${possibleChords.map { it.rootPitch.noteString + it.pattern.title }})"
+    }
+
+    companion object {
+
+        internal infix fun Int.floorMod(other: Int) = ((this % other) + other) % other
 
     }
 
 }
-
-infix fun Int.floorMod(other: Int) = ((this % other) + other) % other
-

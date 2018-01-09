@@ -1,5 +1,8 @@
 package core
 
+import core.Note.Companion.pitch
+import java.io.Serializable
+
 /**
  * This class stores the permutation of strings that a guitar could have
  * @author Kacper Lubisz
@@ -7,7 +10,7 @@ package core
  * @property strings The list of strings that the tuning has
  * @property maxFret The highest fret that the tuning has
  */
-data class Tuning(val strings: List<Int>, val maxFret: Int = 20) {
+data class Tuning(val strings: List<Int>, val maxFret: Int = 20) : Serializable {
 
     constructor(vararg strings: String) : this(strings.map { it.pitch }.sorted())
     // an easy to use constructor for testing the Tuning class

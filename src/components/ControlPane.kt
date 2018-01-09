@@ -4,34 +4,68 @@ import core.Session
 import javax.swing.JButton
 import javax.swing.JPanel
 
-class ControlPane(private val session: Session) : JPanel() {
+internal class ControlPane(private val session: Session) : JPanel() {
 
-    private val pauseButton = JButton("Pause")
-    private val resumeButton = JButton("Resume")
-    private val cutButton = JButton("Cut")
-    private val startButton = JButton("Start")
+    private val recordButton = JButton(RECORD_EMOJI)
+    private val pauseRecordingButton = JButton(STOP_EMOJI)
+    private val playbackButton = JButton(PLAY_EMOJI)
+    private val pausePlaybackButton = JButton(PAUSE_EMOJI)
+
+    private val cutButton = JButton(SCISSORS_EMOJI)
 
     init {
 
-        pauseButton.isVisible = false
-        pauseButton.addActionListener {
-            session.pause()
-            pauseButton.isVisible = false
-            resumeButton.isVisible = true
-            cutButton.isVisible = true
-        }
-        add(pauseButton)
+        recordButton.addActionListener {
+            pauseRecordingButton.isVisible = true
+            recordButton.isVisible = false
 
-        resumeButton.isVisible = false
-        resumeButton.addActionListener {
-            session.resume()
-            pauseButton.isVisible = true
-            resumeButton.isVisible = false
-            cutButton.isVisible = false
-        }
-        add(resumeButton)
+            playbackButton.isEnabled = false
+            cutButton.isEnabled = false
 
-        cutButton.isVisible = false
+            session.record()
+
+        }
+        add(recordButton)
+
+        pauseRecordingButton.isVisible = false
+        pauseRecordingButton.addActionListener {
+            recordButton.isVisible = true
+            pauseRecordingButton.isVisible = false
+
+            playbackButton.isEnabled = true
+            cutButton.isEnabled = true
+
+            session.pauseRecording()
+        }
+        add(pauseRecordingButton)
+
+        playbackButton.isEnabled = false
+        playbackButton.addActionListener {
+            playbackButton.isVisible = false
+            pausePlaybackButton.isVisible = true
+
+            recordButton.isEnabled = false
+            cutButton.isEnabled = false
+
+            session.playback()
+
+        }
+        add(playbackButton)
+
+        pausePlaybackButton.isVisible = false
+        pausePlaybackButton.addActionListener {
+            pausePlaybackButton.isVisible = false
+            playbackButton.isVisible = true
+
+            recordButton.isEnabled = true
+            cutButton.isEnabled = true
+
+            session.pausePlayback()
+
+        }
+        add(pausePlaybackButton)
+
+        cutButton.isEnabled = false
         cutButton.addActionListener {
             if (session.cursor != -1) {
                 session.makeCut(session.correctedCursor)
@@ -39,13 +73,15 @@ class ControlPane(private val session: Session) : JPanel() {
         }
         add(cutButton)
 
-        startButton.addActionListener {
-            session.start()
-            startButton.isVisible = false
-            pauseButton.isVisible = true
-        }
-        add(startButton)
+    }
 
+    companion object {
+
+        private val PLAY_EMOJI = "▶"
+        private val RECORD_EMOJI = "\u23FA"
+        private val PAUSE_EMOJI = "❚❚"
+        private val STOP_EMOJI = "\u23F9"
+        private val SCISSORS_EMOJI = "\u2702"
 
     }
 

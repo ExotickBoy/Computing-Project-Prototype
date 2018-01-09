@@ -12,7 +12,7 @@ import kotlin.math.*
  * @property isNote If the scrolling should wrap to the closest note
  * @property session The session that this controller is responsible for
  */
-class ScrollController(private val isNote: Boolean, internal val session: Session) : MouseMotionListener, MouseListener {
+internal class ScrollController(private val isNote: Boolean, internal val session: Session) : MouseMotionListener, MouseListener {
 
     private var longPressTimer: LongPressThread? = null
     private var draggingThread: DraggingThread? = null
@@ -26,7 +26,7 @@ class ScrollController(private val isNote: Boolean, internal val session: Sessio
 
         val dx = e.x - session.lastX
 
-        if (dx != 0 && !session.analyser.isRunning && draggingThread?.isAlive != true) {
+        if (session.analyser.isPaused && dx != 0 && draggingThread?.isAlive != true) {
             // im using != true, because it cold be null
 
             if (!isNote) {
@@ -66,7 +66,7 @@ class ScrollController(private val isNote: Boolean, internal val session: Sessio
 
     private fun mouseLongPressed() {
 
-        if (!session.analyser.isRunning && !isNote) {
+        if (session.analyser.isPaused && !isNote) {
             session.swap = session.recording.sectionAt(session.lastX + session.correctedCursor
                     - session.onScreenCursor
             )
@@ -88,7 +88,7 @@ class ScrollController(private val isNote: Boolean, internal val session: Sessio
 
     }
 
-    class DraggingThread(private val controller: ScrollController) : Thread() {
+    private class DraggingThread(private val controller: ScrollController) : Thread() {
 
         init {
             name = "Drag Thread"
@@ -123,7 +123,7 @@ class ScrollController(private val isNote: Boolean, internal val session: Sessio
 
     }
 
-    class LongPressThread(private val controller: ScrollController) : Thread() {
+    private class LongPressThread(private val controller: ScrollController) : Thread() {
 
         private val endAt = System.currentTimeMillis() + holdTime
 

@@ -17,7 +17,7 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
      * low when there is a lot of time between the two placements (giving the player time to move their hand)
      * @param other the other placement that should be compared
      */
-    infix fun distance(other: Placement): Double {
+    internal infix fun distance(other: Placement): Double {
 
         return if (string == other.string && other.note.start < note.end) {
             // this is because two notes can't be played on the same string at the same time
@@ -34,7 +34,7 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
     /**
      * This function finds the distance to a placement if it is the first one
      */
-    fun startDistance(): Double {
+    internal fun startDistance(): Double {
         return fret * FRET_SCALING_FACTOR.pow(2)
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
@@ -59,7 +59,7 @@ data class Placement(val fret: Int, val string: Int, val note: Note) {
          * @param b the second fret
          * @return the distance between the frets
          */
-        fun fretDistance(a: Int, b: Int): Double {
+        internal fun fretDistance(a: Int, b: Int): Double {
 
             return if (a == 0 || b == 0) 0.0
             else FRET_SCALING_FACTOR * (1 - FRET_DROPOFF.pow(-Math.pow(a - b.toDouble(), 2.0)))

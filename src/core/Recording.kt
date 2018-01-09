@@ -1,5 +1,10 @@
 package core
 
+import java.io.*
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
+
+
 /**
  * Stores all the time steps for a recording.
  * @author Kacper Lubisz
@@ -7,18 +12,19 @@ package core
  * @property tuning The tuning used during this recording
  * @property name The name of the recording that will be displayed to the user
  */
-class Recording(val tuning: Tuning, val name: String) {
+class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     val samples: MutableList<FloatArray> = mutableListOf()
 
-    val timeSteps: MutableList<TimeStep> = mutableListOf()
+    val timeSteps = mutableListOf<TimeStep>()
     val placements = mutableListOf<Placement>()
     val notes = mutableListOf<Note>()
-    val chords get() = chordController.chords
+    val chords = mutableListOf<Chord>()
     val sections = mutableListOf<Section>()
 
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
+
     val chordController = ChordController()
 
     /**
@@ -217,8 +223,26 @@ class Recording(val tuning: Tuning, val name: String) {
 
     }
 
+    fun serialize(output: OutputStream, willCompress: Boolean = DEFAULT_WILL_COMPRESS) {
+
+        output.write(if (willCompress) 1 else 0)
+        val stream = ObjectOutputStream(if (willCompress) GZIPOutputStream(output) else output)
+        stream.writeObject(this)
+
+    }
+
     companion object {
 
+        fun deserialize(input: InputStream): Recording {
+            val isCompressed = input.read() == 1
+            val stream = ObjectInputStream(if (isCompressed) GZIPInputStream(input) else input)
+
+            return stream.readObject() as Recording
+
+        }
+
+        private val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
+        private const val DEFAULT_WILL_COMPRESS = true
         /**
          * Finds all the placements of a note in a tuning
          * @param note The note to be found for

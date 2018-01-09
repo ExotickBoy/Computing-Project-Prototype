@@ -27,14 +27,6 @@ public class Analyser {
 
     }
 
-    public void pause() {
-        isPaused = true;
-    }
-
-    public void resume() {
-        isPaused = false;
-    }
-
     public void stop() {
         if (targetLine != null && targetLine.isOpen()) {
             targetLine.close();
@@ -45,12 +37,12 @@ public class Analyser {
         return isPaused;
     }
 
-    public boolean isAlive() {
-        return targetLine != null && targetLine.isOpen();
+    public void setPaused(boolean paused) {
+        isPaused = paused;
     }
 
-    public boolean isRunning() {
-        return isAlive() && !isPaused();
+    public boolean isAlive() {
+        return targetLine != null && targetLine.isOpen();
     }
 
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {

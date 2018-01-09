@@ -1,7 +1,9 @@
 package components
 
+import components.ContentsPane.Companion.line
+import components.ContentsPane.Companion.overlaps
+import core.Note.Companion.noteString
 import core.Session
-import core.noteString
 import java.awt.*
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
@@ -10,7 +12,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
 
-class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener {
+internal class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener {
 
     private var lineHeight: Double = 0.0
     private val margin: Int
@@ -88,9 +90,9 @@ class NoteOutputPane(private val session: Session) : JPanel(), ComponentListener
             session.recording.chordController.clear() // TODO remove after debugging is done
             session.recording.chordController.feed(session.recording.notes)
 
-            session.recording.chordController.states.map { it.chord }.forEach {
-                if (it != null)
-                    g.drawString(it.asString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f).toFloat() * spacing - g.fontMetrics.stringWidth(it.asString()) / 2, (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat())
+            g.color = Color(86, 86, 86)
+            session.recording.chords.forEach {
+                g.drawString(it.asString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f).toFloat() * spacing - g.fontMetrics.stringWidth(it.asString()) / 2, (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat())
             }
 
             // Tuning header

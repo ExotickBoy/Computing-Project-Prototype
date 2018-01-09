@@ -11,7 +11,7 @@ import java.util.*
  * @property predictions The list of predictions for each pitch created by the model
  * @property spectrum The spectrum of the samples of a TimeStep
  */
-data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val depased: FloatArray) {
+internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val depased: FloatArray) {
 
     var pitches: List<Int>
 

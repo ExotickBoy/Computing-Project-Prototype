@@ -1,5 +1,7 @@
 package components
 
+import components.ContentsPane.Companion.line
+import components.ContentsPane.Companion.overlaps
 import core.Model
 import core.Session
 import java.awt.*
@@ -9,7 +11,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
 
-class NetworkOutputPane(private val session: Session) : JPanel() {
+internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
     init {
 

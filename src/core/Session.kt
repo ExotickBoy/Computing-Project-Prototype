@@ -151,21 +151,25 @@ class Session(val recording: Recording) {
 
     }
 
-    fun start() {
-        analyser.start()
-        cursor = null
-        resume()
-    }
-
-    fun pause() {
-        recording.endSection()
-        analyser.pause()
-    }
-
-    fun resume() {
+    fun record() {
+        if (!analyser.isAlive)
+            analyser.start()
         recording.startSection()
         cursor = null
-        analyser.resume()
+        analyser.isPaused = false
+    }
+
+    fun pauseRecording() {
+        recording.endSection()
+        analyser.isPaused = true
+    }
+
+    fun playback() {
+
+    }
+
+    fun pausePlayback() {
+
     }
 
     fun addSamples(samples: FloatArray) {
