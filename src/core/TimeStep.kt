@@ -17,9 +17,10 @@ import kotlin.math.min
  * @property modelOutput The object that represents the outputs of the Model
  * @property notes The notes that are present in the time step
  */
-class TimeStep private constructor(samples: FloatArray, private val time: Int, private val previous: TimeStep? = null) { // start in steps
+class TimeStep private constructor(val recording: Recording, val sampleRange: IntRange, private val time: Int, private val previous: TimeStep? = null) { // start in steps
 
-    constructor(samples: FloatArray, previous: TimeStep?) : this(samples, (previous?.time ?: -1) + 1, previous)
+    constructor(recording: Recording, sampleRange: IntRange, previous: TimeStep?) :
+            this(recording, sampleRange, (previous?.time ?: -1) + 1, previous)
 
     private val modelOutput: StepOutput
 
@@ -28,6 +29,10 @@ class TimeStep private constructor(samples: FloatArray, private val time: Int, p
 
     val dePhased
         get() = modelOutput.depased
+
+    private val samples
+        get() = recording.samples.subList(sampleRange.start, sampleRange.endInclusive + 1).toFloatArray()
+
 
     val notes: List<Note>
 

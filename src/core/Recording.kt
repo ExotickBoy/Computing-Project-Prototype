@@ -14,7 +14,7 @@ import java.util.zip.GZIPOutputStream
  */
 class Recording(val tuning: Tuning, val name: String) : Serializable {
 
-    val samples: MutableList<FloatArray> = mutableListOf()
+    val samples: MutableList<Float> = mutableListOf()
 
     val timeSteps = mutableListOf<TimeStep>()
     val placements = mutableListOf<Placement>()
@@ -97,7 +97,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
             .firstOrNull { time <= sections[it].recordingStart + sections[it].correctedLength }
 
     fun addSamples(newSamples: FloatArray) {
-        samples.add(newSamples)
+        samples.addAll(newSamples.toTypedArray())
     }
 
     /**

@@ -2,20 +2,21 @@ package core;
 
 import javax.sound.sampled.*;
 
-public class Analyser {
+public class SoundGatheringController {
 
     public static final int DEFAULT_SAMPLE_RATE = 44100;
 
-    private final AnalyserThread analyserThread;
+    private final SoundGatheringThread analyserThread;
     private TargetDataLine targetLine;
 
-    private boolean isPaused = true;
+    private volatile boolean isPaused = true;
     private final Session session;
+    private boolean willDiscard = true;
 
-    public Analyser(Session session) {
+    public SoundGatheringController(Session session) {
 
         this.session = session;
-        analyserThread = new AnalyserThread();
+        analyserThread = new SoundGatheringThread();
 
     }
 
@@ -51,15 +52,15 @@ public class Analyser {
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
-        targetLine.open(format, DEFAULT_SAMPLE_RATE / 5);
+        targetLine.open(format, DEFAULT_SAMPLE_RATE / 20);
 
     }
 
-    private final class AnalyserThread extends Thread {
+    private final class SoundGatheringThread extends Thread {
 
-        AnalyserThread() {
+        SoundGatheringThread() {
 
-            setName("Analyser Thread");
+            super("Sound Gathering Thread");
 
         }
 
@@ -78,11 +79,17 @@ public class Analyser {
                 if (numBytesRead == -1)
                     break;
 
-                if (isPaused)
-                    continue;
-
+                if (isPaused) {
+                    if (willDiscard) {
+                        continue;
+                    } else {
+                        while (isPaused) {
+                            Thread.onSpinWait();
+                        }
+                    }
+                }
                 for (int i = 0; i < samples.length; i++) {
-                    samples[i] = ((read[i * 2] << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
+                    samples[i] = ((read[i * 2] & 0xFF << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
                 }
                 session.addSamples(samples);
 

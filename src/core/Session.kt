@@ -30,8 +30,6 @@ class Session(val recording: Recording) {
             runCallbacks()
         }
 
-    val analyser: Analyser = Analyser(this)
-
     private var cursorField: Int? = null
     private var noteCursorField: Double? = null
 
@@ -140,6 +138,12 @@ class Session(val recording: Recording) {
     var swapWith: Int = 0
     var swapWithSection: Boolean = false
 
+    val isEditSafe: Boolean
+        get() = soundProcessingController.isPaused && soundProcessingController.isPaused
+
+    private val soundGatheringController = SoundGatheringController(this)
+    private val soundProcessingController = SoundProcessingController(this)
+
     private fun updateLocations() {
         onScreenCursor = min(max(width - (recording.timeSteps.size - correctedCursor), width / 2), correctedCursor)
         from = max(correctedCursor - onScreenCursor, 0)
@@ -152,16 +156,15 @@ class Session(val recording: Recording) {
     }
 
     fun record() {
-        if (!analyser.isAlive)
-            analyser.start()
-        recording.startSection()
+        if (!soundGatheringController.isAlive)
+            soundGatheringController.start()
         cursor = null
-        analyser.isPaused = false
+        soundGatheringController.isPaused = false
     }
 
     fun pauseRecording() {
         recording.endSection()
-        analyser.isPaused = true
+        soundGatheringController.isPaused = true
     }
 
     fun playback() {
@@ -175,6 +178,8 @@ class Session(val recording: Recording) {
     fun addSamples(samples: FloatArray) {
         recording.addSamples(samples)
     }
+
+    fun addTimeStep(removeFirst: TimeStep?) {}
 
     /**
      * Cuts the recording at the cursor location and invokes update listeners
