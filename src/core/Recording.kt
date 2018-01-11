@@ -1,5 +1,7 @@
 package core
 
+import core.SoundProcessingController.Companion.SAMPLES_BETWEEN_FRAMES
+import core.SoundProcessingController.Companion.SAMPLE_PADDING
 import java.io.*
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
@@ -14,23 +16,14 @@ import java.util.zip.GZIPOutputStream
  */
 class Recording(val tuning: Tuning, val name: String) : Serializable {
 
-    val samples: MutableList<Float> = mutableListOf()
-
-    val timeSteps = mutableListOf<TimeStep>()
-    val placements = mutableListOf<Placement>()
-    val notes = mutableListOf<Note>()
-    val chords = mutableListOf<Chord>()
     val sections = mutableListOf<Section>()
-
-    private val paths: MutableList<List<Path>> = mutableListOf()
-    private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
     val chordController = ChordController()
 
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
      * It may do nothing if one of the created sections is less than the minimum section length
-     * @param time The time to cut the recording at
+     * @param time The time to cut the recording at in timesteps
      */
     internal fun cut(time: Int) {
 
@@ -40,26 +33,29 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
             val cutSection = sections[cutIndex]
 
+            val clusterCut = cutSection.noteClusters.indexOfFirst { cutSection.timeStepStart + it.relTimeStepStart > time }.let {
+                if (it == -1) cutSection.noteClusters.size else it
+            }
+
             val left = Section(
-                    this,
+                    cutSection.sampleStart,
                     cutSection.timeStepStart,
-                    cutSection.recordingStart,
-                    cutSection.noteStart,
-                    cutSection.noteRecordingStart,
-                    time - cutSection.recordingStart + 1,
-                    cutSection.noteRange.map { (it - cutSection.noteStart) to notes[it] }.firstOrNull { it.second.start - cutSection.timeStepStart + cutSection.recordingStart >= time }?.first ?: cutSection.noteLength
-            )
-            val right = Section(
-                    this,
-                    cutSection.timeStepStart + left.correctedLength,
-                    cutSection.recordingStart + left.correctedLength,
-                    left.noteStart + left.correctedNoteLength,
-                    left.noteRecordingStart + left.correctedNoteLength,
-                    cutSection.recordingStart + cutSection.correctedLength - time - 1,
-                    cutSection.correctedNoteLength - left.correctedNoteLength
+                    cutSection.clusterStart,
+                    cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING),
+                    cutSection.timeSteps.subList(0, time - cutSection.timeStepStart),
+                    cutSection.noteClusters.subList(0, clusterCut)
             )
 
-            if (left.correctedLength >= Section.minLength && right.correctedLength >= Section.minLength) {
+            val right = Section(
+                    left.sampleEnd,
+                    left.timeStepEnd,
+                    left.clusterEnd,
+                    cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size),
+                    cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size),
+                    cutSection.noteClusters.subList(clusterCut, cutSection.noteClusters.size)
+            )
+
+            if (left.timeSteps.size >= Section.minStepLength && right.timeSteps.size >= Section.minStepLength) {
 
                 sections.removeAt(cutIndex)
                 sections.add(cutIndex, right)
@@ -74,16 +70,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     internal fun startSection() {
 
         if (sections.size == 0)
-            sections.add(Section(this, 0, 0, 0, 0, null, null))
+            sections.add(Section(0, 0, 0))
         else
-            sections.add(Section(this, timeSteps.size, timeSteps.size, notes.size, notes.size, null, null))
-
-    }
-
-    internal fun endSection() {
-
-        val last = sections[sections.size - 1]
-        sections[sections.size - 1] = last.copy(length = last.correctedLength, noteLength = last.correctedNoteLength)
+            sections.add(Section(sections.last()))
 
     }
 
@@ -93,7 +82,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
      * @return The index of the section
      */
     internal fun sectionAt(time: Int) = (0 until sections.size)
-            .firstOrNull { time <= sections[it].recordingStart + sections[it].correctedLength }
+            .firstOrNull { time <= sections[it].timeStepEnd }
 
     fun addSamples(newSamples: FloatArray) {
         samples.addAll(newSamples.toTypedArray())
@@ -200,10 +189,13 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         sections[a] = sections[b]
         sections[b] = temp
 
-        sections[0] = sections[0].copy(recordingStart = 0, noteRecordingStart = 0)
+        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
         for (i in 1 until sections.size) {
-            sections[i] = sections[i].copy(recordingStart = sections[i - 1].recordingStart + sections[i - 1].correctedLength,
-                    noteRecordingStart = sections[i - 1].noteRecordingStart + sections[i - 1].correctedNoteLength)
+            sections[i] = sections[i].copy(
+                    sampleStart = sections[i - 1].sampleEnd,
+                    timeStepStart = sections[i - 1].timeStepEnd,
+                    clusterStart = sections[i - 1].clusterEnd
+            )
         }
 
     }
@@ -214,10 +206,13 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         sections.removeAt(from)
         sections.add(corrected, it)
 
-        sections[0] = sections[0].copy(recordingStart = 0, noteRecordingStart = 0)
+        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
         for (i in 1 until sections.size) {
-            sections[i] = sections[i].copy(recordingStart = sections[i - 1].recordingStart + sections[i - 1].correctedLength,
-                    noteRecordingStart = sections[i - 1].noteRecordingStart + sections[i - 1].correctedNoteLength)
+            sections[i] = sections[i].copy(
+                    sampleStart = sections[i - 1].sampleStart + sections[i - 1].samples.size,
+                    timeStepStart = sections[i - 1].timeStepStart + sections[i - 1].timeSteps.size,
+                    clusterStart = sections[i - 1].clusterStart + sections[i - 1].noteClusters.size
+            )
         }
 
     }
@@ -259,12 +254,5 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         }
 
     }
-
-    /**
-     * This class is used to store all the possible paths when placements are optimised
-     * @property route The list of indices for all the possible placemetns
-     * @property distance The distance for the particular path
-     */
-    private data class Path(val route: List<Int>, val distance: Double)
 
 }

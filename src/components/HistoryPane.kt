@@ -1,14 +1,12 @@
 package components
 
 import components.ContentsPane.Companion.line
-import components.ContentsPane.Companion.overlaps
+import components.ContentsPane.Companion.overlap
 import core.Session
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
-import kotlin.math.max
-import kotlin.math.min
 
 class HistoryPane internal constructor(private val session: Session) : JPanel() {
 
@@ -37,18 +35,21 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
 
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
-            (0 until session.recording.sections.size).filter { it != session.swap }.map { session.recording.sections[it] }.filter {
-                it.recordingRange overlaps session.visibleRange
+            session.recording.sections.filterIndexed { index, it ->
+                index != session.swap
             }.forEachIndexed { index, it ->
 
-                for (x in max(0, session.from - it.recordingStart) until min(it.correctedLength, session.to - it.recordingStart)) {
+                val overlap = it.timeStepRange overlap session.visibleStepRange
 
-                    g.drawImage(session.recording.timeSteps[x + it.timeStepStart].melImage, x + it.recordingStart - session.from, 0, 1, height, null)
+                for (x in overlap) {
+
+                    g.drawImage(it.timeSteps[x - it.timeStepStart].melImage, x + it.timeStepStart - session.from, 0, 1, height, null)
 
                 }
 
                 if (index != 0)
-                    g.draw(line(it.recordingStart - session.from + 0.5, 0, it.recordingStart - session.from + 0.5, height))
+                    g.draw(line(it.timeStepStart - session.from + 0.5, 0, it.timeStepStart - session.from + 0.5, height))
+
             }
 
 
@@ -65,19 +66,19 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
                 if (session.swapWithSection) {
 
                     val sectionTo = session.recording.sections[swapWith]
-                    val from = sectionTo.recordingStart - session.from.toDouble()
+                    val from = sectionTo.timeStepStart - session.from.toDouble()
 
                     g.color = Color(0f, 1f, 0f, .5f)
-                    g.fill(Rectangle2D.Double(from, 0.0, min(sectionTo.correctedLength.toDouble() + 1, width - from), height.toDouble()))
+                    g.fill(Rectangle2D.Double(from, 0.0, sectionTo.timeSteps.size.toDouble(), height.toDouble()))
 
                 } else {
 
                     val from: Double
                     from = if (swapWith == session.recording.sections.size) {
-                        session.recording.timeSteps.size
+                        session.recording.sections.last().timeStepEnd
                     } else {
                         val sectionTo = session.recording.sections[swapWith]
-                        sectionTo.recordingStart - session.from
+                        sectionTo.timeStepStart - session.from
                     }.toDouble()
 
                     g.color = Color(0f, 1f, 0f, 1f)
@@ -90,9 +91,9 @@ class HistoryPane internal constructor(private val session: Session) : JPanel() 
 
                 val transformBefore = g.transform
                 g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, height * .1))
-                for (x in 0 until min(section.correctedLength, width - session.lastX)) {
+                for (x in 0 until section.timeSteps.size) {
 
-                    g.drawImage(session.recording.timeSteps[section.timeStepStart + x].melImage, session.lastX + x, 0, 1, height, null)
+                    g.drawImage(section.timeSteps[x].melImage, session.lastX + x, 0, 1, height, null)
 
                 }
 

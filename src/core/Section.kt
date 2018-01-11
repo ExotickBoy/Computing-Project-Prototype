@@ -1,27 +1,49 @@
 package core
 
 // TODO
-data class Section(private val recording: Recording, val timeStepStart: Int, val recordingStart: Int, val noteStart: Int, val noteRecordingStart: Int, val length: Int?, val noteLength: Int?) {
+data class Section(
+        val sampleStart: Int,
+        val timeStepStart: Int,
+        val clusterStart: Int,
+        val samples: MutableList<Float> = mutableListOf(),
+        val timeSteps: MutableList<TimeStep> = mutableListOf(),
+        val noteClusters: MutableList<NoteCluster> = mutableListOf()
+) {
 
-    val correctedLength
-        get() = length ?: recording.timeSteps.size - timeStepStart
+    constructor(after: Section) : this(after.sampleEnd, after.timeStepEnd, after.clusterEnd) // new Section
 
-    val correctedNoteLength
-        get() = noteLength ?: recording.notes.size - noteStart
+    private val paths: MutableList<List<Path>> = mutableListOf()
+    private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
-    val recordingRange
-        get() = recordingStart until (recordingStart + correctedLength)
+    val timeStepEnd
+        get() = timeStepStart + timeSteps.size
 
-    val noteRange
-        get() = noteStart until (noteStart + correctedNoteLength)
+    val sampleEnd
+        get() = sampleStart + samples.size
 
-    override fun toString(): String {
-        return "Section(recordingRange=$recordingRange, noteRange=$noteRange, length=$length, correctedLength=$correctedLength, noteLength=$noteLength, correctedNoteLength=$correctedNoteLength)"
-    }
+    val clusterEnd
+        get() = clusterStart + noteClusters.size
+
+    val timeStepRange
+        get() = timeStepStart until timeStepEnd
+
+    val sampleRange
+        get() = sampleStart until sampleEnd
+
+    val clusterRange
+        get() = clusterStart until clusterEnd
+
+
+    /**
+     * This class is used to store all the possible paths when placements are optimised
+     * @property route The list of indices for all the possible placemetns
+     * @property distance The distance for the particular path
+     */
+    private data class Path(val route: List<Int>, val distance: Double)
 
     companion object {
 
-        const val minLength = 10
+        const val minStepLength = 10
 
     }
 

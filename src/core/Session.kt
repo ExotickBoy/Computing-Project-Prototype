@@ -40,8 +40,8 @@ class Session(val recording: Recording) {
                 cursorField = toBecome
 
                 val notes = recording.sections.flatMap {
-                    it.noteRange.map { note ->
-                        return@map PlayedNote(it.recordingStart + recording.notes[note].start - it.timeStepStart, note, it)
+                    it.noteClusters.mapIndexed { index, note ->
+                        return@mapIndexed PlayedCluster(note.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                     }
                 }
                 val after = notes.mapIndexed { index, it -> index to it }.find { it.second.recordingStart > correctedCursor }?.first
@@ -56,10 +56,10 @@ class Session(val recording: Recording) {
                         val between = when {
                             next.section == previous.section -> // no cut
                                 (correctedCursor - previous.recordingStart) / (next.recordingStart - previous.recordingStart).toDouble()
-                            correctedCursor <= next.section.recordingStart -> // left side of cut
-                                0.5 * (correctedCursor - previous.recordingStart) / (next.section.recordingStart - previous.recordingStart).toDouble()
+                            correctedCursor <= next.section.timeStepStart -> // left side of cut
+                                0.5 * (correctedCursor - previous.recordingStart) / (next.section.timeStepStart - previous.recordingStart).toDouble()
                             else -> // right side of cut
-                                0.5 + 0.5 * (correctedCursor - next.section.recordingStart) / (next.recordingStart - next.section.recordingStart).toDouble()
+                                0.5 + 0.5 * (correctedCursor - next.section.timeStepStart) / (next.recordingStart - next.section.timeStepStart).toDouble()
                         }
                         after.toDouble() + between - 0.5
                     }
@@ -79,8 +79,8 @@ class Session(val recording: Recording) {
                 noteCursorField = toBecome
 
                 val notes = recording.sections.flatMap {
-                    it.noteRange.map { note ->
-                        return@map PlayedNote(it.recordingStart + recording.notes[note].start - it.timeStepStart, note, it)
+                    it.noteClusters.mapIndexed { index, note ->
+                        return@mapIndexed PlayedCluster(note.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                     }
                 }
                 cursorField = (when {
@@ -100,9 +100,9 @@ class Session(val recording: Recording) {
                             next.section == previous.section ->
                                 previous.recordingStart * (1 - inter) + next.recordingStart * inter
                             inter < 0.5 ->
-                                previous.recordingStart * (1 - inter * 2) + next.section.recordingStart * inter * 2
+                                previous.recordingStart * (1 - inter * 2) + next.section.timeStepStart * inter * 2
                             else ->
-                                next.section.recordingStart * (2 - inter * 2) + next.recordingStart * (inter * 2 - 1)
+                                next.section.timeStepStart * (2 - inter * 2) + next.recordingStart * (inter * 2 - 1)
                         }
 
                     }
@@ -125,7 +125,7 @@ class Session(val recording: Recording) {
     var noteFrom: Double = 0.0
     var noteTo: Double = 0.0
 
-    val visibleRange
+    val visibleStepRange
         get() = from..to
     val visibleNoteRange
         get() = noteFrom..noteTo
@@ -140,6 +140,9 @@ class Session(val recording: Recording) {
 
     val isEditSafe: Boolean
         get() = soundGatheringController.isPaused && playbackController.isPaused
+
+    val isRecording
+        get() = !soundGatheringController.isPaused
 
     private val soundGatheringController = SoundGatheringController(this)
     private val soundProcessingController = SoundProcessingController(this)
@@ -186,7 +189,6 @@ class Session(val recording: Recording) {
 
     fun pauseRecording(): Boolean {
         return if (!soundGatheringController.isPaused) {
-            recording.endSection()
             soundGatheringController.isPaused = true
             runCallbacks()
             true
@@ -263,16 +265,16 @@ class Session(val recording: Recording) {
         if (sectionIndex != null) {
 
             val section = recording.sections[sectionIndex]
-            val distanceFromEdge = min(10, (section.correctedLength * .2).toInt())
+            val distanceFromEdge = min(10, (section.timeSteps.size * .2).toInt())
 
             when {
-                location - section.recordingStart < distanceFromEdge -> { // left edge
+                location - section.timeStepStart < distanceFromEdge -> { // left edge
 
                     swapWith = sectionIndex
                     swapWithSection = false
 
                 }
-                section.recordingStart + section.correctedLength - location < distanceFromEdge -> { // right edge
+                section.timeStepEnd - location < distanceFromEdge -> { // right edge
 
                     swapWith = sectionIndex + 1
                     swapWithSection = false
@@ -310,6 +312,6 @@ class Session(val recording: Recording) {
 
     }
 
-    private data class PlayedNote(val recordingStart: Int, val index: Int, val section: Section)
+    private data class PlayedCluster(val recordingStart: Int, val index: Int, val section: Section)
 
 }

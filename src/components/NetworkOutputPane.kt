@@ -1,7 +1,6 @@
 package components
 
 import components.ContentsPane.Companion.line
-import components.ContentsPane.Companion.overlaps
 import core.Model
 import core.Session
 import java.awt.*
@@ -37,7 +36,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
             (0 until session.recording.sections.size).filter { it != session.swap }.map { session.recording.sections[it] }.filter {
-                it.recordingRange overlaps session.visibleRange
+                it.recordingRange overlap session.visibleStepRange
             }.forEachIndexed { index, it ->
 
                 for (x in max(0, session.from - it.recordingStart) until min(it.correctedLength, session.to - it.recordingStart)) {

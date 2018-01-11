@@ -6,10 +6,17 @@ package core
  * @property start the start at which the note is played
  * @author Kacper Lubisz
  */
-data class Note(val pitch: Int, val start: Int, var duration: Int) {
+class Note(val pitch: Int, val start: Int, var duration: Int) : NoteCluster(start) {
+
+    private var placement: Placement? = null
 
     val end: Int
         get() = start + duration
+
+    override val placements: List<Placement>
+        get() = if (placement == null) listOf() else listOf(placement!!)
+    override val heading: String
+        get() = ""
 
     companion object {
 

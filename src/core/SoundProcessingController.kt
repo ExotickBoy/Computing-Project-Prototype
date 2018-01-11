@@ -21,7 +21,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
         while (!isInterrupted) {
 
-            if (session.recording.samples.size - currentPosition > FRAME_SIZE) { // new frame
+            if (session.recording.sections.last().samples.size - currentPosition > FRAME_SIZE) { // new frame
 
                 val newStep = TimeStep(
                         session.recording,
@@ -41,8 +41,8 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         const val FRAME_RATE = 30
         private const val SAMPLE_RATE = 44100;
         private const val FRAME_SIZE = 1 shl 12;
-        private const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
-
+        const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
+        const val SAMPLE_PADDING = FRAME_SIZE - SAMPLES_BETWEEN_FRAMES
     }
 
     private class TimeStepBufferThread(val session: Session, val queue: LinkedList<TimeStep>)

@@ -7,6 +7,8 @@ import java.awt.geom.Line2D
 import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.JPanel
+import kotlin.math.max
+import kotlin.math.min
 
 class ContentsPane(session: Session) : JPanel() {
 
@@ -59,11 +61,11 @@ class ContentsPane(session: Session) : JPanel() {
         fun line(x1: Number, y1: Number, x2: Number, y2: Number): Line2D.Double =
                 Line2D.Double(x1.toDouble(), y1.toDouble(), x2.toDouble(), y2.toDouble())
 
-        infix fun IntRange.overlaps(other: IntRange): Boolean
-                = this.start in other || this.endInclusive in other || other.start in this || other.endInclusive in this
+        infix fun IntRange.overlap(other: IntRange): IntRange
+                = max(this.start, other.start)..min(this.endInclusive, other.endInclusive)
 
-        infix fun ClosedFloatingPointRange<Double>.overlaps(other: ClosedFloatingPointRange<Double>): Boolean
-                = this.start in other || this.endInclusive in other || other.start in this || other.endInclusive in this
+        infix fun ClosedFloatingPointRange<Double>.overlap(other: ClosedFloatingPointRange<Double>)
+                = max(this.start, other.start)..min(this.endInclusive, other.endInclusive)
         // These need to be two separate methods because the superclass both these types of range share, only store comparators
         // for if something is in range, thus you can't know the start and end values
 

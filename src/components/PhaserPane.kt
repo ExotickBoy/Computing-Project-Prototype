@@ -46,6 +46,7 @@ internal class PhaserPane internal constructor(private val session: Session) : J
                 }
 
             }
+            g.color = if (session.isRecording) Color.RED else g.color
             g.draw(graph)
 
         } else {

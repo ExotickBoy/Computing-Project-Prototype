@@ -1,7 +1,6 @@
 package components
 
 import components.ContentsPane.Companion.line
-import components.ContentsPane.Companion.overlaps
 import core.Note.Companion.noteString
 import core.Session
 import java.awt.*
