@@ -38,7 +38,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         if (cutIndex != null) {
 
-
             val cutSection = sections[cutIndex]
 
             val left = Section(

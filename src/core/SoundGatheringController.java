@@ -52,7 +52,7 @@ public class SoundGatheringController {
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
-        targetLine.open(format, DEFAULT_SAMPLE_RATE / 50);
+        targetLine.open(format, 4410);
 
     }
 

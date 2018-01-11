@@ -2,8 +2,6 @@ package core
 
 import java.awt.Color
 import java.awt.image.BufferedImage
-import java.io.FileOutputStream
-import java.io.PrintStream
 import kotlin.math.max
 import kotlin.math.min
 
@@ -43,11 +41,6 @@ class TimeStep private constructor(val recording: Recording, val sampleRange: In
     val notes: List<Note>
 
     init {
-
-        val out = PrintStream(FileOutputStream("D:test.csv"))
-        for (s in samples) {
-            out.println("$s\n")
-        }
 
         if (time == 0) {
             Model.setQueue(samples)
