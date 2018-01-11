@@ -16,58 +16,61 @@ internal class ControlPane(private val session: Session) : JPanel() {
     init {
 
         recordButton.addActionListener {
-            pauseRecordingButton.isVisible = true
-            recordButton.isVisible = false
+            if (session.record()) {
 
-            playbackButton.isEnabled = false
-            cutButton.isEnabled = false
+                pauseRecordingButton.isVisible = true
+                recordButton.isVisible = false
 
-            session.record()
+                playbackButton.isEnabled = false
+                cutButton.isEnabled = false
 
+            } else {
+                recordButton.isEnabled = false
+            }
         }
         add(recordButton)
 
         pauseRecordingButton.isVisible = false
         pauseRecordingButton.addActionListener {
-            recordButton.isVisible = true
-            pauseRecordingButton.isVisible = false
+            if (session.pauseRecording()) {
 
-            playbackButton.isEnabled = true
-            cutButton.isEnabled = true
+                recordButton.isVisible = true
+                pauseRecordingButton.isVisible = false
 
-            session.pauseRecording()
+                playbackButton.isEnabled = true
+                cutButton.isEnabled = true
+            }
         }
         add(pauseRecordingButton)
 
         playbackButton.isEnabled = false
         playbackButton.addActionListener {
-            playbackButton.isVisible = false
-            pausePlaybackButton.isVisible = true
+            if (session.playback()) {
+                playbackButton.isVisible = false
+                pausePlaybackButton.isVisible = true
 
-            recordButton.isEnabled = false
-            cutButton.isEnabled = false
+                recordButton.isEnabled = false
+                cutButton.isEnabled = false
 
-            session.playback()
-
+            }
         }
         add(playbackButton)
 
         pausePlaybackButton.isVisible = false
         pausePlaybackButton.addActionListener {
-            pausePlaybackButton.isVisible = false
-            playbackButton.isVisible = true
+            if (session.pausePlayback()) {
+                pausePlaybackButton.isVisible = false
+                playbackButton.isVisible = true
 
-            recordButton.isEnabled = true
-            cutButton.isEnabled = true
-
-            session.pausePlayback()
-
+                recordButton.isEnabled = true
+                cutButton.isEnabled = true
+            }
         }
         add(pausePlaybackButton)
 
         cutButton.isEnabled = false
         cutButton.addActionListener {
-            if (session.cursor != -1) {
+            if (session.isEditSafe) {
                 session.makeCut(session.correctedCursor)
             }
         }

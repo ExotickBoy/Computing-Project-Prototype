@@ -10,7 +10,10 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
 
     init {
+
+        bufferThread.start()
         start()
+
     }
 
     override fun run() {
@@ -18,6 +21,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         var currentPosition = 0
 
         while (!isInterrupted) {
+            println("PROCESSING $currentPosition ${session.recording.samples.size}")
 
             if (!isPaused && session.recording.samples.size - currentPosition > FRAME_SIZE) { // new frame
 

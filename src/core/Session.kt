@@ -139,10 +139,13 @@ class Session(val recording: Recording) {
     var swapWithSection: Boolean = false
 
     val isEditSafe: Boolean
-        get() = soundProcessingController.isPaused && soundProcessingController.isPaused
+        get() = soundProcessingController.isPaused && playbackController.isPaused
 
     private val soundGatheringController = SoundGatheringController(this)
     private val soundProcessingController = SoundProcessingController(this)
+    private val playbackController = PlaybackController(this) {
+        runCallbacks()
+    }
 
     private fun updateLocations() {
         onScreenCursor = min(max(width - (recording.timeSteps.size - correctedCursor), width / 2), correctedCursor)
@@ -155,31 +158,68 @@ class Session(val recording: Recording) {
 
     }
 
-    fun record() {
-        if (!soundGatheringController.isAlive)
-            soundGatheringController.start()
-        cursor = null
-        soundGatheringController.isPaused = false
+    fun record(): Boolean {
+        return if (isEditSafe) {
+            try {
+
+                if (!soundGatheringController.isAlive)
+                    soundGatheringController.start()
+
+                cursor = null
+                soundGatheringController.isPaused = false
+
+                recording.startSection()
+                runCallbacks()
+
+                true
+
+            } catch (e: Exception) {
+
+                println("Couldn't open microphone line")
+                false
+
+            }
+        } else {
+            false
+        }
     }
 
-    fun pauseRecording() {
-        recording.endSection()
-        soundGatheringController.isPaused = true
+    fun pauseRecording(): Boolean {
+        return if (!soundGatheringController.isPaused) {
+            recording.endSection()
+            soundGatheringController.isPaused = true
+            runCallbacks()
+            true
+        } else false
     }
 
-    fun playback() {
-
+    fun playback(): Boolean {
+        return if (isEditSafe) {
+            playbackController.isPaused = false
+            runCallbacks()
+            true
+        } else {
+            false
+        }
     }
 
-    fun pausePlayback() {
-
+    fun pausePlayback(): Boolean {
+        return if (!playbackController.isPaused) {
+            playbackController.isPaused = true
+            runCallbacks()
+            true
+        } else {
+            false
+        }
     }
 
     fun addSamples(samples: FloatArray) {
         recording.addSamples(samples)
     }
 
-    fun addTimeStep(removeFirst: TimeStep?) {}
+    fun addTimeStep(step: TimeStep) {
+        recording.addTimeStep(step)
+    }
 
     /**
      * Cuts the recording at the cursor location and invokes update listeners
