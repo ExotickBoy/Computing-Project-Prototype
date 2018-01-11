@@ -52,7 +52,7 @@ public class SoundGatheringController {
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
-        targetLine.open(format, DEFAULT_SAMPLE_RATE / 20);
+        targetLine.open(format, DEFAULT_SAMPLE_RATE / 50);
 
     }
 
@@ -89,7 +89,7 @@ public class SoundGatheringController {
                     }
                 }
                 for (int i = 0; i < samples.length; i++) {
-                    samples[i] = ((read[i * 2] & 0xFF << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
+                    samples[i] = ((read[i * 2] << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
                 }
                 session.addSamples(samples);
 

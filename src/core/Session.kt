@@ -139,7 +139,7 @@ class Session(val recording: Recording) {
     var swapWithSection: Boolean = false
 
     val isEditSafe: Boolean
-        get() = soundProcessingController.isPaused && playbackController.isPaused
+        get() = soundGatheringController.isPaused && playbackController.isPaused
 
     private val soundGatheringController = SoundGatheringController(this)
     private val soundProcessingController = SoundProcessingController(this)
@@ -214,11 +214,17 @@ class Session(val recording: Recording) {
     }
 
     fun addSamples(samples: FloatArray) {
-        recording.addSamples(samples)
+        synchronized(recording) {
+            recording.addSamples(samples)
+        }
     }
 
     fun addTimeStep(step: TimeStep) {
-        recording.addTimeStep(step)
+        synchronized(recording) {
+            recording.addTimeStep(step)
+        }
+        updateLocations()
+        runCallbacks()
     }
 
     /**

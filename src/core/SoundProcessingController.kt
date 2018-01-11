@@ -4,8 +4,6 @@ import java.util.*
 
 internal class SoundProcessingController(val session: Session) : Thread("Sound Processing Thread") {
 
-    val isPaused = true
-
     private val timeStepQueue: LinkedList<TimeStep> = LinkedList()
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
 
@@ -19,22 +17,21 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     override fun run() {
 
         var currentPosition = 0
+        var previous: TimeStep? = null
 
         while (!isInterrupted) {
-            println("PROCESSING $currentPosition ${session.recording.samples.size}")
 
-            if (!isPaused && session.recording.samples.size - currentPosition > FRAME_SIZE) { // new frame
+            if (session.recording.samples.size - currentPosition > FRAME_SIZE) { // new frame
 
                 val newStep = TimeStep(
                         session.recording,
                         currentPosition until currentPosition + FRAME_SIZE,
-                        session.recording.timeSteps.last()
+                        previous
                 )
+                previous = newStep
                 timeStepQueue.add(newStep)
-
                 currentPosition += SAMPLES_BETWEEN_FRAMES
             }
-
         }
 
     }
