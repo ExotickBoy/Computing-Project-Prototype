@@ -30,9 +30,9 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
             // im using != true, because it cold be null
 
             if (!isNote) {
-                session.cursor = max(min(session.correctedCursor - dx, session.recording.timeSteps.size), 0)
+                session.cursor = max(min(session.correctedCursor - dx, session.recording.timeStepLength), 0)
             } else {
-                session.noteCursor = session.correctedNoteCursor - session.noteWidth * dx / session.width
+                session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
             }
 
         }

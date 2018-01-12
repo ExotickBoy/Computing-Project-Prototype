@@ -1,20 +1,19 @@
 package components
 
 import components.ContentsPane.Companion.line
+import components.ContentsPane.Companion.overlap
 import core.Model
 import core.Session
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
-import kotlin.math.max
-import kotlin.math.min
 
 internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
     init {
 
-        preferredSize = Dimension(500, 100)
+        preferredSize = Dimension(500, Model.PITCH_RANGE)
 
         val scrollController = ScrollController(false, session)
         addMouseMotionListener(scrollController)
@@ -35,25 +34,26 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
-            (0 until session.recording.sections.size).filter { it != session.swap }.map { session.recording.sections[it] }.filter {
-                it.recordingRange overlap session.visibleStepRange
+            session.recording.sections.filterIndexed { index, it ->
+                index != session.swap
             }.forEachIndexed { index, it ->
 
-                for (x in max(0, session.from - it.recordingStart) until min(it.correctedLength, session.to - it.recordingStart)) {
+                val overlap = it.timeStepRange overlap session.visibleStepRange
 
-                    g.drawImage(session.recording.timeSteps[x + it.timeStepStart].noteImage, x + it.recordingStart - session.from, 0, 1, Model.PITCH_RANGE, null)
+                for (x in overlap) {
+
+                    g.drawImage(it.timeSteps[x - it.timeStepStart].noteImage, x + it.timeStepStart - session.from, 0, 1, height, null)
 
                 }
 
                 if (index != 0)
-                    g.draw(line(it.recordingStart - session.from + 0.5, 0, it.recordingStart - session.from + 0.5, Model.PITCH_RANGE))
-
+                    g.draw(line(it.timeStepStart - session.from + 0.5, 0, it.timeStepStart - session.from + 0.5, height))
 
             }
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
-            g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, Model.PITCH_RANGE))
+            g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, height))
 
             val swap = session.swap
             val swapWith = session.swapWith
@@ -64,34 +64,34 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
                 if (session.swapWithSection) {
 
                     val sectionTo = session.recording.sections[swapWith]
-                    val from = sectionTo.recordingStart - session.from.toDouble()
+                    val from = sectionTo.timeStepStart - session.from.toDouble()
 
                     g.color = Color(0f, 1f, 0f, .5f)
-                    g.fill(Rectangle2D.Double(from, 0.0, min(sectionTo.correctedLength.toDouble() + 1, width - from), Model.PITCH_RANGE.toDouble()))
+                    g.fill(Rectangle2D.Double(from, 0.0, sectionTo.timeSteps.size.toDouble(), height.toDouble()))
 
                 } else {
 
                     val from: Double
                     from = if (swapWith == session.recording.sections.size) {
-                        session.recording.timeSteps.size
+                        session.recording.sections.last().timeStepEnd
                     } else {
                         val sectionTo = session.recording.sections[swapWith]
-                        sectionTo.recordingStart - session.from
+                        sectionTo.timeStepStart - session.from
                     }.toDouble()
 
                     g.color = Color(0f, 1f, 0f, 1f)
                     g.stroke = BasicStroke(2f)
-                    g.draw(line(from, 0, from, Model.PITCH_RANGE))
+                    g.draw(line(from, 0, from, height))
 
                 }
 
                 val section = session.recording.sections[swap]
 
                 val transformBefore = g.transform
-                g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, Model.PITCH_RANGE * .1))
-                for (x in 0 until min(section.correctedLength, width - session.lastX)) {
+                g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, height * .1))
+                for (x in 0 until section.timeSteps.size) {
 
-                    g.drawImage(session.recording.timeSteps[section.timeStepStart + x].noteImage, session.lastX + x, 0, 1, Model.PITCH_RANGE, null)
+                    g.drawImage(section.timeSteps[x].noteImage, session.lastX + x, 0, 1, height, null)
 
                 }
 

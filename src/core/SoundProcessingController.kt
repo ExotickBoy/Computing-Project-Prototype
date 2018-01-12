@@ -21,11 +21,16 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
         while (!isInterrupted) {
 
-            if (session.recording.sections.last().samples.size - currentPosition > FRAME_SIZE) { // new frame
+//            println("$currentPosition ${session.recording.sections} ${session.recording.lastSection()?.samples?.size}")
+
+            val section = session.recording.lastSection()
+            if (currentPosition + FRAME_SIZE - (section?.sampleStart ?: 0) <= section?.samples?.size ?: 0) { // new frame
+
+                println("making a step with ${currentPosition - (section?.sampleStart ?: 0) until currentPosition + FRAME_SIZE - (section?.sampleStart ?: 0)}")
 
                 val newStep = TimeStep(
-                        session.recording,
-                        currentPosition until currentPosition + FRAME_SIZE,
+                        session.recording.sections.last(),
+                        currentPosition - (section?.sampleStart ?: 0) until currentPosition + FRAME_SIZE - (section?.sampleStart ?: 0),
                         previous
                 )
                 previous = newStep

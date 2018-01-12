@@ -23,7 +23,7 @@ class Session(val recording: Recording) {
             runCallbacks()
         }
 
-    var noteWidth: Double = 0.0
+    var clusterWidth: Double = 0.0
     var lastX: Int = 0
         set(value) {
             field = value
@@ -31,28 +31,28 @@ class Session(val recording: Recording) {
         }
 
     private var cursorField: Int? = null
-    private var noteCursorField: Double? = null
+    private var clusterCursorField: Double? = null
 
     var cursor: Int?
         set(value) {
-            val toBecome = if (value == null || value >= recording.timeSteps.size) null else max(value, 0)
+            val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0)
             if (toBecome != cursorField) {
                 cursorField = toBecome
 
-                val notes = recording.sections.flatMap {
-                    it.noteClusters.mapIndexed { index, note ->
-                        return@mapIndexed PlayedCluster(note.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
+                val clusters = recording.sections.flatMap {
+                    it.clusters.mapIndexed { index, cluster ->
+                        return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                     }
                 }
-                val after = notes.mapIndexed { index, it -> index to it }.find { it.second.recordingStart > correctedCursor }?.first
-                noteCursorField = when {
+                val after = clusters.mapIndexed { index, it -> index to it }.find { it.second.recordingStart > correctedCursor }?.first
+                clusterCursorField = when {
                     toBecome == null -> null
-                    notes.isEmpty() -> 0.0
-                    after == null -> notes.size.toDouble() + 0.5 * (correctedCursor - notes[notes.size - 1].recordingStart) / (recording.timeSteps.size - notes[notes.size - 1].recordingStart) - 0.5
-                    after == 0 -> 0.5 * correctedCursor / notes[0].recordingStart
+                    clusters.isEmpty() -> 0.0
+                    after == null -> clusters.size.toDouble() + 0.5 * (correctedCursor - clusters[clusters.size - 1].recordingStart) / (recording.timeStepLength - clusters[clusters.size - 1].recordingStart) - 0.5
+                    after == 0 -> 0.5 * correctedCursor / clusters[0].recordingStart
                     else -> {
-                        val next = notes[after]
-                        val previous = notes[after - 1]
+                        val next = clusters[after]
+                        val previous = clusters[after - 1]
                         val between = when {
                             next.section == previous.section -> // no cut
                                 (correctedCursor - previous.recordingStart) / (next.recordingStart - previous.recordingStart).toDouble()
@@ -72,30 +72,30 @@ class Session(val recording: Recording) {
         }
         get() = cursorField
 
-    var noteCursor: Double?
+    var clusterCursor: Double?
         set(value) {
-            val toBecome = if (value == null || value >= recording.notes.size) null else max(value, 0.0)
-            if (toBecome != noteCursorField) {
-                noteCursorField = toBecome
+            val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0.0)
+            if (toBecome != clusterCursorField) {
+                clusterCursorField = toBecome
 
-                val notes = recording.sections.flatMap {
-                    it.noteClusters.mapIndexed { index, note ->
-                        return@mapIndexed PlayedCluster(note.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
+                val clusters = recording.sections.flatMap {
+                    it.clusters.mapIndexed { index, cluster ->
+                        return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                     }
                 }
                 cursorField = (when {
                     toBecome == null -> null
-                    toBecome > notes.size + 0.5 -> null
-                    notes.isEmpty() -> recording.timeSteps.size * toBecome
-                    toBecome < 0.5 -> toBecome * 2 * notes[0].recordingStart
-                    toBecome > notes.size - 0.5 ->
-                        notes[notes.size - 1].recordingStart + (0.5 + toBecome - notes.size) * 2 * +(recording.timeSteps.size - notes[notes.size - 1].recordingStart)
+                    toBecome > clusters.size + 0.5 -> null
+                    clusters.isEmpty() -> recording.timeStepLength * toBecome
+                    toBecome < 0.5 -> toBecome * 2 * clusters[0].recordingStart
+                    toBecome > clusters.size - 0.5 ->
+                        clusters[clusters.size - 1].recordingStart + (0.5 + toBecome - clusters.size) * 2 * +(recording.timeStepLength - clusters[clusters.size - 1].recordingStart)
                     else -> {
                         val before = (toBecome - 0.5).toInt()
                         val inter = toBecome - 0.5 - before
 
-                        val next = notes[(toBecome + 0.5).toInt()]
-                        val previous = notes[(toBecome - 0.5).toInt()]
+                        val next = clusters[(toBecome + 0.5).toInt()]
+                        val previous = clusters[(toBecome - 0.5).toInt()]
                         when {
                             next.section == previous.section ->
                                 previous.recordingStart * (1 - inter) + next.recordingStart * inter
@@ -112,23 +112,23 @@ class Session(val recording: Recording) {
                 runCallbacks()
             }
         }
-        get() = noteCursorField
+        get() = clusterCursorField
 
     val correctedCursor: Int
-        get() = cursor ?: (recording.timeSteps.size - 1)
-    val correctedNoteCursor: Double
-        get() = noteCursor ?: (recording.notes.size.toDouble())
+        get() = cursor ?: (recording.timeStepLength - 1)
+    val correctedClusterCursor: Double
+        get() = clusterCursor ?: (recording.clusterLength.toDouble())
     var onScreenCursor: Int = 0
-    var onScreenNoteCursor: Double = 0.0
+    var onScreenClusterCursor: Double = 0.0
     var from: Int = 0
     var to: Int = 0
-    var noteFrom: Double = 0.0
-    var noteTo: Double = 0.0
+    var clusterFrom: Double = 0.0
+    var clusterTo: Double = 0.0
 
     val visibleStepRange
         get() = from..to
-    val visibleNoteRange
-        get() = noteFrom..noteTo
+    val visibleClusterRange
+        get() = clusterFrom..clusterTo
 
     var swap: Int? = null
         set(value) {
@@ -151,13 +151,13 @@ class Session(val recording: Recording) {
     }
 
     private fun updateLocations() {
-        onScreenCursor = min(max(width - (recording.timeSteps.size - correctedCursor), width / 2), correctedCursor)
+        onScreenCursor = min(max(width - (recording.timeStepLength - correctedCursor), width / 2), correctedCursor)
         from = max(correctedCursor - onScreenCursor, 0)
-        to = min(correctedCursor + (width - onScreenCursor), recording.timeSteps.size)
+        to = min(correctedCursor + (width - onScreenCursor), recording.timeStepLength)
 
-        onScreenNoteCursor = min(max(noteWidth - (recording.notes.size - correctedNoteCursor), noteWidth / 2), correctedNoteCursor)
-        noteFrom = max(correctedNoteCursor - onScreenNoteCursor, 0.0)
-        noteTo = min(correctedNoteCursor + (noteWidth - onScreenNoteCursor), recording.notes.size.toDouble())
+        onScreenClusterCursor = min(max(clusterWidth - (recording.clusterLength - correctedClusterCursor), clusterWidth / 2), correctedClusterCursor)
+        clusterFrom = max(correctedClusterCursor - onScreenClusterCursor, 0.0)
+        clusterTo = min(correctedClusterCursor + (clusterWidth - onScreenClusterCursor), recording.clusterLength.toDouble())
 
     }
 

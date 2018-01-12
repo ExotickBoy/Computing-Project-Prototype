@@ -1,6 +1,7 @@
 package components
 
 import components.ContentsPane.Companion.line
+import components.ContentsPane.Companion.overlap
 import core.Note.Companion.noteString
 import core.Session
 import java.awt.*
@@ -8,6 +9,8 @@ import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -50,7 +53,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
         synchronized(session.recording) {
 
-            val stringHeaderOffset = min(max((session.noteWidth / 2 - session.onScreenNoteCursor) * spacing, 0.0), margin + 2.0 * padding)
+            val stringHeaderOffset = min(max((session.clusterWidth / 2 - session.onScreenClusterCursor) * spacing, 0.0), margin + 2.0 * padding)
 
             // stripes
             for (index in 0..session.recording.tuning.size) {
@@ -63,35 +66,40 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
             // sections and their notes
 
-            session.recording.sections.filter {
-                it.noteRange.toDoubleRange() overlaps session.visibleNoteRange
-            }.forEach {
+            session.recording.sections.forEach {
+
+                val doubleRange = it.clusterRange.toDoubleRange() overlap session.visibleClusterRange
+                val clusterRange = floor(doubleRange.start).toInt()..ceil(doubleRange.endInclusive).toInt()
 
                 g.color = Color(86, 86, 86)
-                it.noteRange.forEachIndexed { indexOfIndex, index ->
-                    val placement = session.recording.placements[index]
-                    g.drawString(placement.fret.toString(), (stringHeaderOffset).toFloat() + (it.noteRecordingStart - session.noteFrom + 0.5f + indexOfIndex).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2, (lineHeight * (placement.string + 2) - (lineHeight - g.font.size) / 2).toFloat())
+                it.clusters.forEachIndexed { index, cluster ->
+
+                    if (index + it.clusterStart in clusterRange) {
+                        cluster.placements.forEach { placement ->
+
+                            g.drawString(
+                                    placement.fret.toString(),
+                                    (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2,
+                                    (lineHeight * (placement.string + 2) - (lineHeight - g.font.size) / 2).toFloat()
+                            )
+
+                        }
+
+                    }
                 }
-                if (it.correctedLength != 0 && it.recordingStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
+
+                if (it.timeSteps.size != 0 && it.timeStepStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
 
                     g.color = Color.MAGENTA
                     g.draw(line(
-                            stringHeaderOffset + (it.noteRecordingStart - session.noteFrom) * spacing,
+                            stringHeaderOffset + (it.clusterStart - session.clusterFrom) * spacing,
                             0,
-                            stringHeaderOffset + (it.noteRecordingStart - session.noteFrom) * spacing,
+                            stringHeaderOffset + (it.clusterStart - session.clusterFrom) * spacing,
                             height
                     ))
 
                 }
 
-            }
-
-            session.recording.chordController.clear() // TODO remove after debugging is done
-            session.recording.chordController.feed(session.recording.notes)
-
-            g.color = Color(86, 86, 86)
-            session.recording.chords.forEach {
-                g.drawString(it.asString(), (stringHeaderOffset).toFloat() + (it.noteStart - session.noteFrom + 0.5f).toFloat() * spacing - g.fontMetrics.stringWidth(it.asString()) / 2, (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat())
             }
 
             // Tuning header
@@ -115,9 +123,9 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
             g.color = Color.RED
 
             g.draw(line(
-                    stringHeaderOffset + session.onScreenNoteCursor * spacing,
+                    stringHeaderOffset + session.onScreenClusterCursor * spacing,
                     0.0,
-                    stringHeaderOffset + session.onScreenNoteCursor * spacing,
+                    stringHeaderOffset + session.onScreenClusterCursor * spacing,
                     height
             ))
 
@@ -130,7 +138,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
         lineHeight = height / (session.recording.tuning.size + 1.0)
 
         session.width = e.component.width
-        session.noteWidth = e.component.width.toDouble() / spacing
+        session.clusterWidth = e.component.width.toDouble() / spacing
 
     }
 
@@ -144,4 +152,3 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
             = start.toDouble()..endInclusive.toDouble()
 
 }
-

@@ -26,9 +26,9 @@ internal class PhaserPane internal constructor(private val session: Session) : J
         val size = size
         g.stroke = BasicStroke(.2f)
 
-        if (recording.timeSteps.size > 0 && !session.isEditSafe) {
+        if (!recording.sections.isEmpty() && !recording.sections.last().timeSteps.isEmpty() && !session.isEditSafe) {
 
-            val dePhased = recording.timeSteps[recording.timeSteps.size - 1].dePhased
+            val dePhased = recording.sections.last().timeSteps.last().dePhased
             val graph = Path2D.Double()
 
             val resolution = 1
