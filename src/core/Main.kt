@@ -14,6 +14,7 @@ fun main(args: Array<String>) {
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     frame.contentPane = ContentsPane(session)
     frame.pack()
+    frame.setLocationRelativeTo(null)
     frame.isVisible = true
 
 }

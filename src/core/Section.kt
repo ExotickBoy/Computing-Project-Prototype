@@ -11,6 +11,8 @@ data class Section(
 
     constructor(after: Section) : this(after.sampleEnd, after.timeStepEnd, after.clusterEnd) // new Section
 
+    var processingCursor: Int = 0
+
     val timeStepEnd
         get() = timeStepStart + timeSteps.size
 
@@ -43,11 +45,9 @@ data class Section(
 
     fun addSamples(newSamples: FloatArray) {
         samples.addAll(newSamples.toTypedArray())
-        println("samples ${samples.size}")
     }
 
     fun addTimeStep(timeStep: TimeStep) {
-        println("steps ${timeSteps.size}")
         timeSteps.add(timeStep)
 
 //        timeStep.notes.filter { it.pitch in tuning } // the pitch must be within the playable range of the guitar

@@ -14,10 +14,6 @@ class ContentsPane(session: Session) : JPanel() {
 
     init {
 
-        session.addOnUpdateListener {
-            repaint()
-        }
-
         val historyPane = HistoryPane(session)
         val historyPanel = JPanel(GridLayout())
         historyPanel.border = BorderFactory.createEtchedBorder()

@@ -19,6 +19,10 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
 
+        session.addOnCursorChange { repaint() }
+        session.addOnSwapChange { repaint() }
+        session.addOnStepChange { repaint() }
+
     }
 
     override fun paintComponent(g2: Graphics?) {
@@ -34,7 +38,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
-            session.recording.sections.filterIndexed { index, it ->
+            session.recording.sections.filterIndexed { index, _ ->
                 index != session.swap
             }.forEachIndexed { index, it ->
 
@@ -42,18 +46,18 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
                 for (x in overlap) {
 
-                    g.drawImage(it.timeSteps[x - it.timeStepStart].noteImage, x + it.timeStepStart - session.from, 0, 1, height, null)
+                    g.drawImage(it.timeSteps[x - it.timeStepStart].noteImage, x - session.stepFrom, 0, 1, height, null)
 
                 }
 
                 if (index != 0)
-                    g.draw(line(it.timeStepStart - session.from + 0.5, 0, it.timeStepStart - session.from + 0.5, height))
+                    g.draw(line(it.timeStepStart - session.stepFrom + 0.5, 0, it.timeStepStart - session.stepFrom + 0.5, height))
 
             }
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
-            g.draw(line(session.onScreenCursor, 0.0, session.onScreenCursor, height))
+            g.draw(line(session.onScreenStepCursor, 0.0, session.onScreenStepCursor, height))
 
             val swap = session.swap
             val swapWith = session.swapWith
@@ -64,7 +68,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
                 if (session.swapWithSection) {
 
                     val sectionTo = session.recording.sections[swapWith]
-                    val from = sectionTo.timeStepStart - session.from.toDouble()
+                    val from = sectionTo.timeStepStart - session.stepFrom.toDouble()
 
                     g.color = Color(0f, 1f, 0f, .5f)
                     g.fill(Rectangle2D.Double(from, 0.0, sectionTo.timeSteps.size.toDouble(), height.toDouble()))
@@ -76,7 +80,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
                         session.recording.sections.last().timeStepEnd
                     } else {
                         val sectionTo = session.recording.sections[swapWith]
-                        sectionTo.timeStepStart - session.from
+                        sectionTo.timeStepStart - session.stepFrom
                     }.toDouble()
 
                     g.color = Color(0f, 1f, 0f, 1f)

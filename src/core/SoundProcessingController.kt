@@ -16,26 +16,21 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
     override fun run() {
 
-        var currentPosition = 0
-        var previous: TimeStep? = null
+        var previousStep: TimeStep? = null
 
         while (!isInterrupted) {
 
-//            println("$currentPosition ${session.recording.sections} ${session.recording.lastSection()?.samples?.size}")
-
             val section = session.recording.lastSection()
-            if (currentPosition + FRAME_SIZE - (section?.sampleStart ?: 0) <= section?.samples?.size ?: 0) { // new frame
-
-                println("making a step with ${currentPosition - (section?.sampleStart ?: 0) until currentPosition + FRAME_SIZE - (section?.sampleStart ?: 0)}")
+            if (section != null && section.processingCursor + FRAME_SIZE <= section.samples.size) { // new frame
 
                 val newStep = TimeStep(
                         session.recording.sections.last(),
-                        currentPosition - (section?.sampleStart ?: 0) until currentPosition + FRAME_SIZE - (section?.sampleStart ?: 0),
-                        previous
+                        section.processingCursor until section.processingCursor + FRAME_SIZE,
+                        previousStep
                 )
-                previous = newStep
+                previousStep = newStep
                 timeStepQueue.add(newStep)
-                currentPosition += SAMPLES_BETWEEN_FRAMES
+                section.processingCursor += SAMPLES_BETWEEN_FRAMES
             }
         }
 

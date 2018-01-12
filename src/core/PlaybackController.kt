@@ -6,25 +6,41 @@ internal class PlaybackController(private val session: Session, private val onEn
         set(value) {
             field = value
             if (field) {
-                playHead = session.correctedCursor
+                playHead = session.correctedStepCursor
             }
         }
     var playHead = 0
 
+    init {
+        start()
+    }
+
     override fun run() {
+
+        val period = 1000 / SoundProcessingController.FRAME_RATE
+        var last = System.currentTimeMillis();
+        var current = last;
+        var accumulated = 0.0;
 
         while (!isInterrupted) {
 
+            last = current;
+            current = System.currentTimeMillis();
+            accumulated += current - last;
+
             if (!isPaused) {
+                while (accumulated > period) {
+                    accumulated -= period;
 
-                // play sound back
+                    session.stepCursor = session.correctedStepCursor + 1
+                    if (session.stepCursor == null) {
+                        isPaused = true
+                        onEnd.invoke()
+                    }
 
-                session.cursor = session.correctedCursor + 1
-                if (session.cursor == null) {
-                    isPaused = true
-                    onEnd.invoke()
                 }
-
+            } else {
+                accumulated = 0.0
             }
 
         }

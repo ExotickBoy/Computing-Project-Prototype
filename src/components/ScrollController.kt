@@ -29,8 +29,10 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
         if (session.isEditSafe && dx != 0 && draggingThread?.isAlive != true) {
             // im using != true, because it cold be null
 
+//            println("${session.cursor} ${session.correctedCursor} $dx")
+
             if (!isNote) {
-                session.cursor = max(min(session.correctedCursor - dx, session.recording.timeStepLength), 0)
+                session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength), 0)
             } else {
                 session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
             }
@@ -60,15 +62,15 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
     override fun mouseClicked(e: MouseEvent) {
 
         if (!isNote)
-            session.cursor = session.from + e.x
+            session.stepCursor = session.stepFrom + e.x
 
     }
 
     private fun mouseLongPressed() {
 
         if (session.isEditSafe && !isNote) {
-            session.swap = session.recording.sectionAt(session.lastX + session.correctedCursor
-                    - session.onScreenCursor
+            session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor
+                    - session.onScreenStepCursor
             )
             session.updateSwapWith()
             draggingThread = DraggingThread(this)
@@ -110,7 +112,7 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
 
                 while (difference > mspt) {
                     difference -= mspt
-                    controller.session.cursor = controller.session.correctedCursor + controller.movementDirection(controller.session.lastX)
+                    controller.session.stepCursor = controller.session.correctedStepCursor + controller.movementDirection(controller.session.lastX)
                     controller.session.updateSwapWith()
 
                 }

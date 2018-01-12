@@ -26,9 +26,11 @@ internal class PhaserPane internal constructor(private val session: Session) : J
         val size = size
         g.stroke = BasicStroke(.2f)
 
-        if (!recording.sections.isEmpty() && !recording.sections.last().timeSteps.isEmpty() && !session.isEditSafe) {
+//        val step = recording.sectionAt(session.cursor)
 
-            val dePhased = recording.sections.last().timeSteps.last().dePhased
+        if (!session.recording.sections.isEmpty() && !session.recording.sections.last().timeSteps.isEmpty() && !session.isEditSafe) {
+
+            val dePhased = session.recording.sections.last().timeSteps.last().dePhased
             val graph = Path2D.Double()
 
             val resolution = 1
@@ -54,11 +56,7 @@ internal class PhaserPane internal constructor(private val session: Session) : J
             g.draw(Line2D.Double(0.0, height / 2.0, width.toDouble(), height / 2.0))
 
         }
-
     }
-
-    private val recording
-        get() = session.recording
 
     companion object {
 

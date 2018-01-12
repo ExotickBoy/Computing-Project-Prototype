@@ -40,6 +40,10 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
         addMouseListener(scrollController)
         addComponentListener(this)
 
+        session.addOnCursorChange { repaint() }
+        session.addOnClusterChange { repaint() }
+        session.addOnClusterChange { repaint() }
+
     }
 
     override fun paintComponent(g2: Graphics) {

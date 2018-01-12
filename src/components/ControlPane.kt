@@ -15,6 +15,50 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
     init {
 
+        session.addOnStateChange {
+            when {
+                session.isEditSafe -> {
+
+                    recordButton.isVisible = true
+                    pauseRecordingButton.isVisible = false
+                    playbackButton.isVisible = true
+                    pausePlaybackButton.isVisible = false
+
+                    recordButton.isEnabled = true
+                    playbackButton.isEnabled = true
+
+                    cutButton.isEnabled = true
+
+                }
+                session.isRecording -> {
+
+                    recordButton.isVisible = false
+                    pauseRecordingButton.isVisible = true
+                    playbackButton.isVisible = true
+                    pausePlaybackButton.isVisible = false
+
+                    pauseRecordingButton.isEnabled = true
+                    playbackButton.isEnabled = false
+
+                    cutButton.isEnabled = false
+                }
+                else -> {
+
+                    recordButton.isVisible = true
+                    pauseRecordingButton.isVisible = false
+                    playbackButton.isVisible = false
+                    pausePlaybackButton.isVisible = true
+
+                    recordButton.isEnabled = true
+                    pausePlaybackButton.isEnabled = true
+
+                    cutButton.isEnabled = false
+
+                }
+            }
+
+        }
+
         recordButton.addActionListener {
             if (session.record()) {
 
@@ -71,7 +115,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         cutButton.isEnabled = false
         cutButton.addActionListener {
             if (session.isEditSafe) {
-                session.makeCut(session.correctedCursor)
+                session.makeCut(session.correctedStepCursor)
             }
         }
         add(cutButton)

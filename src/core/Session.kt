@@ -16,125 +16,146 @@ import kotlin.math.min
  */
 class Session(val recording: Recording) {
 
-    private val updateCallbacks: MutableList<() -> Unit> = mutableListOf()
-    var width: Int = 0
-        set(value) {
-            field = value
-            runCallbacks()
-        }
-
-    var clusterWidth: Double = 0.0
-    var lastX: Int = 0
-        set(value) {
-            field = value
-            runCallbacks()
-        }
+    private val onStepChange: MutableList<() -> Unit> = mutableListOf()
+    private val onCursorChange: MutableList<() -> Unit> = mutableListOf()
+    private val onStateChange: MutableList<() -> Unit> = mutableListOf()
+    private val onSwapChange: MutableList<() -> Unit> = mutableListOf()
+    private val onClusterChange: MutableList<() -> Unit> = mutableListOf()
 
     private var cursorField: Int? = null
     private var clusterCursorField: Double? = null
 
-    var cursor: Int?
+    var stepCursor: Int?
         set(value) {
-            val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0)
-            if (toBecome != cursorField) {
-                cursorField = toBecome
+            synchronized(recording) {
+                val toBecome = if (value == null || value >= recording.timeStepLength) null else max(value, 0)
+                if (toBecome != cursorField) {
+                    cursorField = toBecome
 
-                val clusters = recording.sections.flatMap {
-                    it.clusters.mapIndexed { index, cluster ->
-                        return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
-                    }
-                }
-                val after = clusters.mapIndexed { index, it -> index to it }.find { it.second.recordingStart > correctedCursor }?.first
-                clusterCursorField = when {
-                    toBecome == null -> null
-                    clusters.isEmpty() -> 0.0
-                    after == null -> clusters.size.toDouble() + 0.5 * (correctedCursor - clusters[clusters.size - 1].recordingStart) / (recording.timeStepLength - clusters[clusters.size - 1].recordingStart) - 0.5
-                    after == 0 -> 0.5 * correctedCursor / clusters[0].recordingStart
-                    else -> {
-                        val next = clusters[after]
-                        val previous = clusters[after - 1]
-                        val between = when {
-                            next.section == previous.section -> // no cut
-                                (correctedCursor - previous.recordingStart) / (next.recordingStart - previous.recordingStart).toDouble()
-                            correctedCursor <= next.section.timeStepStart -> // left side of cut
-                                0.5 * (correctedCursor - previous.recordingStart) / (next.section.timeStepStart - previous.recordingStart).toDouble()
-                            else -> // right side of cut
-                                0.5 + 0.5 * (correctedCursor - next.section.timeStepStart) / (next.recordingStart - next.section.timeStepStart).toDouble()
+                    val clusters = recording.sections.flatMap {
+                        it.clusters.mapIndexed { index, cluster ->
+                            return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                         }
-                        after.toDouble() + between - 0.5
                     }
+                    val after = clusters.mapIndexed { index, it -> index to it }.find { it.second.recordingStart > correctedStepCursor }?.first
+                    clusterCursorField = when {
+                        toBecome == null -> null
+                        clusters.isEmpty() -> 0.0
+                        after == null -> clusters.size.toDouble() + 0.5 * (correctedStepCursor - clusters[clusters.size - 1].recordingStart) / (recording.timeStepLength - clusters[clusters.size - 1].recordingStart) - 0.5
+                        after == 0 -> 0.5 * correctedStepCursor / clusters[0].recordingStart
+                        else -> {
+                            val next = clusters[after]
+                            val previous = clusters[after - 1]
+                            val between = when {
+                                next.section == previous.section -> // no cut
+                                    (correctedStepCursor - previous.recordingStart) / (next.recordingStart - previous.recordingStart).toDouble()
+                                correctedStepCursor <= next.section.timeStepStart -> // left side of cut
+                                    0.5 * (correctedStepCursor - previous.recordingStart) / (next.section.timeStepStart - previous.recordingStart).toDouble()
+                                else -> // right side of cut
+                                    0.5 + 0.5 * (correctedStepCursor - next.section.timeStepStart) / (next.recordingStart - next.section.timeStepStart).toDouble()
+                            }
+                            after.toDouble() + between - 0.5
+                        }
+                    }
+
+                    updateLocations()
+                    onCursorChange()
                 }
 
-                updateLocations()
-                runCallbacks()
             }
-
         }
         get() = cursorField
 
     var clusterCursor: Double?
         set(value) {
-            val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0.0)
-            if (toBecome != clusterCursorField) {
-                clusterCursorField = toBecome
+            synchronized(recording) {
 
-                val clusters = recording.sections.flatMap {
-                    it.clusters.mapIndexed { index, cluster ->
-                        return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
-                    }
-                }
-                cursorField = (when {
-                    toBecome == null -> null
-                    toBecome > clusters.size + 0.5 -> null
-                    clusters.isEmpty() -> recording.timeStepLength * toBecome
-                    toBecome < 0.5 -> toBecome * 2 * clusters[0].recordingStart
-                    toBecome > clusters.size - 0.5 ->
-                        clusters[clusters.size - 1].recordingStart + (0.5 + toBecome - clusters.size) * 2 * +(recording.timeStepLength - clusters[clusters.size - 1].recordingStart)
-                    else -> {
-                        val before = (toBecome - 0.5).toInt()
-                        val inter = toBecome - 0.5 - before
+                val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0.0)
+                if (toBecome != clusterCursorField) {
+                    clusterCursorField = toBecome
 
-                        val next = clusters[(toBecome + 0.5).toInt()]
-                        val previous = clusters[(toBecome - 0.5).toInt()]
-                        when {
-                            next.section == previous.section ->
-                                previous.recordingStart * (1 - inter) + next.recordingStart * inter
-                            inter < 0.5 ->
-                                previous.recordingStart * (1 - inter * 2) + next.section.timeStepStart * inter * 2
-                            else ->
-                                next.section.timeStepStart * (2 - inter * 2) + next.recordingStart * (inter * 2 - 1)
+                    val clusters = recording.sections.flatMap {
+                        it.clusters.mapIndexed { index, cluster ->
+                            return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                         }
-
                     }
-                })?.toInt()
+                    cursorField = (when {
+                        toBecome == null -> null
+                        toBecome > clusters.size + 0.5 -> null
+                        clusters.isEmpty() -> recording.timeStepLength * toBecome
+                        toBecome < 0.5 -> toBecome * 2 * clusters[0].recordingStart
+                        toBecome > clusters.size - 0.5 ->
+                            clusters[clusters.size - 1].recordingStart + (0.5 + toBecome - clusters.size) * 2 * +(recording.timeStepLength - clusters[clusters.size - 1].recordingStart)
+                        else -> {
+                            val before = (toBecome - 0.5).toInt()
+                            val inter = toBecome - 0.5 - before
 
-                updateLocations()
-                runCallbacks()
+                            val next = clusters[(toBecome + 0.5).toInt()]
+                            val previous = clusters[(toBecome - 0.5).toInt()]
+                            when {
+                                next.section == previous.section ->
+                                    previous.recordingStart * (1 - inter) + next.recordingStart * inter
+                                inter < 0.5 ->
+                                    previous.recordingStart * (1 - inter * 2) + next.section.timeStepStart * inter * 2
+                                else ->
+                                    next.section.timeStepStart * (2 - inter * 2) + next.recordingStart * (inter * 2 - 1)
+                            }
+
+                        }
+                    })?.toInt()
+
+                    updateLocations()
+                    onCursorChange()
+                }
             }
+
         }
         get() = clusterCursorField
 
-    val correctedCursor: Int
-        get() = cursor ?: (recording.timeStepLength - 1)
+    val correctedStepCursor: Int
+        get() {
+            synchronized(recording) {
+                return stepCursor ?: (recording.timeStepLength - 1)
+            }
+        }
     val correctedClusterCursor: Double
-        get() = clusterCursor ?: (recording.clusterLength.toDouble())
-    var onScreenCursor: Int = 0
+        get() {
+            synchronized(recording) {
+                return clusterCursor ?: (recording.clusterLength.toDouble())
+            }
+        }
+    var onScreenStepCursor: Int = 0
     var onScreenClusterCursor: Double = 0.0
-    var from: Int = 0
-    var to: Int = 0
+    var stepFrom: Int = 0
+    var stepTo: Int = 0
     var clusterFrom: Double = 0.0
     var clusterTo: Double = 0.0
 
     val visibleStepRange
-        get() = from..to
+        get() = stepFrom..stepTo
     val visibleClusterRange
         get() = clusterFrom..clusterTo
+
+    var width: Int = 0
+        set(value) {
+            field = value
+            onCursorChange()
+        }
+    var clusterWidth: Double = 0.0
+
+    var lastX: Int = 0
+        set(value) {
+            field = value
+            onSwapChange()
+        }
+
 
     var swap: Int? = null
         set(value) {
             field = value
-            runCallbacks()
+            onSwapChange()
         }
+
     var swapWith: Int = 0
     var swapWithSection: Boolean = false
 
@@ -147,35 +168,38 @@ class Session(val recording: Recording) {
     private val soundGatheringController = SoundGatheringController(this)
     private val soundProcessingController = SoundProcessingController(this)
     private val playbackController = PlaybackController(this) {
-        runCallbacks()
+        onStateChange()
     }
 
     private fun updateLocations() {
-        onScreenCursor = min(max(width - (recording.timeStepLength - correctedCursor), width / 2), correctedCursor)
-        from = max(correctedCursor - onScreenCursor, 0)
-        to = min(correctedCursor + (width - onScreenCursor), recording.timeStepLength)
+        synchronized(recording) {
+            onScreenStepCursor = min(max(width - (recording.timeStepLength - correctedStepCursor), width / 2), correctedStepCursor)
+            stepFrom = max(correctedStepCursor - onScreenStepCursor, 0)
+            stepTo = min(correctedStepCursor + (width - onScreenStepCursor), recording.timeStepLength)
 
-        onScreenClusterCursor = min(max(clusterWidth - (recording.clusterLength - correctedClusterCursor), clusterWidth / 2), correctedClusterCursor)
-        clusterFrom = max(correctedClusterCursor - onScreenClusterCursor, 0.0)
-        clusterTo = min(correctedClusterCursor + (clusterWidth - onScreenClusterCursor), recording.clusterLength.toDouble())
-
+            onScreenClusterCursor = min(max(clusterWidth - (recording.clusterLength - correctedClusterCursor), clusterWidth / 2), correctedClusterCursor)
+            clusterFrom = max(correctedClusterCursor - onScreenClusterCursor, 0.0)
+            clusterTo = min(correctedClusterCursor + (clusterWidth - onScreenClusterCursor), recording.clusterLength.toDouble())
+        }
     }
 
     fun record(): Boolean {
         return if (isEditSafe) {
             try {
+                synchronized(recording) {
 
-                if (!soundGatheringController.isAlive)
-                    soundGatheringController.start()
+                    if (!soundGatheringController.isAlive)
+                        soundGatheringController.start()
 
-                cursor = null
-                soundGatheringController.isPaused = false
+                    stepCursor = null
+                    soundGatheringController.isPaused = false
 
-                recording.startSection()
-                runCallbacks()
+                    recording.startSection()
+                    onStateChange()
 
-                true
+                    true
 
+                }
             } catch (e: Exception) {
 
                 println("Couldn't open microphone line")
@@ -190,15 +214,15 @@ class Session(val recording: Recording) {
     fun pauseRecording(): Boolean {
         return if (!soundGatheringController.isPaused) {
             soundGatheringController.isPaused = true
-            runCallbacks()
+            onStateChange()
             true
         } else false
     }
 
     fun playback(): Boolean {
-        return if (isEditSafe) {
+        return if (isEditSafe && stepCursor != null) {
             playbackController.isPaused = false
-            runCallbacks()
+            onStateChange()
             true
         } else {
             false
@@ -208,7 +232,7 @@ class Session(val recording: Recording) {
     fun pausePlayback(): Boolean {
         return if (!playbackController.isPaused) {
             playbackController.isPaused = true
-            runCallbacks()
+            onStateChange()
             true
         } else {
             false
@@ -224,9 +248,9 @@ class Session(val recording: Recording) {
     fun addTimeStep(step: TimeStep) {
         synchronized(recording) {
             recording.addTimeStep(step)
+            updateLocations()
         }
-        updateLocations()
-        runCallbacks()
+        onStepChange()
     }
 
     /**
@@ -235,79 +259,107 @@ class Session(val recording: Recording) {
      */
     fun makeCut(cursor: Int) {
         synchronized(recording) {
+            println("CUTTING")
             recording.cut(cursor)
-            runCallbacks()
+            println("CUT")
+            println(recording.sections)
         }
+        onStepChange()
     }
 
-    /**
-     * Adds an onUpdate listener which is called every time one of the properties of session changes
-     * @param callback The lambda that will be invoked when an update happens
-     */
-    fun addOnUpdateListener(callback: () -> Unit) {
-
-        updateCallbacks.add(callback)
-
+    fun addOnClusterChange(callback: () -> Unit) {
+        onClusterChange.add(callback)
     }
 
-    /**
-     * Invokes all the onUpdateListeners
-     */
-    private fun runCallbacks() {
-        updateCallbacks.forEach { it.invoke() }
+    fun addOnStepChange(callback: () -> Unit) {
+        onStepChange.add(callback)
+    }
+
+    fun addOnCursorChange(callback: () -> Unit) {
+        onCursorChange.add(callback)
+    }
+
+    fun addOnStateChange(callback: () -> Unit) {
+        onStateChange.add(callback)
+    }
+
+    fun addOnSwapChange(callback: () -> Unit) {
+        onSwapChange.add(callback)
+    }
+
+    private fun onClusterChange() {
+        onClusterChange.forEach { it.invoke() }
+    }
+
+    private fun onStepChange() {
+        onStepChange.forEach { it.invoke() }
+    }
+
+    private fun onCursorChange() {
+        onCursorChange.forEach { it.invoke() }
+    }
+
+    private fun onStateChange() {
+        onStateChange.forEach { it.invoke() }
+    }
+
+    private fun onSwapChange() {
+        onSwapChange.forEach { it.invoke() }
     }
 
     fun updateSwapWith() {
+        synchronized(recording) {
 
-        val location = lastX + from
-        val sectionIndex = recording.sectionAt(location)
+            val location = lastX + stepFrom
+            val sectionIndex = recording.sectionAt(location)
 
-        if (sectionIndex != null) {
+            if (sectionIndex != null) {
 
-            val section = recording.sections[sectionIndex]
-            val distanceFromEdge = min(10, (section.timeSteps.size * .2).toInt())
+                val section = recording.sections[sectionIndex]
+                val distanceFromEdge = min(10, (section.timeSteps.size * .2).toInt())
 
-            when {
-                location - section.timeStepStart < distanceFromEdge -> { // left edge
+                when {
+                    location - section.timeStepStart < distanceFromEdge -> { // left edge
 
-                    swapWith = sectionIndex
-                    swapWithSection = false
+                        swapWith = sectionIndex
+                        swapWithSection = false
 
+                    }
+                    section.timeStepEnd - location < distanceFromEdge -> { // right edge
+
+                        swapWith = sectionIndex + 1
+                        swapWithSection = false
+
+                    }
+                    else -> { // section
+
+                        swapWith = sectionIndex
+                        swapWithSection = true
+
+                    }
                 }
-                section.timeStepEnd - location < distanceFromEdge -> { // right edge
 
-                    swapWith = sectionIndex + 1
-                    swapWithSection = false
+            } else {
 
-                }
-                else -> { // section
+                swapWith = recording.sections.size
+                swapWithSection = false
 
-                    swapWith = sectionIndex
-                    swapWithSection = true
-
-                }
             }
-
-        } else {
-
-            swapWith = recording.sections.size
-            swapWithSection = false
-
         }
-
     }
 
     fun executeSwap() {
+        synchronized(recording) {
+            val swap = swap
 
-        val swap = swap
+            if (swap != null) {
+                if (swapWithSection)
+                    recording.swapSections(swap, swapWith)
+                else
+                    recording.reInsertSection(swap, swapWith)
 
-        if (swap != null) {
-            if (swapWithSection)
-                recording.swapSections(swap, swapWith)
-            else
-                recording.reInsertSection(swap, swapWith)
-
-            this.swap = null
+                this.swap = null
+            }
         }
 
     }

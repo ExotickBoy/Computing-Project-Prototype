@@ -42,6 +42,7 @@ class TimeStep private constructor(val section: Section, val sampleRange: IntRan
 
     init {
 
+        val samples = samples
         if (time == 0) {
             Model.setQueue(samples)
         }
