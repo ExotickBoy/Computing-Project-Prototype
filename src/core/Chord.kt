@@ -63,22 +63,22 @@ data class Chord(val recordingStart: Int, val noteStart: Int, val notes: Mutable
 
 }
 
-class ChordController : Serializable {
+class PatternMatcher : Serializable {
 
     internal val chords
         get() = chordStates.map { it.chord!! }
 
-    private val chordStates: MutableList<ChordControllerState> = mutableListOf()
-    private val states: MutableList<ChordControllerState> = mutableListOf()
-    private val liveStates: MutableList<ChordControllerState> = mutableListOf()
+    private val chordStates: MutableList<PatternMatchingState> = mutableListOf()
+    private val states: MutableList<PatternMatchingState> = mutableListOf()
+    private val liveStates: MutableList<PatternMatchingState> = mutableListOf()
 
     fun feed(note: Note) {
 
-        val newState = ChordControllerState(states.size)
+        val newState = PatternMatchingState(states.size)
         states.add(newState)
         liveStates.add(newState)
 
-        val newChord = mutableListOf<ChordControllerState>()
+        val newChord = mutableListOf<PatternMatchingState>()
         liveStates.forEach { it.add(note) }
         liveStates.removeIf {
             if (it.chord != null) {
@@ -117,7 +117,7 @@ class ChordController : Serializable {
 
 }
 
-internal class ChordControllerState(private val index: Int) : Serializable {
+internal class PatternMatchingState(private val index: Int) : Serializable {
 
     val notes = mutableListOf<Note>()
     val start

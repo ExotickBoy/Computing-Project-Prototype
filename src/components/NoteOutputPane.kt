@@ -27,12 +27,14 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
         val fontMetrics = getFontMetrics(font)
 
+
         margin = session.recording.tuning.strings
                 .map { it.noteString }
                 .map { fontMetrics.stringWidth(it) }
                 .max() ?: 0
 
         spacing = ((0..session.recording.tuning.maxFret).map { fontMetrics.stringWidth(it.toString()) }.max() ?: 0) + 2.5f
+
         padding = 5
 
         val scrollController = ScrollController(true, session)
@@ -139,10 +141,14 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
     override fun componentResized(e: ComponentEvent) {
 
-        lineHeight = height / (session.recording.tuning.size + 1.0)
+        synchronized(session.recording) {
 
-        session.width = e.component.width
-        session.clusterWidth = e.component.width.toDouble() / spacing
+            lineHeight = height / (session.recording.tuning.size + 1.0)
+
+            session.width = e.component.width
+            session.clusterWidth = e.component.width.toDouble() / spacing
+
+        }
 
     }
 

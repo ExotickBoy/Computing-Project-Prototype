@@ -160,7 +160,7 @@ class Session(val recording: Recording) {
     var swapWithSection: Boolean = false
 
     val isEditSafe: Boolean
-        get() = soundGatheringController.isPaused && playbackController.isPaused
+        get() = soundGatheringController.isPaused && playbackController.isPaused && !soundProcessingController.isProcessing
 
     val isRecording
         get() = !soundGatheringController.isPaused
@@ -187,7 +187,6 @@ class Session(val recording: Recording) {
         return if (isEditSafe) {
             try {
                 synchronized(recording) {
-
                     if (!soundGatheringController.isAlive)
                         soundGatheringController.start()
 
@@ -214,6 +213,7 @@ class Session(val recording: Recording) {
     fun pauseRecording(): Boolean {
         return if (!soundGatheringController.isPaused) {
             soundGatheringController.isPaused = true
+            recording.endSection()
             onStateChange()
             true
         } else false
@@ -259,9 +259,7 @@ class Session(val recording: Recording) {
      */
     fun makeCut(cursor: Int) {
         synchronized(recording) {
-            println("CUTTING")
             recording.cut(cursor)
-            println("CUT")
             println(recording.sections)
         }
         onStepChange()

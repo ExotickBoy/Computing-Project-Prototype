@@ -14,41 +14,45 @@ class ContentsPane(session: Session) : JPanel() {
 
     init {
 
-        val historyPane = HistoryPane(session)
-        val historyPanel = JPanel(GridLayout())
-        historyPanel.border = BorderFactory.createEtchedBorder()
-        historyPanel.add(historyPane)
+        synchronized(session.recording) {
 
-        val phaserPane = PhaserPane(session)
-        val phaserPanel = JPanel(GridLayout())
-        phaserPanel.border = BorderFactory.createEtchedBorder()
-        phaserPanel.add(phaserPane)
+            val historyPane = HistoryPane(session)
+            val historyPanel = JPanel(GridLayout())
+            historyPanel.border = BorderFactory.createEtchedBorder()
+            historyPanel.add(historyPane)
 
-        val networkOutputPane = NetworkOutputPane(session)
-        val networkOutputPanel = JPanel(GridLayout())
-        networkOutputPanel.border = BorderFactory.createEtchedBorder()
-        networkOutputPanel.add(networkOutputPane)
+            val phaserPane = PhaserPane(session)
+            val phaserPanel = JPanel(GridLayout())
+            phaserPanel.border = BorderFactory.createEtchedBorder()
+            phaserPanel.add(phaserPane)
 
-        val noteOutputPane = NoteOutputPane(session)
-        val noteOutputPanel = JPanel(GridLayout())
-        noteOutputPanel.border = BorderFactory.createEtchedBorder()
-        noteOutputPanel.add(noteOutputPane)
+            val networkOutputPane = NetworkOutputPane(session)
+            val networkOutputPanel = JPanel(GridLayout())
+            networkOutputPanel.border = BorderFactory.createEtchedBorder()
+            networkOutputPanel.add(networkOutputPane)
 
-        val controlPane = ControlPane(session)
-        val controlPanel = JPanel(GridLayout())
-        controlPanel.border = BorderFactory.createEtchedBorder()
-        controlPanel.add(controlPane)
+            val noteOutputPane = NoteOutputPane(session)
+            val noteOutputPanel = JPanel(GridLayout())
+            noteOutputPanel.border = BorderFactory.createEtchedBorder()
+            noteOutputPanel.add(noteOutputPane)
 
-        val topPanel = JPanel()
-        topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
-        topPanel.add(phaserPanel)
-        topPanel.add(historyPanel)
-        topPanel.add(networkOutputPanel)
-        topPanel.add(noteOutputPanel)
+            val controlPane = ControlPane(session)
+            val controlPanel = JPanel(GridLayout())
+            controlPanel.border = BorderFactory.createEtchedBorder()
+            controlPanel.add(controlPane)
 
-        layout = BorderLayout()
-        add(topPanel, BorderLayout.CENTER)
-        add(controlPanel, BorderLayout.SOUTH)
+            val topPanel = JPanel()
+            topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
+            topPanel.add(phaserPanel)
+            topPanel.add(historyPanel)
+            topPanel.add(networkOutputPanel)
+            topPanel.add(noteOutputPanel)
+
+            layout = BorderLayout()
+            add(topPanel, BorderLayout.CENTER)
+            add(controlPanel, BorderLayout.SOUTH)
+
+        }
 
     }
 

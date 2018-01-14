@@ -29,10 +29,10 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
         if (session.isEditSafe && dx != 0 && draggingThread?.isAlive != true) {
             // im using != true, because it cold be null
 
-//            println("${session.cursor} ${session.correctedCursor} $dx")
-
             if (!isNote) {
-                session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength), 0)
+                synchronized(session.recording) {
+                    session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength), 0)
+                }
             } else {
                 session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
             }
@@ -69,11 +69,15 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
     private fun mouseLongPressed() {
 
         if (session.isEditSafe && !isNote) {
-            session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor
-                    - session.onScreenStepCursor
-            )
-            session.updateSwapWith()
-            draggingThread = DraggingThread(this)
+            synchronized(session.recording) {
+
+                session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor
+                        - session.onScreenStepCursor
+                )
+                session.updateSwapWith()
+                draggingThread = DraggingThread(this)
+
+            }
         }
 
     }

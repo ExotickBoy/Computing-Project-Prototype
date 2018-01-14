@@ -38,6 +38,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
+
             session.recording.sections.filterIndexed { index, _ ->
                 index != session.swap
             }.forEachIndexed { index, it ->

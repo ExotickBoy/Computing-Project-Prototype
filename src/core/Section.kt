@@ -6,12 +6,12 @@ data class Section(
         val clusterStart: Int,
         val samples: MutableList<Float> = mutableListOf(),
         val timeSteps: MutableList<TimeStep> = mutableListOf(),
-        val clusters: MutableList<NoteCluster> = mutableListOf()
+        val clusters: MutableList<NoteCluster> = mutableListOf(),
+        var isGathered: Boolean = false,
+        var isProcessed: Boolean = false
 ) {
 
     constructor(after: Section) : this(after.sampleEnd, after.timeStepEnd, after.clusterEnd) // new Section
-
-    var processingCursor: Int = 0
 
     val timeStepEnd
         get() = timeStepStart + timeSteps.size
@@ -34,7 +34,7 @@ data class Section(
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
-    val chordController = ChordController()
+    val chordController = PatternMatcher()
 
     /**
      * This class is used to store all the possible paths when placements are optimised
@@ -59,7 +59,7 @@ data class Section(
 //                }
 //
 //        optimiseForward(0) // re-optimise the placements
-//        //TODO make this more efficient
+//        TODO make this more efficient
 
     }
 

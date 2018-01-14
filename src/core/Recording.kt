@@ -47,7 +47,8 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     cutSection.clusterStart,
                     cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING),
                     cutSection.timeSteps.subList(0, time - cutSection.timeStepStart),
-                    cutSection.clusters.subList(0, clusterCut)
+                    cutSection.clusters.subList(0, clusterCut),
+                    true, true
             )
 
             val right = Section(
@@ -56,7 +57,8 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     left.clusterEnd,
                     cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size),
                     cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size),
-                    cutSection.clusters.subList(clusterCut, cutSection.clusters.size)
+                    cutSection.clusters.subList(clusterCut, cutSection.clusters.size),
+                    true, true
             )
 
             if (left.timeSteps.size >= Section.minStepLength && right.timeSteps.size >= Section.minStepLength) {
@@ -78,6 +80,10 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         else
             sections.add(Section(sections.last()))
 
+    }
+
+    fun endSection() {
+        sections.last().isGathered = true
     }
 
     /**
@@ -167,6 +173,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         private val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
         private const val DEFAULT_WILL_COMPRESS = true
+
         /**
          * Finds all the placements of a note in a tuning
          * @param note The note to be found for
