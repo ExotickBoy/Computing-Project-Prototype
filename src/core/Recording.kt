@@ -42,6 +42,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
             }
 
             val left = Section(
+                    this,
                     cutSection.sampleStart,
                     cutSection.timeStepStart,
                     cutSection.clusterStart,
@@ -52,6 +53,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
             )
 
             val right = Section(
+                    this,
                     left.sampleEnd,
                     left.timeStepEnd,
                     left.clusterEnd,
@@ -76,7 +78,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     internal fun startSection() {
 
         if (sections.size == 0)
-            sections.add(Section(0, 0, 0))
+            sections.add(Section(this, 0, 0, 0))
         else
             sections.add(Section(sections.last()))
 
@@ -173,22 +175,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         private val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
         private const val DEFAULT_WILL_COMPRESS = true
-
-        /**
-         * Finds all the placements of a note in a tuning
-         * @param note The note to be found for
-         * @param tuning The tuning to be searched
-         * @return All the possible placements for a tuning
-         */
-        private fun findPlacements(note: Note, tuning: Tuning): List<Placement> {
-
-            return tuning.strings.mapIndexed { index, it ->
-                Placement(note.pitch - it, index, note)
-            }.filter {
-                it.fret >= 0 && it.fret <= tuning.maxFret
-            }
-
-        }
 
     }
 

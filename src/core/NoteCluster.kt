@@ -1,6 +1,6 @@
 package core
 
-abstract class NoteCluster(val relTimeStepStart: Int) {
-    abstract val placements: List<Placement>
-    abstract val heading: String
-}
+import java.io.Serializable
+
+
+data class NoteCluster(val relTimeStepStart: Int, val placements: List<Placement>, val heading: String) : Serializable
