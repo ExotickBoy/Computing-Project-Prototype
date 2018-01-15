@@ -11,7 +11,7 @@ import java.util.*
  * @property predictions The list of predictions for each pitch created by the model
  * @property spectrum The spectrum of the samples of a TimeStep
  */
-internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val depased: FloatArray) {
+internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val dePhased: FloatArray) {
 
     var pitches: List<Int>
 
@@ -33,7 +33,7 @@ internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatA
 
         if (!Arrays.equals(predictions, other.predictions)) return false
         if (!Arrays.equals(spectrum, other.spectrum)) return false
-        if (!Arrays.equals(depased, other.depased)) return false
+        if (!Arrays.equals(dePhased, other.dePhased)) return false
 
         return true
     }
@@ -41,7 +41,7 @@ internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatA
     override fun hashCode(): Int {
         var result = Arrays.hashCode(predictions)
         result = 31 * result + Arrays.hashCode(spectrum)
-        result = 31 * result + Arrays.hashCode(depased)
+        result = 31 * result + Arrays.hashCode(dePhased)
         return result
     }
 }

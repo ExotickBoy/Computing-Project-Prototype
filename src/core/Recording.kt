@@ -94,7 +94,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
      * @return The index of the section
      */
     internal fun sectionAt(time: Int) = (0 until sections.size)
-            .firstOrNull { time <= sections[it].timeStepEnd }
+            .firstOrNull { time < sections[it].timeStepEnd }
 
     fun addSamples(samples: FloatArray) {
         sections.last().addSamples(samples)

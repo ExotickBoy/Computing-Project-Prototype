@@ -10,13 +10,18 @@ import kotlin.math.max
 
 internal class PhaserPane internal constructor(private val session: Session) : JPanel() {
 
-    private var showing: Float = 0f
+    private var scale: Float = 0f
+    private var colour: Float = 0f
 
     init {
 
         preferredSize = Dimension(500, 150)
 
         session.addOnStepChange { repaint() }
+        session.addOnCursorChange {
+            scale = 1f
+            repaint()
+        }
 
         thread(name = "Animation Thread") {
 
@@ -34,12 +39,32 @@ internal class PhaserPane internal constructor(private val session: Session) : J
                 while (accumulated > period) {
                     accumulated -= period;
 
-                    showing = if (session.isEditSafe) {
-                        max(0f, showing - ANIMATION_STEP)
+
+                    if (session.isRecording) {
+
+                        val scaleBefore = scale
+                        val colourBefore = colour
+
+                        scale = 1f
+                        colour = scale
+
+                        if (scale != scaleBefore || colour != colourBefore) {
+                            repaint()
+                        }
+
                     } else {
-                        1f
+
+                        val scaleBefore = scale
+                        val colourBefore = colour
+
+                        scale = max(0f, scale - ANIMATION_STEP)
+                        colour = max(0f, colour - ANIMATION_STEP)
+
+                        if (scale != scaleBefore || colour != colourBefore) {
+                            repaint()
+                        }
+
                     }
-                    repaint()
 
                 }
 
@@ -59,34 +84,47 @@ internal class PhaserPane internal constructor(private val session: Session) : J
         g.setRenderingHints(rh)
 
         val size = size
-        g.stroke = BasicStroke(.2f)
+        g.stroke = BasicStroke(.45f)
 
 //        val step = recording.sectionAt(session.cursor)
 
         synchronized(session.recording) {
 
-            if (!session.recording.sections.isEmpty() && !session.recording.sections.last().timeSteps.isEmpty()) {
+            val currentStep = if (session.stepCursor == null) {
+                session.recording.sections.findLast { it.timeSteps.isNotEmpty() }?.timeSteps?.last()
+            } else {
+                val sectionIndex = session.recording.sectionAt(session.correctedStepCursor)
+                if (sectionIndex != null) {
+                    val section = session.recording.sections[sectionIndex]
 
+//                    println("${section.timeStepRange} ${session.correctedStepCursor}")
 
-                val dePhased = session.recording.sections.last().timeSteps.last().dePhased
+                    section.timeSteps[session.correctedStepCursor - section.timeStepStart]
+                } else {
+                    null
+                }
+            }
+
+            if (currentStep != null) {
+
                 val graph = Path2D.Double()
 
                 val resolution = 1
-                for (i in 0 until dePhased.size step resolution) {
+                for (i in 0 until currentStep.dePhased.size step resolution) {
 
-                    val x = size.getWidth() * i / dePhased.size
+                    val x = size.getWidth() * i / currentStep.dePhased.size
                     if (i == 0) {
 
-                        graph.moveTo(x, size.height / 2 + dePhased[i] * SCALE * showing)
+                        graph.moveTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * scale)
 
                     } else {
 
-                        graph.lineTo(x, size.height / 2 + dePhased[i] * SCALE * showing)
+                        graph.lineTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * scale)
 
                     }
 
                 }
-                g.color = interpolateColour(g.color, Color.RED, showing)
+                g.color = interpolateColour(g.color, Color.RED, colour)
                 g.draw(graph)
 
             } else {

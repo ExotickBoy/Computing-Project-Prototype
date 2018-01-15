@@ -28,7 +28,7 @@ class TimeStep private constructor(val section: Section, val sampleRange: IntRan
     val noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
     val dePhased
-        get() = modelOutput.depased
+        get() = modelOutput.dePhased
 
     private val samples: FloatArray
         get() {

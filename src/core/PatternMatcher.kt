@@ -1,6 +1,8 @@
 package core
 
 import core.PatternMatcher.PossibleMatch.Companion.MAX_CHORD_LENGTH
+import core.Placement.Companion.distance
+import core.Placement.Companion.internalDistance
 import java.io.Serializable
 
 class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>) : Serializable {
@@ -9,9 +11,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
     private val liveStates: MutableList<PatternMatchingState> = mutableListOf()
 
     private val paths: MutableList<List<Path>> = mutableListOf()
-    private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
+    private val possiblePlacements: MutableList<List<List<Placement>>> = mutableListOf()
 
-    private val matches: MutableList<PossibleMatch> = mutableListOf()
+    private val chosenMatches: MutableList<PossibleMatch> = mutableListOf()
 
     fun feed(note: Note) {
 
@@ -19,21 +21,94 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
         states.add(newState)
         liveStates.add(newState)
 
-        val newDeadStates = mutableListOf<PatternMatchingState>()
         liveStates.forEach { it.add(note) }
-        liveStates.removeIf {
-            if (it.isDead) {
-                newDeadStates.add(it)
-            }
-            return@removeIf it.isDead
+        liveStates.removeIf { it.isDead }
+
+        val new = liveStates.minBy { it.start }!!
+
+        val rePathPrevious = if (chosenMatches.isEmpty()) {
+            chosenMatches.add(new.matches.last())
+            possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
+            false
+        } else if (chosenMatches[chosenMatches.lastIndex].start >= new.start) {
+            chosenMatches[chosenMatches.lastIndex] = new.matches.last()
+            possiblePlacements[possiblePlacements.lastIndex] = chosenMatches[chosenMatches.lastIndex].possiblePlacements
+            true
+        } else {
+            chosenMatches.add(new.matches.last())
+            possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
+            false
         }
 
-        newDeadStates.sortedBy { it.start }.forEach {
+        println(rePathPrevious)
+
+
+        if (rePathPrevious) {
+            paths.removeAt(paths.lastIndex)
+        }
+
+        (paths.size until possiblePlacements.size).forEach { time ->
+
+            val currentPlacements = possiblePlacements[time]
+
+            val nextPaths = if (time == 0) { // no previous paths
+
+                (0 until currentPlacements.size).map {
+                    Path(listOf(it), internalDistance(currentPlacements[it]))
+                    // start each path with the starting distance to the placement
+                }
+
+            } else {
+
+                val previousPaths = paths[time - 1]
+
+                (0 until currentPlacements.size).map { to ->
+                    (0 until previousPaths.size).map { from ->
+                        // for each possible pair of the placements in the last time and the current one
+
+                        Path(previousPaths[from].route + to,
+                                previousPaths[from].route.mapIndexed { index, place ->
+                                    distance(possiblePlacements[index][place], currentPlacements[to])
+                                }.takeLast(10).sum())
+
+                    }.minBy { it.distance }!! // find the shortest path to current from any past
+                }
+
+            }
+
+            if (time < paths.size) { // if this path already exists and needs to be replaced
+                paths[time] = nextPaths
+            } else {
+                paths.add(nextPaths)
+            }
+
+        }
+
+        if (paths.size > 0) { // if there is a path
+            // TODO debug to find if this is necessary
+
+            val bestPath = paths.last().minBy { it.distance }?.route!!
+            // the path with the shortest distance to the last placement
+
+            ((possiblePlacements.size + if (rePathPrevious) -1 else -0) until possiblePlacements.size).forEach {
+                // replaces all the placements in the current placement with the best ones
+
+                val newCluster = NoteCluster(
+                        chosenMatches[it].start,
+                        possiblePlacements[it][bestPath[it]],
+                        chosenMatches[it].pattern?.title ?: ""
+                )
+
+                if (it < clusters.size) {
+                    clusters[it] = newCluster
+                } else {
+                    clusters.add(newCluster)
+                }
+            }
 
         }
 
     }
-
 
     private class PatternMatchingState(val tuning: Tuning, val start: Int) : Serializable {
 
@@ -49,10 +124,10 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
             if (notes.isEmpty()) {
 
                 possibleMatches.addAll(PossibleMatch.patters.map { pattern ->
-                    PossibleMatch(tuning, pattern, mutableListOf(note))
+                    PossibleMatch(tuning, start, pattern, mutableListOf(note))
                 })
 
-                matches.add(PossibleMatch(tuning, note))
+                matches.add(PossibleMatch(tuning, start, note))
 
             } else {
 
@@ -63,7 +138,10 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
                 possibleMatches.forEach { it.addNote(note) }
                 possibleMatches.removeIf { !it.isPossible }
 
-                matches.addAll(possibleMatches.filter { it.isValid }.map { it.copy() })
+                val newMatch = possibleMatches.find { it.isValid }
+                if (newMatch != null) {
+                    matches.add(newMatch)
+                }
 
                 if (possibleMatches.isEmpty()) {
                     isDead = true
@@ -81,9 +159,11 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
     }
 
-    private data class PossibleMatch(private val tuning: Tuning, val pattern: ChordPattern?, private val notes: MutableList<Note>) {
+    private data class PossibleMatch(private val tuning: Tuning, val start: Int, val pattern: ChordPattern?, val notes: MutableList<Note>) {
 
-        constructor(tuning: Tuning, note: Note) : this(tuning, null, mutableListOf(note))
+        constructor(tuning: Tuning, start: Int, note: Note) : this(tuning, start, null, mutableListOf()) {
+            addNote(note)
+        }
 
         val isValid: Boolean
             get() = validRoots.isNotEmpty()
@@ -99,9 +179,24 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
             notes.add(newNote)
 
-            val notePlacements: List<List<Placement>> = notes.map { findPlacements(it, tuning) }
+            possiblePlacements = findPossiblePlacements()
+            if (possiblePlacements.isEmpty()) {
+                possibleRoots.clear()
+            }
+
+            possibleRoots.add(newNote)
+            possibleRoots.removeIf { !possibleWithRoot(it) }
+            validRoots.clear()
+            validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
+
+        }
+
+        private fun findPossiblePlacements(): List<List<Placement>> {
+
+            val notePlacements: List<List<Placement>> = notes.map { findPossiblePlacements(it, tuning) }
             val possiblePlacementPaths: MutableList<PlacementPath> = mutableListOf()
-            notes.forEachIndexed { index, note ->
+
+            notes.forEachIndexed { index, _ ->
                 if (index == 0) {
                     possiblePlacementPaths.addAll(notePlacements[0].map { PlacementPath(listOf(it)) })
                 } else {
@@ -116,16 +211,8 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
                     })
                 }
             } // this is essentially a breadth first search through this graph
-            possiblePlacements = possiblePlacementPaths.map { it.placements }
 
-            if (possiblePlacements.isEmpty()) {
-                possibleRoots.clear()
-            }
-
-            possibleRoots.add(newNote)
-            possibleRoots.removeIf { !possibleWithRoot(it) }
-            validRoots.clear()
-            validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
+            return possiblePlacementPaths.map { it.placements }
 
         }
 
@@ -147,7 +234,7 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
          * @param tuning The tuning to be searched
          * @return All the possible placements for a tuning
          */
-        private fun findPlacements(note: Note, tuning: Tuning): List<Placement> {
+        private fun findPossiblePlacements(note: Note, tuning: Tuning): List<Placement> {
 
             return tuning.strings.mapIndexed { index, it ->
                 Placement(tuning, note.pitch - it, index, note)
@@ -168,7 +255,7 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
                     ChordPattern("+5", "5", 0, 5)
             )
 
-            const val MAX_CHORD_LENGTH = 15 // timeSteps
+            const val MAX_CHORD_LENGTH = 30 // timeSteps
 
             fun Int.floorMod(other: Int) = ((this % other) + other) % other
 
@@ -182,70 +269,6 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
 
     }
-
-    /**
-     * This optimised the possible placements from a particular placement forward
-     * @param from The time at which the optimisation should start
-     */
-//    private fun optimiseForward(from: Int) {
-//
-//        for (time in from until possiblePlacements.size) {
-//
-//            val currentPlacements = possiblePlacements[time]
-//
-//            val nextPaths = if (time == 0) { // no previous paths
-//
-//                (0 until currentPlacements.size).map {
-//                    Section.Path(listOf(it), currentPlacements[it].startDistance())
-//                    // start each path with the starting distance to the placement
-//                }
-//
-//            } else {
-//
-//                val previousPaths = paths[time - 1]
-//
-//                (0 until currentPlacements.size).map { current ->
-//                    (0 until previousPaths.size).map { past ->
-//                        // for each possible pair of the placements in the last time and the current one
-//
-//                        Section.Path(previousPaths[past].route + current,
-//                                previousPaths[past].route.mapIndexed { index, place ->
-//                                    possiblePlacements[index][place] distance currentPlacements[current]
-//                                }.takeLast(10).sum())
-//
-//                    }.minBy { it.distance }!! // find the shortest path to current from any past
-//                }
-//
-//            }
-//
-//            if (time < paths.size) { // if this path already exists and needs to be replaced
-//                paths[time] = nextPaths
-//            } else {
-//                paths.add(nextPaths)
-//            }
-//
-//        }
-//
-////        if (paths.size > 0) { // if there is a path
-////            // TODO debug to find if this is necessary
-////
-////            val bestPath = paths[paths.size - 1].minBy { it.distance }?.route!!
-////            // the path with the shortest distance to the last placement
-////
-////            (from until possiblePlacements.size).forEach {
-////                // replaces all the placements in the current placement with the best ones
-////                val currentPlacement = possiblePlacements[it][bestPath[it]]
-////
-////                if (it < placements.size) {
-////                    placements[it] = currentPlacement
-////                } else {
-////                    placements.add(currentPlacement)
-////                }
-////            }
-////
-////        }
-//
-//    }
 
     /**
      * This class is used to store all the possible paths when placements are optimised

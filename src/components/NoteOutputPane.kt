@@ -44,7 +44,6 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
         session.addOnCursorChange { repaint() }
         session.addOnClusterChange { repaint() }
-        session.addOnClusterChange { repaint() }
 
     }
 

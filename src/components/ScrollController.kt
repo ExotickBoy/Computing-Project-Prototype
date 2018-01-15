@@ -26,19 +26,23 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
 
         val dx = e.x - session.lastX
 
-        if (session.isEditSafe && dx != 0 && draggingThread?.isAlive != true) {
-            // im using != true, because it cold be null
+        synchronized(session.recording) {
 
-            if (!isNote) {
-                synchronized(session.recording) {
+            if (session.isEditSafe && dx != 0 && draggingThread?.isAlive != true) {
+                // im using != true, because it cold be null
+
+                if (!isNote) {
+
                     session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength), 0)
+
+                } else {
+                    session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
                 }
-            } else {
-                session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
+
             }
+            session.lastX = e.x
 
         }
-        session.lastX = e.x
 
     }
 

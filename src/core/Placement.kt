@@ -12,30 +12,10 @@ import kotlin.math.pow
 data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val note: Note) {
 
     /**
-     * This method finds the distance between two placements.
-     * The function should be high if the distance between the two points on the guitar is high (i.e. fret, string) and
-     * low when there is a lot of time between the two placements (giving the player time to move their hand)
-     * @param other the other placement that should be compared
-     */
-    internal infix fun distance(other: Placement): Double {
-
-        return if (string == other.string && other.note.start < note.end) {
-            // this is because two notes can't be played on the same string at the same time
-            Double.MAX_VALUE
-        } else {
-
-            euclideanNorm(fretDistance(this.fret, other.fret), string - other.string) *
-                    timeDistance(note.end - other.note.start)
-
-        }
-
-    }
-
-    /**
      * This function finds the distance to a placement if it is the first one
      */
     internal fun startDistance(): Double {
-        return fret * FRET_SCALING_FACTOR.pow(2)
+        return fret * FRET_SCALING_FACTOR
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
 
@@ -51,7 +31,28 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
          */
         private const val TIME_FACTOR_BASE = 1.04
 
-        private const val FRET_DROPOFF = 1.04
+        private const val FRET_DROP_OFF = 1.04
+
+        fun internalDistance(list: List<Placement>): Double {
+            return list.map { it.startDistance() }.average()
+            // ADD THE RANGE THING
+        }
+
+        fun distance(a: List<Placement>, b: List<Placement>): Double {
+
+            return 0.0
+
+//            return if (string == other.string && other.note.start < note.end) {
+//                // this is because two notes can't be played on the same string at the same time
+//                Double.MAX_VALUE
+//            } else {
+//
+//                euclideanNorm(fretDistance(this.fret, other.fret), string - other.string) *
+//                        timeDistance(note.end - other.note.start)
+//
+//            }
+
+        }
 
         /**
          * The importance of the distance between the frets
@@ -62,7 +63,7 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
         internal fun fretDistance(a: Int, b: Int): Double {
 
             return if (a == 0 || b == 0) 0.0
-            else FRET_SCALING_FACTOR * (1 - FRET_DROPOFF.pow(-Math.pow(a - b.toDouble(), 2.0)))
+            else FRET_SCALING_FACTOR * (1 - FRET_DROP_OFF.pow(-Math.pow(a - b.toDouble(), 2.0)))
             // this is because a placement on the 0th fret is the open string, which can be played from anywhere
 
         }

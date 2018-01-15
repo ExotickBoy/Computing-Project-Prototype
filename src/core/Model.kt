@@ -86,7 +86,7 @@ internal object Model {
 
         }
 
-        return StepOutput(noteOutputBuffer.array(), spectrumOutputBuffer.array(), dephasedBuffer.array())
+        return StepOutput(noteOutputBuffer.array().copyOf(), spectrumOutputBuffer.array().copyOf(), dephasedBuffer.array().copyOf())
 
     }
 
