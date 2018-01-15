@@ -63,7 +63,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     true, true
             )
 
-            if (left.timeSteps.size >= Section.minStepLength && right.timeSteps.size >= Section.minStepLength) {
+            if (left.timeSteps.size >= Section.MIN_STEP_LENGTH && right.timeSteps.size >= Section.MIN_STEP_LENGTH) {
 
                 sections.removeAt(cutIndex)
                 sections.add(cutIndex, right)

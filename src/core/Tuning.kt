@@ -10,7 +10,7 @@ import java.io.Serializable
  * @property strings The list of strings that the tuning has
  * @property maxFret The highest fret that the tuning has
  */
-data class Tuning(val strings: List<Int>, val maxFret: Int = 20) : Serializable {
+data class Tuning(val strings: List<Int>, val capo: Int = 0, val maxFret: Int = 20) : Serializable {
 
     constructor(vararg strings: String) : this(strings.map { it.pitch }.sorted())
     // an easy to use constructor for testing the Tuning class

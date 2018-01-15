@@ -53,7 +53,7 @@ data class Section(
 
     companion object {
 
-        const val minStepLength = 10
+        const val MIN_STEP_LENGTH = 10
 
     }
 

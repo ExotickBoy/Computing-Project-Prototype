@@ -9,7 +9,7 @@ import kotlin.math.pow
  * @property string the string that the note is played on
  * @property time the start at which the note is played
  */
-data class Placement(val fret: Int, val string: Int, val note: Note) {
+data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val note: Note) {
 
     /**
      * This method finds the distance between two placements.
