@@ -260,7 +260,6 @@ class Session(val recording: Recording) {
     fun makeCut(cursor: Int) {
         synchronized(recording) {
             recording.cut(cursor)
-            println(recording.sections)
         }
         onStepChange()
     }

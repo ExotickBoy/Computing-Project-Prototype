@@ -11,6 +11,8 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
     private val paths: MutableList<List<Path>> = mutableListOf()
     private val possiblePlacements: MutableList<List<Placement>> = mutableListOf()
 
+    private val matches: MutableList<PossibleMatch> = mutableListOf()
+
     fun feed(note: Note) {
 
         val newState = PatternMatchingState(tuning, states.size)
@@ -26,8 +28,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
             return@removeIf it.isDead
         }
 
-        println(states.map { it.matches })
-        // optimise placements of new matches
+        newDeadStates.sortedBy { it.start }.forEach {
+
+        }
 
     }
 
@@ -48,6 +51,8 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
                 possibleMatches.addAll(PossibleMatch.patters.map { pattern ->
                     PossibleMatch(tuning, pattern, mutableListOf(note))
                 })
+
+                matches.add(PossibleMatch(tuning, note))
 
             } else {
 
@@ -76,7 +81,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
     }
 
-    private data class PossibleMatch(private val tuning: Tuning, private val pattern: ChordPattern, private val notes: MutableList<Note>) {
+    private data class PossibleMatch(private val tuning: Tuning, val pattern: ChordPattern?, private val notes: MutableList<Note>) {
+
+        constructor(tuning: Tuning, note: Note) : this(tuning, null, mutableListOf(note))
 
         val isValid: Boolean
             get() = validRoots.isNotEmpty()
@@ -88,8 +95,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
         private val possibleRoots: MutableList<Note> = mutableListOf()
         private val validRoots: MutableList<Note> = mutableListOf()
 
-        internal fun addNote(note: Note) {
-            notes.add(note)
+        internal fun addNote(newNote: Note) {
+
+            notes.add(newNote)
 
             val notePlacements: List<List<Placement>> = notes.map { findPlacements(it, tuning) }
             val possiblePlacementPaths: MutableList<PlacementPath> = mutableListOf()
@@ -114,7 +122,7 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
                 possibleRoots.clear()
             }
 
-            possibleRoots.add(note)
+            possibleRoots.add(newNote)
             possibleRoots.removeIf { !possibleWithRoot(it) }
             validRoots.clear()
             validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
@@ -122,13 +130,13 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
         }
 
         private fun possibleWithRoot(root: Note): Boolean {
-            return notes.all {
+            return pattern == null || notes.all {
                 (it.pitch - root.pitch).floorMod(12) in pattern.notes
             }
         }
 
         private fun validWithRoot(root: Note): Boolean {
-            return pattern.notes.none {
+            return pattern == null || pattern.notes.none {
                 (it + root.pitch) !in notes.map { it.pitch }
             }
         }
@@ -166,9 +174,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
         }
 
-        data private class PlacementPath(val placements: List<Placement>)
+        data class PlacementPath(val placements: List<Placement>)
 
-        data private class ChordPattern(val title: String, val suffix: String, val notes: List<Int>) {
+        data class ChordPattern(val title: String, val suffix: String, val notes: List<Int>) {
             constructor(title: String, suffix: String, vararg notes: Int) : this(title, suffix, notes.asList())
         }
 
