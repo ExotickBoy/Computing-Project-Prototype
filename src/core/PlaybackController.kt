@@ -40,10 +40,12 @@ internal class PlaybackController(private val session: Session, private val onEn
 
                 }
             } else {
-                accumulated = 0.0
                 while (isPaused) {
                     onSpinWait()
                 }
+                current = System.currentTimeMillis()
+                last = current
+                accumulated = 0.0
             }
 
         }

@@ -79,6 +79,9 @@ class Session(val recording: Recording) {
                             return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                         }
                     }
+
+                    println(clusters)
+
                     setpCursorField = (when {
                         toBecome == null -> null
                         toBecome > clusters.size + 0.5 -> null
@@ -365,6 +368,10 @@ class Session(val recording: Recording) {
 
     }
 
-    private data class PlayedCluster(val recordingStart: Int, val index: Int, val section: Section)
+    private data class PlayedCluster(val recordingStart: Int, val index: Int, val section: Section) {
+        override fun toString(): String {
+            return "PlayedCluster(recordingStart=$recordingStart, index=$index)"
+        }
+    }
 
 }

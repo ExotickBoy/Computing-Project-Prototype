@@ -5,7 +5,7 @@ import core.Placement.Companion.distance
 import core.Placement.Companion.internalDistance
 import java.io.Serializable
 
-class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>) : Serializable {
+class PatternMatcher(val section: Section, val tuning: Tuning) : Serializable {
 
     private val states: MutableList<PatternMatchingState> = mutableListOf()
     private val liveStates: MutableList<PatternMatchingState> = mutableListOf()
@@ -17,35 +17,41 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
     fun feed(note: Note) {
 
-        println("fed")
+        println("\nFED")
 
-        val newState = PatternMatchingState(tuning, states.size)
+        val newState = PatternMatchingState(section, tuning, states.size)
         states.add(newState)
         liveStates.add(newState)
 
         liveStates.forEach { it.add(note) }
         liveStates.removeIf { it.isDead }
 
-        val new = liveStates.minBy { it.start }!!
+        val new = liveStates.minBy { it.clusterStart }!!
 
-        val rePathPrevious = if (chosenMatches.isEmpty()) {
-            chosenMatches.add(new.matches.last())
-            possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
-            false
-        } else if (chosenMatches[chosenMatches.lastIndex].start >= new.start) {
-            chosenMatches[chosenMatches.lastIndex] = new.matches.last()
-            possiblePlacements[possiblePlacements.lastIndex] = chosenMatches[chosenMatches.lastIndex].possiblePlacements
-            true
-        } else {
-            chosenMatches.add(new.matches.last())
-            possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
-            false
+        val removeLast = when {
+            chosenMatches.isEmpty() -> {
+                chosenMatches.add(new.matches.last())
+                possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
+                false
+            }
+            chosenMatches[chosenMatches.lastIndex].clusterStart >= new.clusterStart -> {
+                chosenMatches[chosenMatches.lastIndex] = new.matches.last()
+                possiblePlacements[possiblePlacements.lastIndex] = chosenMatches[chosenMatches.lastIndex].possiblePlacements
+                true
+            }
+            else -> {
+                chosenMatches.add(new.matches.last())
+                possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
+                false
+            }
         }
 
-        println("chosenMatches.size = ${chosenMatches.size}")
+        println("ADDING NEW MATCH ${new.matches.last()}")
+        println("REPLACING LAST = $removeLast")
 
-        if (rePathPrevious) {
+        if (removeLast) {
             paths.removeAt(paths.lastIndex)
+            section.clusters.removeAt(section.clusters.lastIndex)
         }
 
         (paths.size until possiblePlacements.size).forEach { time ->
@@ -77,43 +83,28 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
             }
 
-            if (time < paths.size) { // if this path already exists and needs to be replaced
-                paths[time] = nextPaths
-                println("ADD PATH ${paths.size}")
-            } else {
-                paths.add(nextPaths)
-                println("REPLACE PATH ${paths.size}")
-            }
+            paths.add(nextPaths)
 
         }
 
         val bestPath = paths.last().minBy { it.distance }?.route!!
         // the path with the shortest distance to the last placement
 
-        ((possiblePlacements.size + if (rePathPrevious) -1 else -0) until possiblePlacements.size).forEach {
+        (section.clusters.size until chosenMatches.size).forEach { time ->
             // replaces all the placements in the current placement with the best ones
 
             val newCluster = NoteCluster(
-                    chosenMatches[it].start,
-                    possiblePlacements[it][bestPath[it]],
-                    chosenMatches[it].pattern?.title ?: ""
+                    chosenMatches[time].notes.map { it.start }.min() ?: 0,
+                    possiblePlacements[time][bestPath[time]],
+                    chosenMatches[time].pattern?.title ?: ""
             )
 
-            if (it < clusters.size) {
-                println("REPLACING CLUSTER")
-                clusters[it] = newCluster
-            } else {
-                println("ADDING CLUSTER")
-                clusters.add(newCluster)
-            }
+            section.clusters.add(newCluster)
         }
-
-        println("chosenMatches ${chosenMatches.map { it.pattern }}")
-        println("clusters ${clusters.map { it.heading }}")
 
     }
 
-    private class PatternMatchingState(val tuning: Tuning, val start: Int) : Serializable {
+    private class PatternMatchingState(val section: Section, val tuning: Tuning, val clusterStart: Int) : Serializable {
 
         val notes = mutableListOf<Note>()
 
@@ -127,10 +118,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
             if (notes.isEmpty()) {
 
                 possibleMatches.addAll(PossibleMatch.patters.map { pattern ->
-                    PossibleMatch(tuning, start, pattern, mutableListOf(note))
+                    PossibleMatch(note.start - section.timeStepStart, clusterStart, tuning, pattern, mutableListOf(note))
                 })
-
-                matches.add(PossibleMatch(tuning, start, note))
+                matches.add(PossibleMatch(note.start - section.timeStepStart, clusterStart, tuning, note))
 
             } else {
 
@@ -162,9 +152,9 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
     }
 
-    private data class PossibleMatch(private val tuning: Tuning, val start: Int, val pattern: ChordPattern?, val notes: MutableList<Note>) {
+    private data class PossibleMatch(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) {
 
-        constructor(tuning: Tuning, start: Int, note: Note) : this(tuning, start, null, mutableListOf()) {
+        constructor(stepStart: Int, clusterStart: Int, tuning: Tuning, note: Note) : this(stepStart, clusterStart, tuning, null, mutableListOf()) {
             addNote(note)
         }
 
@@ -180,17 +170,20 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
         internal fun addNote(newNote: Note) {
 
-            notes.add(newNote)
+            if (newNote.pitch !in notes.map { it.pitch }) {
 
-            possiblePlacements = findPossiblePlacements()
-            if (possiblePlacements.isEmpty()) {
-                possibleRoots.clear()
+                notes.add(newNote)
+
+                possiblePlacements = findPossiblePlacements()
+                if (possiblePlacements.isEmpty()) {
+                    possibleRoots.clear()
+                }
+
+                possibleRoots.add(newNote)
+                possibleRoots.removeIf { !possibleWithRoot(it) }
+                validRoots.clear()
+                validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
             }
-
-            possibleRoots.add(newNote)
-            possibleRoots.removeIf { !possibleWithRoot(it) }
-            validRoots.clear()
-            validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
 
         }
 

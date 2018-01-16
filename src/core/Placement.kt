@@ -1,6 +1,5 @@
 package core
 
-import kotlin.math.max
 import kotlin.math.pow
 
 /**
@@ -29,6 +28,8 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
          */
         private const val FRET_SCALING_FACTOR: Double = 2.0
 
+        private const val INTERNAL_SCALING_FACTOR: Double = 1.0
+
         /**
          * The base in the exponential function relating to time's significance
          */
@@ -47,7 +48,7 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
                 1
             }
 
-            return placements.map { it.startDistance() }.average() + range * placements.size
+            return INTERNAL_SCALING_FACTOR * (placements.map { it.startDistance() }.average() + range * placements.size)
 
         }
 
@@ -55,16 +56,9 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
 
             return firsts.flatMap { first ->
                 seconds.map { second ->
-                    distance(first, second)
+                    fretDistance(first.fret, second.fret)
                 }
             }.average()
-
-        }
-
-        private fun distance(first: Placement, second: Placement): Double {
-
-            return euclideanNorm(fretDistance(first.fret, second.fret), first.string - second.string) *
-                    timeDistance(second.note.start - first.note.start)
 
         }
 

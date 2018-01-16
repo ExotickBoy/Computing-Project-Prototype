@@ -33,7 +33,7 @@ data class Section(
         get() = clusterStart until clusterEnd
 
     private val notes: MutableList<Note> = mutableListOf()
-    private val patternMatcher = PatternMatcher(recording.tuning, clusters)
+    private val patternMatcher = PatternMatcher(this, recording.tuning)
 
     fun addSamples(newSamples: FloatArray) {
         samples.addAll(newSamples.toTypedArray())

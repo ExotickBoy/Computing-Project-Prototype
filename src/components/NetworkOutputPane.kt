@@ -36,7 +36,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
         synchronized(session.recording) {
 
-//            println(session.recording.sections.map { it.clusterRange })
+            //            println(session.recording.sections.map { it.clusterRange })
 
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
@@ -56,6 +56,18 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
                 if (index != 0)
                     g.draw(line(it.timeStepStart - session.stepFrom + 0.5, 0, it.timeStepStart - session.stepFrom + 0.5, height))
 
+            }
+
+            session.recording.sections.forEach { section ->
+                section.clusters.forEach {
+                    g.color = Color.RED
+                    g.draw(line(
+                            it.relTimeStepStart + section.timeStepStart - session.stepFrom,
+                            0,
+                            it.relTimeStepStart + section.timeStepStart - session.stepFrom,
+                            height
+                    ))
+                }
             }
 
             g.stroke = BasicStroke(2f)

@@ -7,6 +7,7 @@ import java.awt.geom.Path2D
 import javax.swing.JPanel
 import kotlin.concurrent.thread
 import kotlin.math.max
+import kotlin.math.min
 
 internal class PhaserPane internal constructor(private val session: Session) : JPanel() {
 
@@ -19,33 +20,31 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
         session.addOnStepChange { repaint() }
         session.addOnCursorChange {
-            scale = 1f
+            scale = 1f + ANIMATION_TIME / IMMUNE_TIME
             repaint()
         }
 
         thread(name = "Animation Thread") {
 
             val period = 1000 / ANIMATION_REFRESH_RATE
-            var last = System.currentTimeMillis();
-            var current = last;
-            var accumulated = 0.0;
+            var last = System.currentTimeMillis()
+            var current = last
+            var accumulated = 0.0
 
             while (true) {
 
-                last = current;
-                current = System.currentTimeMillis();
-                accumulated += current - last;
+                last = current
+                current = System.currentTimeMillis()
+                accumulated += current - last
 
                 while (accumulated > period) {
-                    accumulated -= period;
-
-
+                    accumulated -= period
                     if (session.isRecording) {
 
                         val scaleBefore = scale
                         val colourBefore = colour
 
-                        scale = 1f
+                        scale = 1f + ANIMATION_TIME / IMMUNE_TIME
                         colour = scale
 
                         if (scale != scaleBefore || colour != colourBefore) {
@@ -65,7 +64,6 @@ internal class PhaserPane internal constructor(private val session: Session) : J
                         }
 
                     }
-
                 }
 
             }
@@ -115,16 +113,16 @@ internal class PhaserPane internal constructor(private val session: Session) : J
                     val x = size.getWidth() * i / currentStep.dePhased.size
                     if (i == 0) {
 
-                        graph.moveTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * scale)
+                        graph.moveTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * min(1f, scale))
 
                     } else {
 
-                        graph.lineTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * scale)
+                        graph.lineTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * min(1f, scale))
 
                     }
 
                 }
-                g.color = interpolateColour(g.color, Color.RED, colour)
+                g.color = interpolateColour(g.color, Color.RED, min(colour, 1f))
                 g.draw(graph)
 
             } else {
@@ -141,9 +139,10 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
         private const val SCALE = 250.0
 
-        private const val ANIMATION_TIME = .3
+        private const val ANIMATION_TIME = .4f
+        private const val IMMUNE_TIME = .8f
         private const val ANIMATION_REFRESH_RATE = 60
-        private const val ANIMATION_STEP = (1 / ANIMATION_TIME / ANIMATION_REFRESH_RATE).toFloat()
+        private const val ANIMATION_STEP = (1 / ANIMATION_TIME / ANIMATION_REFRESH_RATE)
 
         /**
          * Interpolates between two colours and then converts the resulting colour to the 32 bit integer that
