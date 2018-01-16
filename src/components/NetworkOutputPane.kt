@@ -94,9 +94,10 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
                 val transformBefore = g.transform
                 g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, height * .1))
+                println(session.lastY)
                 for (x in 0 until section.timeSteps.size) {
 
-                    g.drawImage(section.timeSteps[x].noteImage, session.lastX + x, 0, 1, height, null)
+                    g.drawImage(section.timeSteps[x].noteImage, session.lastX + x, session.lastY - height / 2, 1, height, null)
 
                 }
 

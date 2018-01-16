@@ -1,5 +1,6 @@
 package core
 
+import kotlin.math.max
 import kotlin.math.pow
 
 /**
@@ -24,7 +25,7 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
         /**
          * The scaling factor for the distance function, used for optimising the distance function
          */
-        private const val FRET_SCALING_FACTOR: Double = 4.0
+        private const val FRET_SCALING_FACTOR: Double = 2.0
 
         /**
          * The base in the exponential function relating to time's significance
@@ -33,24 +34,35 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
 
         private const val FRET_DROP_OFF = 1.04
 
-        fun internalDistance(list: List<Placement>): Double {
-            return list.map { it.startDistance() }.average()
-            // ADD THE RANGE THING
+        fun internalDistance(placements: List<Placement>): Double {
+
+            val frets = placements.map { it.fret }
+            val from = frets.min()
+            val to = frets.min()
+            val range = if (from != null && to != null) {
+                to - from + 1
+            } else {
+                1
+            }
+
+            return placements.map { it.startDistance() }.average() + range * placements.size
+
         }
 
-        fun distance(a: List<Placement>, b: List<Placement>): Double {
+        fun distance(firsts: List<Placement>, seconds: List<Placement>): Double {
 
-            return 0.0
+            return firsts.flatMap { first ->
+                seconds.map { second ->
+                    distance(first, second)
+                }
+            }.average()
 
-//            return if (string == other.string && other.note.start < note.end) {
-//                // this is because two notes can't be played on the same string at the same time
-//                Double.MAX_VALUE
-//            } else {
-//
-//                euclideanNorm(fretDistance(this.fret, other.fret), string - other.string) *
-//                        timeDistance(note.end - other.note.start)
-//
-//            }
+        }
+
+        private fun distance(first: Placement, second: Placement): Double {
+
+            return euclideanNorm(fretDistance(first.fret, second.fret), first.string - second.string) *
+                    timeDistance(second.note.start - first.note.start)
 
         }
 

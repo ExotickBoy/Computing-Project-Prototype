@@ -22,15 +22,15 @@ class Session(val recording: Recording) {
     private val onSwapChange: MutableList<() -> Unit> = mutableListOf()
     private val onClusterChange: MutableList<() -> Unit> = mutableListOf()
 
-    private var cursorField: Int? = null
+    private var setpCursorField: Int? = null
     private var clusterCursorField: Double? = null
 
     var stepCursor: Int?
         set(value) {
             synchronized(recording) {
                 val toBecome = if (value == null || value >= recording.timeStepLength) null else max(value, 0)
-                if (toBecome != cursorField) {
-                    cursorField = toBecome
+                if (toBecome != setpCursorField) {
+                    setpCursorField = toBecome
 
                     val clusters = recording.sections.flatMap {
                         it.clusters.mapIndexed { index, cluster ->
@@ -64,7 +64,7 @@ class Session(val recording: Recording) {
 
             }
         }
-        get() = cursorField
+        get() = setpCursorField
 
     var clusterCursor: Double?
         set(value) {
@@ -79,7 +79,7 @@ class Session(val recording: Recording) {
                             return@mapIndexed PlayedCluster(cluster.relTimeStepStart + it.timeStepStart, it.clusterStart + index, it)
                         }
                     }
-                    cursorField = (when {
+                    setpCursorField = (when {
                         toBecome == null -> null
                         toBecome > clusters.size + 0.5 -> null
                         clusters.isEmpty() -> recording.timeStepLength * toBecome
@@ -148,7 +148,11 @@ class Session(val recording: Recording) {
             field = value
             onSwapChange()
         }
-
+    var lastY: Int = 0
+        set(value) {
+            field = value
+            onSwapChange()
+        }
 
     var swap: Int? = null
         set(value) {

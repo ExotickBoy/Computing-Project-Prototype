@@ -84,28 +84,24 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
         }
 
-        if (paths.size > 0) { // if there is a path
-            // TODO debug to find if this is necessary
 
-            val bestPath = paths.last().minBy { it.distance }?.route!!
-            // the path with the shortest distance to the last placement
+        val bestPath = paths.last().minBy { it.distance }?.route!!
+        // the path with the shortest distance to the last placement
 
-            ((possiblePlacements.size + if (rePathPrevious) -1 else -0) until possiblePlacements.size).forEach {
-                // replaces all the placements in the current placement with the best ones
+        ((possiblePlacements.size + if (rePathPrevious) -1 else -0) until possiblePlacements.size).forEach {
+            // replaces all the placements in the current placement with the best ones
 
-                val newCluster = NoteCluster(
-                        chosenMatches[it].start,
-                        possiblePlacements[it][bestPath[it]],
-                        chosenMatches[it].pattern?.title ?: ""
-                )
+            val newCluster = NoteCluster(
+                    chosenMatches[it].start,
+                    possiblePlacements[it][bestPath[it]],
+                    chosenMatches[it].pattern?.title ?: ""
+            )
 
-                if (it < clusters.size) {
-                    clusters[it] = newCluster
-                } else {
-                    clusters.add(newCluster)
-                }
+            if (it < clusters.size) {
+                clusters[it] = newCluster
+            } else {
+                clusters.add(newCluster)
             }
-
         }
 
     }

@@ -49,6 +49,7 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
     override fun mousePressed(e: MouseEvent) {
 
         session.lastX = e.x
+        session.lastY = e.y
 
         longPressTimer?.interrupt()
         longPressTimer = LongPressThread(this)
