@@ -33,7 +33,9 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                 .map { fontMetrics.stringWidth(it) }
                 .max() ?: 0
 
-        spacing = ((0..session.recording.tuning.maxFret).map { fontMetrics.stringWidth(it.toString()) }.max() ?: 0) + 2.5f
+        spacing = ((session.recording.tuning.capo..session.recording.tuning.maxFret).map {
+            fontMetrics.stringWidth(it.toString())
+        }.max() ?: 0) + 2.5f
 
         padding = 5
 
@@ -83,7 +85,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                         cluster.placements.forEach { placement ->
 
                             g.drawString(
-                                    placement.fret.toString(),
+                                    placement.correctedFret.toString(),
                                     (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2,
                                     (lineHeight * (placement.string + 2) - (lineHeight - g.font.size) / 2).toFloat()
                             )

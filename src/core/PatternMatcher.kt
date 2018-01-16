@@ -17,6 +17,8 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
     fun feed(note: Note) {
 
+        println("fed")
+
         val newState = PatternMatchingState(tuning, states.size)
         states.add(newState)
         liveStates.add(newState)
@@ -40,8 +42,7 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
             false
         }
 
-        println(rePathPrevious)
-
+        println("chosenMatches.size = ${chosenMatches.size}")
 
         if (rePathPrevious) {
             paths.removeAt(paths.lastIndex)
@@ -78,12 +79,13 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
 
             if (time < paths.size) { // if this path already exists and needs to be replaced
                 paths[time] = nextPaths
+                println("ADD PATH ${paths.size}")
             } else {
                 paths.add(nextPaths)
+                println("REPLACE PATH ${paths.size}")
             }
 
         }
-
 
         val bestPath = paths.last().minBy { it.distance }?.route!!
         // the path with the shortest distance to the last placement
@@ -98,11 +100,16 @@ class PatternMatcher(val tuning: Tuning, val clusters: MutableList<NoteCluster>)
             )
 
             if (it < clusters.size) {
+                println("REPLACING CLUSTER")
                 clusters[it] = newCluster
             } else {
+                println("ADDING CLUSTER")
                 clusters.add(newCluster)
             }
         }
+
+        println("chosenMatches ${chosenMatches.map { it.pattern }}")
+        println("clusters ${clusters.map { it.heading }}")
 
     }
 

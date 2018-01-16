@@ -20,6 +20,8 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
 
+    val correctedFret get() = if (fret != tuning.capo) fret else 0
+
     companion object {
 
         /**

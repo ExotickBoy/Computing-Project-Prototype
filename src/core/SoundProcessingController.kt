@@ -48,6 +48,10 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
             }
 
+            if(!isProcessing){
+                sleep(1)
+            }
+
         }
 
     }

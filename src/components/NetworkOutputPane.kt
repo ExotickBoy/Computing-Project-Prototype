@@ -36,6 +36,8 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
         synchronized(session.recording) {
 
+//            println(session.recording.sections.map { it.clusterRange })
+
             g.stroke = BasicStroke(1f)
             g.color = Color.MAGENTA
 

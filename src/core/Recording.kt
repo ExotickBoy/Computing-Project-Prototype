@@ -147,14 +147,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     }
 
-    private fun optimiseSections() {
-
-    }
-
-    private fun optimiseLastSection() {
-
-    }
-
     fun serialize(output: OutputStream, willCompress: Boolean = DEFAULT_WILL_COMPRESS) {
 
         output.write(if (willCompress) 1 else 0)
