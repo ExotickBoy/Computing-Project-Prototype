@@ -2,7 +2,9 @@ package components
 
 import components.ContentsPane.Companion.line
 import components.ContentsPane.Companion.overlap
+import core.Note.Companion.noteLetterShort
 import core.Note.Companion.noteString
+import core.Section
 import core.Session
 import java.awt.*
 import java.awt.event.ComponentEvent
@@ -25,27 +27,28 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
         preferredSize = Dimension(500, 140)
 
-        val fontMetrics = getFontMetrics(font)
 
+        val fontMetrics = getFontMetrics(font)
 
         margin = session.recording.tuning.strings
                 .map { it.noteString }
                 .map { fontMetrics.stringWidth(it) }
                 .max() ?: 0
 
-        spacing = ((session.recording.tuning.capo..session.recording.tuning.maxFret).map {
+        spacing = max(((session.recording.tuning.capo..session.recording.tuning.maxFret).map {
             fontMetrics.stringWidth(it.toString())
-        }.max() ?: 0) + 2.5f
+        }.max() ?: 0), ((0..11).map { it.noteLetterShort }.map { fontMetrics.stringWidth(it) }.max()
+                ?: 0) + (Section.patters.map { it.suffix }.map { fontMetrics.stringWidth(it) }.max() ?: 0)) + 2.5f
 
         padding = 5
 
-        val scrollController = ScrollController(true, session)
+        val scrollController = ScrollController(true, this, session)
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
         addComponentListener(this)
 
         session.addOnCursorChange { repaint() }
-        session.addOnClusterChange { repaint() }
+        session.addOnStepChange { repaint() }
 
     }
 
@@ -82,6 +85,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                 it.clusters.forEachIndexed { index, cluster ->
 
                     if (index + it.clusterStart in clusterRange) {
+                        g.color = Color(86, 86, 86)
                         cluster.placements.forEach { placement ->
 
                             g.drawString(
@@ -91,6 +95,13 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                             )
 
                         }
+
+                        g.color = if (cluster.boldHeading) Color(86, 86, 86) else Color(150, 150, 150)
+                        g.drawString(
+                                cluster.heading,
+                                (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(cluster.heading) / 2,
+                                (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat()
+                        )
 
                     }
                 }
@@ -159,7 +170,6 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
     override fun componentShown(e: ComponentEvent) {}
 
-    private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double>
-            = start.toDouble()..endInclusive.toDouble()
+    private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double> = start.toDouble()..endInclusive.toDouble()
 
 }

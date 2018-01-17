@@ -59,7 +59,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     left.clusterEnd,
                     cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size),
                     cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size),
-                    cutSection.clusters.subList(clusterCut, cutSection.clusters.size),
+                    cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
+                        NoteCluster(it.relTimeStepStart - left.timeSteps.size, it.placements, it.heading, it.boldHeading)
+                    }.toMutableList(),
                     true, true
             )
 
@@ -147,6 +149,20 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     }
 
+    internal fun removeSection(section: Int) {
+        sections.removeAt(section)
+
+        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
+        for (i in 1 until sections.size) {
+            sections[i] = sections[i].copy(
+                    sampleStart = sections[i - 1].sampleEnd,
+                    timeStepStart = sections[i - 1].timeStepEnd,
+                    clusterStart = sections[i - 1].clusterEnd
+            )
+        }
+
+    }
+
     fun serialize(output: OutputStream, willCompress: Boolean = DEFAULT_WILL_COMPRESS) {
 
         output.write(if (willCompress) 1 else 0)
@@ -165,7 +181,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         }
 
-        private val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
+        private const val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
         private const val DEFAULT_WILL_COMPRESS = true
 
     }

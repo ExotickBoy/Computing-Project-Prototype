@@ -1,5 +1,6 @@
 package core
 
+import kotlin.math.abs
 import kotlin.math.pow
 
 /**
@@ -19,7 +20,7 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
 
-    val correctedFret get() = if (fret != tuning.capo) fret else 0
+    val correctedFret get() = fret - tuning.capo
 
     companion object {
 
@@ -35,20 +36,10 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
          */
         private const val TIME_FACTOR_BASE = 1.04
 
-        private const val FRET_DROP_OFF = 1.04
 
         fun internalDistance(placements: List<Placement>): Double {
 
-            val frets = placements.map { it.fret }
-            val from = frets.min()
-            val to = frets.min()
-            val range = if (from != null && to != null) {
-                to - from + 1
-            } else {
-                1
-            }
-
-            return INTERNAL_SCALING_FACTOR * (placements.map { it.startDistance() }.average() + range * placements.size)
+            return INTERNAL_SCALING_FACTOR * (placements.map { it.startDistance() }.average() + euclideanNorm(placements.map { it.fret }.range(), placements.map { it.string }.range()) * placements.size)
 
         }
 
@@ -56,22 +47,21 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
 
             return firsts.flatMap { first ->
                 seconds.map { second ->
-                    fretDistance(first.fret, second.fret)
+                    distance(first, second)
                 }
             }.average()
 
         }
 
-        /**
-         * The importance of the distance between the frets
-         * @param a the first fret
-         * @param b the second fret
-         * @return the distance between the frets
-         */
-        internal fun fretDistance(a: Int, b: Int): Double {
+        private fun distance(a: Placement, b: Placement): Double {
 
-            return if (a == 0 || b == 0) 0.0
-            else FRET_SCALING_FACTOR * (1 - FRET_DROP_OFF.pow(-Math.pow(a - b.toDouble(), 2.0)))
+            return if ((a.string - b.string) in -1..1 && (a.correctedFret == 0 || b.correctedFret == 0)) 0.0
+            else {
+                val fretRange = abs(a.fret - b.fret) * FRET_SCALING_FACTOR
+                val stringRange = abs(a.fret - b.fret)
+                val timeRange = abs(a.note.start - b.note.start)
+                euclideanNorm(fretRange, stringRange) * timeDistance(timeRange)
+            }
             // this is because a placement on the 0th fret is the open string, which can be played from anywhere
 
         }
@@ -93,5 +83,12 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
         private fun euclideanNorm(vararg dims: Number): Double = Math.sqrt(dims.map { it.toDouble() }.map { it.pow(2) }.sum())
 
     }
+
+}
+
+private fun List<kotlin.Int>.range(): kotlin.Int {
+    val from = this.min()
+    val to = this.max()
+    return if (from != null && to != null) to - from else 0
 
 }

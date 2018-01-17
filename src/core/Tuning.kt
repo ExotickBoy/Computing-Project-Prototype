@@ -12,7 +12,7 @@ import java.io.Serializable
  */
 data class Tuning(val strings: List<Int>, val capo: Int = 0, val maxFret: Int = 20) : Serializable {
 
-    constructor(vararg strings: String) : this(strings.map { it.pitch }.sorted())
+    constructor(vararg strings: String, capo: Int = 0, maxFret: Int = 20) : this(strings.map { it.pitch }.reversed(), capo, maxFret)
     // an easy to use constructor for testing the Tuning class
     // e.g. Tuning("E2","A3")
 

@@ -20,17 +20,16 @@ class Session(val recording: Recording) {
     private val onCursorChange: MutableList<() -> Unit> = mutableListOf()
     private val onStateChange: MutableList<() -> Unit> = mutableListOf()
     private val onSwapChange: MutableList<() -> Unit> = mutableListOf()
-    private val onClusterChange: MutableList<() -> Unit> = mutableListOf()
 
-    private var setpCursorField: Int? = null
+    private var stepCursorField: Int? = null
     private var clusterCursorField: Double? = null
 
     var stepCursor: Int?
         set(value) {
             synchronized(recording) {
                 val toBecome = if (value == null || value >= recording.timeStepLength) null else max(value, 0)
-                if (toBecome != setpCursorField) {
-                    setpCursorField = toBecome
+                if (toBecome != stepCursorField) {
+                    stepCursorField = toBecome
 
                     val clusters = recording.sections.flatMap {
                         it.clusters.mapIndexed { index, cluster ->
@@ -64,7 +63,7 @@ class Session(val recording: Recording) {
 
             }
         }
-        get() = setpCursorField
+        get() = stepCursorField
 
     var clusterCursor: Double?
         set(value) {
@@ -82,7 +81,7 @@ class Session(val recording: Recording) {
 
                     println(clusters)
 
-                    setpCursorField = (when {
+                    stepCursorField = (when {
                         toBecome == null -> null
                         toBecome > clusters.size + 0.5 -> null
                         clusters.isEmpty() -> recording.timeStepLength * toBecome
@@ -151,7 +150,7 @@ class Session(val recording: Recording) {
             field = value
             onSwapChange()
         }
-    var lastY: Int = 0
+    var lastY: Double = 0.0
         set(value) {
             field = value
             onSwapChange()
@@ -162,9 +161,8 @@ class Session(val recording: Recording) {
             field = value
             onSwapChange()
         }
-
     var swapWith: Int = 0
-    var swapWithSection: Boolean = false
+    var swapWithSection: Boolean? = false
 
     val isEditSafe: Boolean
         get() = soundGatheringController.isPaused && playbackController.isPaused && !soundProcessingController.isProcessing
@@ -271,10 +269,6 @@ class Session(val recording: Recording) {
         onStepChange()
     }
 
-    fun addOnClusterChange(callback: () -> Unit) {
-        onClusterChange.add(callback)
-    }
-
     fun addOnStepChange(callback: () -> Unit) {
         onStepChange.add(callback)
     }
@@ -289,10 +283,6 @@ class Session(val recording: Recording) {
 
     fun addOnSwapChange(callback: () -> Unit) {
         onSwapChange.add(callback)
-    }
-
-    private fun onClusterChange() {
-        onClusterChange.forEach { it.invoke() }
     }
 
     private fun onStepChange() {
@@ -314,40 +304,45 @@ class Session(val recording: Recording) {
     fun updateSwapWith() {
         synchronized(recording) {
 
-            val location = lastX + stepFrom
-            val sectionIndex = recording.sectionAt(location)
-
-            if (sectionIndex != null) {
-
-                val section = recording.sections[sectionIndex]
-                val distanceFromEdge = min(10, (section.timeSteps.size * .2).toInt())
-
-                when {
-                    location - section.timeStepStart < distanceFromEdge -> { // left edge
-
-                        swapWith = sectionIndex
-                        swapWithSection = false
-
-                    }
-                    section.timeStepEnd - location < distanceFromEdge -> { // right edge
-
-                        swapWith = sectionIndex + 1
-                        swapWithSection = false
-
-                    }
-                    else -> { // section
-
-                        swapWith = sectionIndex
-                        swapWithSection = true
-
-                    }
-                }
-
+            if (lastY < DELETE_DISTANCE / 2) {
+                swapWithSection = null
             } else {
 
-                swapWith = recording.sections.size
-                swapWithSection = false
+                val location = lastX + stepFrom
+                val sectionIndex = recording.sectionAt(location)
 
+                if (sectionIndex != null) {
+
+                    val section = recording.sections[sectionIndex]
+                    val distanceFromEdge = min(10, (section.timeSteps.size * .2).toInt())
+
+                    when {
+                        location - section.timeStepStart < distanceFromEdge -> { // left edge
+
+                            swapWith = sectionIndex
+                            swapWithSection = false
+
+                        }
+                        section.timeStepEnd - location < distanceFromEdge -> { // right edge
+
+                            swapWith = sectionIndex + 1
+                            swapWithSection = false
+
+                        }
+                        else -> { // section
+
+                            swapWith = sectionIndex
+                            swapWithSection = true
+
+                        }
+                    }
+
+                } else {
+
+                    swapWith = recording.sections.size
+                    swapWithSection = false
+
+                }
             }
         }
     }
@@ -357,13 +352,16 @@ class Session(val recording: Recording) {
             val swap = swap
 
             if (swap != null) {
-                if (swapWithSection)
-                    recording.swapSections(swap, swapWith)
-                else
-                    recording.reInsertSection(swap, swapWith)
-
+                when (swapWithSection) {
+                    true -> recording.swapSections(swap, swapWith)
+                    false -> recording.reInsertSection(swap, swapWith)
+                    null -> {
+                        recording.removeSection(swap)
+                    }
+                }
                 this.swap = null
             }
+            stepCursor = correctedStepCursor
         }
 
     }
@@ -372,6 +370,10 @@ class Session(val recording: Recording) {
         override fun toString(): String {
             return "PlayedCluster(recordingStart=$recordingStart, index=$index)"
         }
+    }
+
+    companion object {
+        const val DELETE_DISTANCE = .3
     }
 
 }

@@ -1,6 +1,7 @@
 package components
 
 import core.Session
+import java.awt.Component
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
@@ -12,7 +13,7 @@ import kotlin.math.*
  * @property isNote If the scrolling should wrap to the closest note
  * @property session The session that this controller is responsible for
  */
-internal class ScrollController(private val isNote: Boolean, internal val session: Session) : MouseMotionListener, MouseListener {
+internal class ScrollController(private val isNote: Boolean, private val component: Component, private val session: Session) : MouseMotionListener, MouseListener {
 
     private var longPressTimer: LongPressThread? = null
     private var draggingThread: DraggingThread? = null
@@ -41,7 +42,7 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
 
             }
             session.lastX = e.x
-
+            session.lastY = e.y / component.height.toDouble()
         }
 
     }
@@ -49,7 +50,7 @@ internal class ScrollController(private val isNote: Boolean, internal val sessio
     override fun mousePressed(e: MouseEvent) {
 
         session.lastX = e.x
-        session.lastY = e.y
+        session.lastY = e.y / component.height.toDouble()
 
         longPressTimer?.interrupt()
         longPressTimer = LongPressThread(this)

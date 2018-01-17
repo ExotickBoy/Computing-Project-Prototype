@@ -15,7 +15,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
         preferredSize = Dimension(500, Model.PITCH_RANGE)
 
-        val scrollController = ScrollController(false, session)
+        val scrollController = ScrollController(false, this, session)
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
 
@@ -80,7 +80,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
             if (swap != null) {
 
-                if (session.swapWithSection) {
+                if (session.swapWithSection == true) {
 
                     val sectionTo = session.recording.sections[swapWith]
                     val from = sectionTo.timeStepStart - session.stepFrom.toDouble()
@@ -88,7 +88,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
                     g.color = Color(0f, 1f, 0f, .5f)
                     g.fill(Rectangle2D.Double(from, 0.0, sectionTo.timeSteps.size.toDouble(), height.toDouble()))
 
-                } else {
+                } else if (session.swapWithSection == false) {
 
                     val from: Double
                     from = if (swapWith == session.recording.sections.size) {
@@ -108,10 +108,9 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
                 val transformBefore = g.transform
                 g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, height * .1))
-                println(session.lastY)
                 for (x in 0 until section.timeSteps.size) {
 
-                    g.drawImage(section.timeSteps[x].noteImage, session.lastX + x, session.lastY - height / 2, 1, height, null)
+                    g.drawImage(section.timeSteps[x].noteImage, session.lastX + x, 0, 1, height, null)
 
                 }
 
