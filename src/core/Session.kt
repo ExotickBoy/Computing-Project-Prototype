@@ -4,15 +4,16 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * This class is for storing a session of editing the recording
- * @see Recording
- * @see Analyser
+ * This object stores all the properties relevant to the current session of editing a recording
+ *
  * @author Kacper Lubisz
- * @property recording  The recording that concerns this session
- * @property analyser The analyser for this current session
- * @property updateCallbacks A list of lambdas used for adding onUpdate listeners to anything that needs it
- * @property cursor The position of the cursor for editing (null means the end)
- * @property swap A nullable index of the current section being held to be swapped
+ *
+ * @see Recording
+ * @see Session
+ *
+ * @property recording The recording that this session is to edit
+ * @property stepCursor The cursor of the recording measured in TimeSteps
+ * @property clusterCursor The cursor of the recording measured in NoteClusters
  */
 class Session(val recording: Recording) {
 
@@ -170,12 +171,15 @@ class Session(val recording: Recording) {
     val isRecording
         get() = !soundGatheringController.isPaused
 
-    private val soundGatheringController = SoundGatheringController(this)
+    private val soundGatheringController = SoundGatheringController(this, true)
     private val soundProcessingController = SoundProcessingController(this)
     private val playbackController = PlaybackController(this) {
         onStateChange()
     }
 
+    /**
+     * Updates the onScreen locations of the cursors in different spaces and the range in that space that should be visible
+     */
     private fun updateLocations() {
         synchronized(recording) {
             onScreenStepCursor = min(max(width - (recording.timeStepLength - correctedStepCursor), width / 2), correctedStepCursor)
@@ -188,11 +192,15 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Starts recording sound from the microphone
+     * @return If this was performed successfully
+     */
     fun record(): Boolean {
         return if (isEditSafe) {
             try {
                 synchronized(recording) {
-                    if (!soundGatheringController.isAlive)
+                    if (!soundGatheringController.isOpen)
                         soundGatheringController.start()
 
                     stepCursor = null
@@ -215,6 +223,10 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Pauses the recording
+     * @return If this was performed successfully
+     */
     fun pauseRecording(): Boolean {
         return if (!soundGatheringController.isPaused) {
             soundGatheringController.isPaused = true
@@ -224,6 +236,10 @@ class Session(val recording: Recording) {
         } else false
     }
 
+    /**
+     * Starts the playback of the sound
+     * @return If this was performed successfully
+     */
     fun playback(): Boolean {
         return if (isEditSafe && stepCursor != null) {
             playbackController.isPaused = false
@@ -234,6 +250,10 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Stops the playback of the sound
+     * @return If this was performed successfully
+     */
     fun pausePlayback(): Boolean {
         return if (!playbackController.isPaused) {
             playbackController.isPaused = true
@@ -244,12 +264,20 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Adds samples to the recording
+     * @param samples A batch of samples that is to be added to the recording
+     */
     fun addSamples(samples: FloatArray) {
         synchronized(recording) {
             recording.addSamples(samples)
         }
     }
 
+    /**
+     * Adds a TimeStep to the recording
+     * @param step The TimeStep that is to be added
+     */
     fun addTimeStep(step: TimeStep) {
         synchronized(recording) {
             recording.addTimeStep(step)
@@ -269,43 +297,74 @@ class Session(val recording: Recording) {
         onStepChange()
     }
 
+    /**
+     * Add a listener that will be called when TimeSteps are changed, i.e. added or moved via a swap
+     */
     fun addOnStepChange(callback: () -> Unit) {
         onStepChange.add(callback)
     }
 
+    /**
+     * Add a listener that will be called when the cursor is moved
+     * @param callback The callback that will be invoked
+     */
     fun addOnCursorChange(callback: () -> Unit) {
         onCursorChange.add(callback)
     }
 
+    /**
+     * Add a listener that will be called when the state of the session is changed
+     * (recording, playing back, safe to edit)
+     * @param callback The callback that will be invoked
+     */
     fun addOnStateChange(callback: () -> Unit) {
         onStateChange.add(callback)
     }
 
+    /**
+     * Add a listener that will be called when a swap property is changed
+     *
+     */
     fun addOnSwapChange(callback: () -> Unit) {
         onSwapChange.add(callback)
     }
 
+    /**
+     * Invokes all the onStepChange listeners
+     */
     private fun onStepChange() {
         onStepChange.forEach { it.invoke() }
     }
 
+    /**
+     * Invokes all the onCursorChange listeners
+     */
     private fun onCursorChange() {
         onCursorChange.forEach { it.invoke() }
     }
 
+    /**
+     * Invokes all the onStateChange listeners
+     */
     private fun onStateChange() {
         onStateChange.forEach { it.invoke() }
     }
 
+    /**
+     * Invokes all the onSwapChange listeners
+     */
     private fun onSwapChange() {
         onSwapChange.forEach { it.invoke() }
     }
 
+    /**
+     * This function updates what type of swap is going to happen based on the lastX and lastY of the mouse
+     */
     fun updateSwapWith() {
         synchronized(recording) {
 
             if (lastY < DELETE_DISTANCE / 2) {
-                swapWithSection = null
+                swapWithSection = null // this is to signify a delete
             } else {
 
                 val location = lastX + stepFrom
@@ -338,6 +397,8 @@ class Session(val recording: Recording) {
                     }
 
                 } else {
+                    // this is when the cursor is off the end of the recording
+                    // therefore to insert at the last edge
 
                     swapWith = recording.sections.size
                     swapWithSection = false
@@ -347,11 +408,14 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Performs the swap and resets all the swap parameters
+     */
     fun executeSwap() {
         synchronized(recording) {
             val swap = swap
 
-            if (swap != null) {
+            if (swap != null) { // make sure that a swap exists
                 when (swapWithSection) {
                     true -> recording.swapSections(swap, swapWith)
                     false -> recording.reInsertSection(swap, swapWith)
@@ -366,6 +430,9 @@ class Session(val recording: Recording) {
 
     }
 
+    /**
+     * This is just a data class used locally for finding the absolute starts of all notes
+     */
     private data class PlayedCluster(val recordingStart: Int, val index: Int, val section: Section) {
         override fun toString(): String {
             return "PlayedCluster(recordingStart=$recordingStart, index=$index)"

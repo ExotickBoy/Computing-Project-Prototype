@@ -2,50 +2,74 @@ package core;
 
 import javax.sound.sampled.*;
 
-public class SoundGatheringController {
+/**
+ * This class is responsible for interfacing with the source of sound being used, i.e. the microphone.
+ * It reads the samples from the source and then passes them to the session to deal with
+ *
+ * @author Kacper Lubisz
+ */
+class SoundGatheringController extends Thread {
 
-    public static final int DEFAULT_SAMPLE_RATE = 44100;
+    private static final int DEFAULT_SAMPLE_RATE = 44100;
 
-    private final SoundGatheringThread analyserThread;
     private TargetDataLine targetLine;
 
     private volatile boolean isPaused = true;
     private final Session session;
-    private boolean willDiscard = true;
+    private boolean willDiscard;
 
-    public SoundGatheringController(Session session) {
+    SoundGatheringController(Session session, boolean willDiscard) {
 
+        super("Sound Gathering Thread");
         this.session = session;
-        analyserThread = new SoundGatheringThread();
+        this.willDiscard = willDiscard;// whether it should not listen while it is paused
 
     }
 
-    public void start() throws IllegalArgumentException, LineUnavailableException {
+    /**
+     * This opens the microphone line if one is being used and starts the thread
+     *
+     * @throws LineUnavailableException This exception is thrown if opening a microphone line is impossible
+     */
+    void begin() throws LineUnavailableException {
 
         openMicrophoneStream();
         targetLine.start();
-        analyserThread.start();
+        start();
 
     }
 
-    public void stop() {
+    /**
+     * Permanently stops the thread from running by closing th input line
+     */
+    void end() {
         if (targetLine != null && targetLine.isOpen()) {
             targetLine.close();
         }
     }
 
-    public boolean isPaused() {
+    boolean isPaused() {
         return isPaused;
     }
 
-    public void setPaused(boolean paused) {
+    void setPaused(boolean paused) {
         isPaused = paused;
     }
 
-    public boolean isAlive() {
+    /**
+     * @return whether the thread already has an open stream
+     */
+    boolean isOpen() {
         return targetLine != null && targetLine.isOpen();
     }
 
+    /**
+     * Opens the default microphone
+     *
+     * @throws IllegalArgumentException If the default parameters of audio format being used aren't possible
+     *                                  given the microphone
+     * @throws LineUnavailableException If a microphone line cannot be opened because a microphone isn't connected
+     */
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
 
         AudioFormat format = new AudioFormat(DEFAULT_SAMPLE_RATE, 16, 1, true, true);
@@ -56,47 +80,40 @@ public class SoundGatheringController {
 
     }
 
-    private final class SoundGatheringThread extends Thread {
+    /**
+     * When the thread is started
+     */
+    @Override
+    public void run() {
 
-        SoundGatheringThread() {
+        int numBytesRead;
+        byte[] read = new byte[targetLine.getBufferSize()];
+        float[] samples = new float[targetLine.getBufferSize() / 2];
+        // two bytes to each sample
 
-            super("Sound Gathering Thread");
+        while (targetLine.isOpen()) { // this thread stops when the microphone line is stopped
 
-        }
+            numBytesRead = targetLine.read(read, 0, read.length);
+            if (numBytesRead == -1)
+                break; // this will only happen if there is a problem with the input stream, i.e. microphone is disconnected
 
-        @Override
-        public void run() {
-
-            int numBytesRead;
-            int sampleBufferSize = targetLine.getBufferSize() / 2;
-            byte[] read = new byte[targetLine.getBufferSize()];
-
-            float[] samples = new float[sampleBufferSize];
-
-            while (targetLine.isOpen()) {
-
-                numBytesRead = targetLine.read(read, 0, read.length);
-                if (numBytesRead == -1)
-                    break;
-
-                if (isPaused) {
-                    if (willDiscard) {
-                        continue;
-                    } else {
-                        while (isPaused) {
-                            Thread.onSpinWait();
-                        }
+            if (isPaused) {
+                if (willDiscard) {
+                    continue; // this will read the samples and then not use them
+                } else {
+                    while (isPaused) {
+                        Thread.onSpinWait();
                     }
                 }
-                for (int i = 0; i < samples.length; i++) {
-                    samples[i] = ((read[i * 2] << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
-                }
-                session.addSamples(samples);
-
             }
+            for (int i = 0; i < samples.length; i++) {
+                samples[i] = ((read[i * 2] << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
+            }
+            session.addSamples(samples);
 
         }
 
     }
+
 
 }

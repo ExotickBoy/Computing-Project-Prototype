@@ -5,9 +5,11 @@ import java.io.Serializable
 
 /**
  * This class stores the permutation of strings that a guitar could have
+ *
  * @author Kacper Lubisz
  *
  * @property strings The list of strings that the tuning has
+ * @property capo The placement of the capo in the guitar, (this also acts as a minimum fret and should be displayed as 0)
  * @property maxFret The highest fret that the tuning has
  */
 data class Tuning(val strings: List<Int>, val capo: Int = 0, val maxFret: Int = 20) : Serializable {
