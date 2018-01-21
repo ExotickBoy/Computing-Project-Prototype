@@ -29,7 +29,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
         synchronized(session.recording) {
 
-            if (session.isEditSafe && dx != 0 && draggingThread?.isOpen != true) {
+            if (session.isEditSafe && dx != 0 && draggingThread?.isAlive != true) {
                 // im using != true, because it cold be null
 
                 if (!isNote) {

@@ -1,5 +1,6 @@
 package core
 
+import core.SoundGatheringController.SAMPLE_RATE
 import core.SoundProcessingController.Companion.SAMPLES_BETWEEN_FRAMES
 import core.SoundProcessingController.Companion.SAMPLE_PADDING
 import java.io.*
@@ -16,13 +17,15 @@ import java.util.zip.GZIPOutputStream
  */
 class Recording(val tuning: Tuning, val name: String) : Serializable {
 
+    val created = System.currentTimeMillis()
     val sections = mutableListOf<Section>()
 
     val timeStepLength
         get() = if (sections.isEmpty()) 0 else sections.last().timeStepEnd
     val clusterLength
         get() = if (sections.isEmpty()) 0 else sections.last().clusterEnd
-
+    val length: Double
+        get() = if (sections.isEmpty()) 0.0 else (sections.last().sampleEnd.toDouble() / SAMPLE_RATE)
 
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
@@ -163,29 +166,49 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     }
 
-    fun serialize(output: OutputStream, willCompress: Boolean = DEFAULT_WILL_COMPRESS) {
+    private fun getMetaData(): RecordingMetaData = RecordingMetaData(name, length, created)
 
-        output.write(if (willCompress) 1 else 0)
-        val stream = ObjectOutputStream(if (willCompress) GZIPOutputStream(output) else output)
+    fun lastSection(): Section? = if (sections.isEmpty()) null else sections.last()
+
+    fun serialize(output: OutputStream) {
+
+        val stream = ObjectOutputStream(GZIPOutputStream(output))
+        stream.writeObject(this.getMetaData())
         stream.writeObject(this)
+        stream.close()
 
     }
 
     companion object {
 
         fun deserialize(input: InputStream): Recording {
-            val isCompressed = input.read() == 1
-            val stream = ObjectInputStream(if (isCompressed) GZIPInputStream(input) else input)
 
-            return stream.readObject() as Recording
+            val stream = ObjectInputStream(GZIPInputStream(input))
+            stream.readObject() // read and discard the metadata
+            val recording = stream.readObject() as Recording
+            stream.close()
+            return recording
 
         }
 
+        fun findPossibleRecordings(root: File): List<PossibleRecording> {
+
+            return root.listFiles().filter { it.name.endsWith(FILE_EXTENSION) }.map {
+
+                val stream = ObjectInputStream(GZIPInputStream(FileInputStream(it)))
+                val metaData = stream.readObject() as RecordingMetaData
+                stream.close() // close the stream without reading the full recording
+                return@map PossibleRecording(it, metaData)
+
+            }
+        }
+
         private const val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
-        private const val DEFAULT_WILL_COMPRESS = true
+        private const val FILE_EXTENSION = ".rec"
 
     }
 
-    fun lastSection(): Section? = if (sections.isEmpty()) null else sections.last()
+    data class RecordingMetaData(val name: String, val length: Double, val created: Long) : Serializable// metadata object
+    data class PossibleRecording(val file: File, val metaData: RecordingMetaData)
 
 }

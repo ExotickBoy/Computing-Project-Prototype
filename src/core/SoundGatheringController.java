@@ -10,7 +10,7 @@ import javax.sound.sampled.*;
  */
 class SoundGatheringController extends Thread {
 
-    private static final int DEFAULT_SAMPLE_RATE = 44100;
+    static final int SAMPLE_RATE = 44100;
 
     private TargetDataLine targetLine;
 
@@ -72,7 +72,7 @@ class SoundGatheringController extends Thread {
      */
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
 
-        AudioFormat format = new AudioFormat(DEFAULT_SAMPLE_RATE, 16, 1, true, true);
+        AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);

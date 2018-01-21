@@ -1,11 +1,17 @@
 package core
 
+import java.io.File
+import java.io.FileOutputStream
+
 
 fun main(args: Array<String>) {
 
-    val b: Int? = 2
+    val tuning = Tuning.defaultTunings[0]
+    val recording = Recording(tuning, "Nameless")
+    recording.serialize(FileOutputStream("D:/recordingtest.rec"))
 
-    print(b?.a)
+    val possible = Recording.findPossibleRecordings(File("D:/"))
+    println(possible)
 
 }
 
