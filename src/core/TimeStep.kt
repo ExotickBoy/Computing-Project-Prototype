@@ -8,16 +8,20 @@ import kotlin.math.min
 /**
  * This class is for storing the data related to each section of time.
  * This object interacts with the model by passing the samples to it.
+ *
  * @author Kacper Lubisz
+ *
  * @see Model
  * @see StepOutput
  * @see Note
+ *
+ * @property section The section that this time step belongs to
  * @property dePhased The reconstructed samples after the phase of the sinusoid that make it up is removed
  * @property melImage The image that can be drawn on screen of the frequencies on the mel scale
  * @property modelOutput The object that represents the outputs of the Model
  * @property notes The notes that are present in the time step
  */
-class TimeStep private constructor(val section: Section, val sampleRange: IntRange, private val time: Int, private val previous: TimeStep? = null) { // start in steps
+class TimeStep private constructor(private val section: Section, val sampleRange: IntRange, private val time: Int, private val previous: TimeStep? = null) { // start in steps
 
     constructor(section: Section, sampleRange: IntRange, previous: TimeStep?) :
             this(section, sampleRange, (previous?.time ?: -1) + 1, previous)
@@ -43,12 +47,14 @@ class TimeStep private constructor(val section: Section, val sampleRange: IntRan
     init {
 
         val samples = samples
+        // so that the samples don't need to be sub-listed twice
         if (time == 0) {
             Model.setQueue(samples)
         }
 
         modelOutput = Model.feedForward(samples)
 
+        // identify notes present in the current timestep and link them with the ones in the previous one to make one note object
         notes = if (previous == null) {
             modelOutput.pitches.map {
                 Note(it, time, 1)
@@ -65,7 +71,7 @@ class TimeStep private constructor(val section: Section, val sampleRange: IntRan
             }
         }
 
-
+        // This buffered image is a slice of the spectrogram at this time step
         melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
             val value = ((min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
@@ -81,6 +87,9 @@ class TimeStep private constructor(val section: Section, val sampleRange: IntRan
 
     companion object {
 
+        /**
+         * This is the range between which the volumes should be interpolated
+         */
         private const val maxMagnitude = 0.0f
         private const val minMagnitude = -13.0f
 
