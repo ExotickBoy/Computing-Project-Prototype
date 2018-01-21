@@ -166,7 +166,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     }
 
-    private fun getMetaData(): RecordingMetaData = RecordingMetaData(name, length, created)
+    private fun getMetaData(): RecordingMetaData = RecordingMetaData(name, length, created, System.currentTimeMillis())
 
     fun lastSection(): Section? = if (sections.isEmpty()) null else sections.last()
 
@@ -176,6 +176,12 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         stream.writeObject(this.getMetaData())
         stream.writeObject(this)
         stream.close()
+
+    }
+
+    fun serialize() {
+
+        serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
 
     }
 
@@ -205,10 +211,11 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         private const val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
         private const val FILE_EXTENSION = ".rec"
+        const val DEFAULT_PATH = "recordings/"
 
     }
 
-    data class RecordingMetaData(val name: String, val length: Double, val created: Long) : Serializable// metadata object
+    data class RecordingMetaData(val name: String, val length: Double, val created: Long, val lastEdited: Long) : Serializable// metadata object
     data class PossibleRecording(val file: File, val metaData: RecordingMetaData)
 
 }

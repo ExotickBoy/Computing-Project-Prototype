@@ -1,7 +1,7 @@
 package components
 
-import components.ContentsPane.Companion.line
-import components.ContentsPane.Companion.overlap
+import components.RecordingEditPane.Companion.line
+import components.RecordingEditPane.Companion.overlap
 import core.Model
 import core.Session
 import java.awt.*

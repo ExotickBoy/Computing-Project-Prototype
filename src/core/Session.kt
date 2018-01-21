@@ -201,7 +201,7 @@ class Session(val recording: Recording) {
             try {
                 synchronized(recording) {
                     if (!soundGatheringController.isOpen)
-                        soundGatheringController.start()
+                        soundGatheringController.begin()
 
                     stepCursor = null
                     soundGatheringController.isPaused = false
