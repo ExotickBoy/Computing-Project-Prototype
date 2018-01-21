@@ -2,9 +2,7 @@ package components
 
 import components.ContentsPane.Companion.line
 import components.ContentsPane.Companion.overlap
-import core.Note.Companion.noteLetterShort
 import core.Note.Companion.noteString
-import core.Section
 import core.Session
 import java.awt.*
 import java.awt.event.ComponentEvent
@@ -35,10 +33,9 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                 .map { fontMetrics.stringWidth(it) }
                 .max() ?: 0
 
-        spacing = max(((session.recording.tuning.capo..session.recording.tuning.maxFret).map {
+        spacing = ((session.recording.tuning.capo..session.recording.tuning.maxFret).map {
             fontMetrics.stringWidth(it.toString())
-        }.max() ?: 0), ((0..11).map { it.noteLetterShort }.map { fontMetrics.stringWidth(it) }.max()
-                ?: 0) + (Section.patters.map { it.suffix }.map { fontMetrics.stringWidth(it) }.max() ?: 0)) + 2.5f
+        }.max() ?: 0) + 2.5f
 
         padding = 5
 

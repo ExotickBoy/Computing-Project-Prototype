@@ -90,8 +90,6 @@ data class Section(
             }
         }
 
-        println(timeStepStart)
-
         if (removeLast) {
             paths.removeAt(paths.lastIndex)
             clusters.removeAt(clusters.lastIndex)
@@ -213,7 +211,7 @@ data class Section(
 
         internal fun addNote(newNote: Note) {
 
-            if (newNote.pitch !in notes.map { it.pitch }) {
+//            if (newNote.pitch !in notes.map { it.pitch }) {
 
                 notes.add(newNote)
 
@@ -226,7 +224,7 @@ data class Section(
                 possibleRoots.removeIf { !possibleWithRoot(it) }
                 validRoots.clear()
                 validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
-            }
+//            }
 
         }
 
