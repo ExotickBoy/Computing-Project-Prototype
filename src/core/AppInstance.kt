@@ -3,6 +3,7 @@ package core
 import components.RecordingsListPane
 import core.AppInstance.addWindowStateListener
 import java.util.*
+import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JPanel
 
@@ -16,6 +17,7 @@ object AppInstance : JFrame(FRAME_TITLE) {
 
         addWindowStateListener { println(it) }
 
+        iconImage = ImageIcon("D:\\computingProject\\icon2.png").image
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         push(RecordingsListPane())
         isVisible = true
@@ -24,14 +26,12 @@ object AppInstance : JFrame(FRAME_TITLE) {
 
     fun push(pane: ApplicationPane) {
 
-        if (!paneStack.isEmpty()) {
-
+        if (paneStack.isNotEmpty())
             paneStack.peek().onPause()
 
-        }
+        paneStack.push(pane)
 
         pane.onCreate()
-
         contentPane = pane
         pack()
         setLocationRelativeTo(null)
@@ -42,9 +42,22 @@ object AppInstance : JFrame(FRAME_TITLE) {
 
     fun pop() {
 
-    }
+        paneStack.peek().onPause()
+        paneStack.pop().onDestroy()
 
-    fun peek() {
+        if (paneStack.isEmpty()) {
+
+            System.exit(0)
+
+        } else {
+
+            contentPane = paneStack.peek()
+            pack()
+            setLocationRelativeTo(null)
+
+            paneStack.peek().onResume()
+
+        }
 
     }
 

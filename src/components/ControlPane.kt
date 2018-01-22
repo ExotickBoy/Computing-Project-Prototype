@@ -1,6 +1,10 @@
 package components
 
+import core.AppInstance
 import core.Session
+import java.awt.BorderLayout
+import java.awt.FlowLayout
+import javax.swing.BorderFactory
 import javax.swing.JButton
 import javax.swing.JPanel
 
@@ -10,6 +14,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
     private val pauseRecordingButton = JButton(STOP_EMOJI)
     private val playbackButton = JButton(PLAY_EMOJI)
     private val pausePlaybackButton = JButton(PAUSE_EMOJI)
+    private val exitButton = JButton(EXIT_BUTTON_TEXT)
 
     private val cutButton = JButton(SCISSORS_EMOJI)
 
@@ -72,7 +77,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 recordButton.isEnabled = false
             }
         }
-        add(recordButton)
+
 
         pauseRecordingButton.isVisible = false
         pauseRecordingButton.addActionListener {
@@ -85,7 +90,6 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 cutButton.isEnabled = true
             }
         }
-        add(pauseRecordingButton)
 
         playbackButton.isEnabled = false
         playbackButton.addActionListener {
@@ -98,7 +102,6 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
             }
         }
-        add(playbackButton)
 
         pausePlaybackButton.isVisible = false
         pausePlaybackButton.addActionListener {
@@ -110,7 +113,6 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 cutButton.isEnabled = true
             }
         }
-        add(pausePlaybackButton)
 
         cutButton.isEnabled = false
         cutButton.addActionListener {
@@ -118,17 +120,34 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 session.makeCut(session.correctedStepCursor)
             }
         }
-        add(cutButton)
+
+        exitButton.addActionListener {
+            AppInstance.pop()
+        }
+
+        val centrePanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 0))
+        centrePanel.border = BorderFactory.createEtchedBorder()
+
+        centrePanel.add(recordButton)
+        centrePanel.add(pauseRecordingButton)
+        centrePanel.add(playbackButton)
+        centrePanel.add(pausePlaybackButton)
+        centrePanel.add(cutButton)
+
+        layout = BorderLayout()
+        add(exitButton, BorderLayout.LINE_START)
+        add(centrePanel, BorderLayout.CENTER)
 
     }
 
     companion object {
 
-        private val PLAY_EMOJI = "▶"
-        private val RECORD_EMOJI = "\u23FA"
-        private val PAUSE_EMOJI = "❚❚"
-        private val STOP_EMOJI = "\u23F9"
-        private val SCISSORS_EMOJI = "\u2702"
+        private const val PLAY_EMOJI = "▶"
+        private const val RECORD_EMOJI = "\u23FA"
+        private const val PAUSE_EMOJI = "❚❚"
+        private const val STOP_EMOJI = "\u23F9"
+        private const val SCISSORS_EMOJI = "\u2702"
+        private const val EXIT_BUTTON_TEXT = "Exit"
 
     }
 

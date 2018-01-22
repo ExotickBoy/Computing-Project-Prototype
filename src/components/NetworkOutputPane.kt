@@ -31,7 +31,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
         val g = g2 as Graphics2D
         val rh = RenderingHints(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-        rh.put(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        rh[RenderingHints.KEY_ANTIALIASING] = RenderingHints.VALUE_ANTIALIAS_ON
         g.setRenderingHints(rh)
 
         synchronized(session.recording) {

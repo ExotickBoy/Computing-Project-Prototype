@@ -179,7 +179,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     }
 
-    fun serialize() {
+    fun save() {
 
         serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
 
@@ -199,14 +199,15 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         fun findPossibleRecordings(root: File): List<PossibleRecording> {
 
-            return root.listFiles().filter { it.name.endsWith(FILE_EXTENSION) }.map {
+            return root.listFiles()?.filter { it.name.endsWith(FILE_EXTENSION) }?.map {
 
                 val stream = ObjectInputStream(GZIPInputStream(FileInputStream(it)))
                 val metaData = stream.readObject() as RecordingMetaData
                 stream.close() // close the stream without reading the full recording
                 return@map PossibleRecording(it, metaData)
 
-            }
+            } ?: listOf()
+
         }
 
         private const val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
