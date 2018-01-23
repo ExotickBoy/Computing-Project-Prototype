@@ -11,6 +11,8 @@ import javax.sound.sampled.*;
 class SoundGatheringController extends Thread {
 
     static final int SAMPLE_RATE = 44100;
+    static final int SAMPLE_BUFFER_SIZE = 2205;
+    static final AudioFormat AUDIO_FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
 
     private TargetDataLine targetLine;
 
@@ -72,11 +74,11 @@ class SoundGatheringController extends Thread {
      */
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
 
-        AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
+        AudioFormat format = AUDIO_FORMAT;
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
-        targetLine.open(format, 4410);
+        targetLine.open(format, SAMPLE_BUFFER_SIZE * 2);
 
     }
 
