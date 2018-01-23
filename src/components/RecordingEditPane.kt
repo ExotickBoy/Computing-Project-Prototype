@@ -13,31 +13,32 @@ import kotlin.math.min
 
 class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
+    private val historyPane = HistoryPane(session)
+    private val phaserPane = PhaserPane(session)
+    private val networkOutputPane = NetworkOutputPane(session)
+    private val noteOutputPane = NoteOutputPane(session)
+    private val controlPane = ControlPane(session)
+
     override fun onCreate() {
 
         synchronized(session.recording) {
 
-            val historyPane = HistoryPane(session)
             val historyPanel = JPanel(GridLayout())
             historyPanel.border = BorderFactory.createEtchedBorder()
             historyPanel.add(historyPane)
 
-            val phaserPane = PhaserPane(session)
             val phaserPanel = JPanel(GridLayout())
             phaserPanel.border = BorderFactory.createEtchedBorder()
             phaserPanel.add(phaserPane)
 
-            val networkOutputPane = NetworkOutputPane(session)
             val networkOutputPanel = JPanel(GridLayout())
             networkOutputPanel.border = BorderFactory.createEtchedBorder()
             networkOutputPanel.add(networkOutputPane)
 
-            val noteOutputPane = NoteOutputPane(session)
             val noteOutputPanel = JPanel(GridLayout())
             noteOutputPanel.border = BorderFactory.createEtchedBorder()
             noteOutputPanel.add(noteOutputPane)
 
-            val controlPane = ControlPane(session)
             val controlPanel = JPanel(GridLayout())
             controlPanel.border = BorderFactory.createEtchedBorder()
             controlPanel.add(controlPane)
@@ -59,13 +60,26 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
     override fun onPause() {
 
+        AppInstance.title = core.FRAME_TITLE
+
     }
 
     override fun onResume() {
 
+        AppInstance.title = "${core.FRAME_TITLE} - ${session.recording.name}"
+
     }
 
     override fun onDestroy() {
+
+        session.end()
+        phaserPane.end()
+
+        if (session.recording.length != 0.0) {
+
+            session.recording.save()
+
+        }
 
     }
 

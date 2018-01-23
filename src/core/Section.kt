@@ -13,7 +13,7 @@ data class Section(
         val clusters: MutableList<NoteCluster> = mutableListOf(),
         var isGathered: Boolean = false,
         var isProcessed: Boolean = false
-) {
+) : Serializable {
 
     constructor(after: Section) : this(after.recording, after.sampleEnd, after.timeStepEnd, after.clusterEnd) // new Section
 
@@ -213,17 +213,17 @@ data class Section(
 
 //            if (newNote.pitch !in notes.map { it.pitch }) {
 
-                notes.add(newNote)
+            notes.add(newNote)
 
-                possiblePlacements = findPossiblePlacements()
-                if (possiblePlacements.isEmpty()) {
-                    possibleRoots.clear()
-                }
+            possiblePlacements = findPossiblePlacements()
+            if (possiblePlacements.isEmpty()) {
+                possibleRoots.clear()
+            }
 
-                possibleRoots.add(newNote)
-                possibleRoots.removeIf { !possibleWithRoot(it) }
-                validRoots.clear()
-                validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
+            possibleRoots.add(newNote)
+            possibleRoots.removeIf { !possibleWithRoot(it) }
+            validRoots.clear()
+            validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
 //            }
 
         }

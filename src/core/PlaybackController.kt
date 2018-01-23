@@ -40,7 +40,7 @@ internal class PlaybackController(private val session: Session, private val onEn
 
                 }
             } else {
-                while (isPaused) {
+                while (isPaused && !isInterrupted) {
                     onSpinWait()
                 }
                 current = System.currentTimeMillis()
@@ -50,6 +50,10 @@ internal class PlaybackController(private val session: Session, private val onEn
 
         }
 
+    }
+
+    fun end() {
+        interrupt()
     }
 
 }

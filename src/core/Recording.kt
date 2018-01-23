@@ -170,7 +170,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     fun lastSection(): Section? = if (sections.isEmpty()) null else sections.last()
 
-    fun serialize(output: OutputStream) {
+    private fun serialize(output: OutputStream) {
 
         val stream = ObjectOutputStream(GZIPOutputStream(output))
         stream.writeObject(this.getMetaData())
@@ -200,13 +200,18 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         fun findPossibleRecordings(root: File): List<PossibleRecording> {
 
             return root.listFiles()?.filter { it.name.endsWith(FILE_EXTENSION) }?.map {
+                try {
 
-                val stream = ObjectInputStream(GZIPInputStream(FileInputStream(it)))
-                val metaData = stream.readObject() as RecordingMetaData
-                stream.close() // close the stream without reading the full recording
-                return@map PossibleRecording(it, metaData)
+                    val stream = ObjectInputStream(GZIPInputStream(FileInputStream(it)))
+                    val metaData = stream.readObject() as RecordingMetaData
+                    stream.close() // close the stream without reading the full recording
+                    return@map PossibleRecording(it, metaData)
+                } catch (e: IOException) {
+                    it.delete()
+                    return@map null
+                }
 
-            } ?: listOf()
+            }?.filterNotNull() ?: listOf()
 
         }
 

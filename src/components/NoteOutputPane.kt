@@ -23,8 +23,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
     init {
 
-        preferredSize = Dimension(500, 140)
-
+        preferredSize = Dimension(500, (session.recording.tuning.size + 1) * PREFERRED_LINE_HEIGHT)
 
         val fontMetrics = getFontMetrics(font)
 
@@ -168,5 +167,12 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
     override fun componentShown(e: ComponentEvent) {}
 
     private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double> = start.toDouble()..endInclusive.toDouble()
+
+
+    companion object {
+
+        private const val PREFERRED_LINE_HEIGHT = 20
+
+    }
 
 }

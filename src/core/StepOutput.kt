@@ -1,6 +1,6 @@
 package core
 
-import java.util.*
+import java.io.Serializable
 
 
 /**
@@ -15,7 +15,7 @@ import java.util.*
  * @property spectrum The spectrum of the samples of a TimeStep
  * @property dePhased The dePahsed visualisation of the TimeStep
  */
-internal class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val dePhased: FloatArray) {
+internal class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val dePhased: FloatArray) : Serializable {
 
     var pitches: List<Int>
 

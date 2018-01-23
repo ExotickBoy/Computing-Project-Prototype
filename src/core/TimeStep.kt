@@ -2,6 +2,7 @@ package core
 
 import java.awt.Color
 import java.awt.image.BufferedImage
+import java.io.Serializable
 import kotlin.math.max
 import kotlin.math.min
 
@@ -21,7 +22,8 @@ import kotlin.math.min
  * @property modelOutput The object that represents the outputs of the Model
  * @property notes The notes that are present in the time step
  */
-class TimeStep private constructor(private val section: Section, val sampleRange: IntRange, private val time: Int, private val previous: TimeStep? = null) { // start in steps
+class TimeStep private constructor(private val section: Section, val sampleRange: IntRange, private val time: Int, private val previous: TimeStep? = null)
+    : Serializable { // start in steps
 
     constructor(section: Section, sampleRange: IntRange, previous: TimeStep?) :
             this(section, sampleRange, (previous?.time ?: -1) + 1, previous)
@@ -72,18 +74,21 @@ class TimeStep private constructor(private val section: Section, val sampleRange
         }
 
         // This buffered image is a slice of the spectrogram at this time step
-        melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
+        melImage = SerializableBufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
             val value = ((min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
             melImage.setRGB(0, y, mapToColour(value))
         }
-        noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
+        noteImage = SerializableBufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.PITCH_RANGE) {
             val value = min(max(modelOutput.predictions[y], 0f), 1f)
             noteImage.setRGB(0, y, mapToColour(value))
         }
 
     }
+
+    private class SerializableBufferedImage(width: Int, height: Int, imageType: Int)
+        : BufferedImage(width, height, imageType), Serializable
 
     companion object {
 

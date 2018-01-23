@@ -67,11 +67,16 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
             }
 
             if (!isProcessing) {
-                sleep(1)
+                onSpinWait()
             }
 
         }
 
+    }
+
+    fun end() {
+        bufferThread.interrupt()
+        interrupt()
     }
 
     companion object {

@@ -19,12 +19,9 @@ class RecordingsListPane : ApplicationPane() {
     private val recordings: MutableList<Recording.PossibleRecording> = mutableListOf()
     private lateinit var recordingList: JList<Recording.PossibleRecording>
     private val repaintThread = RepaintThread(this)
+    private lateinit var dataModel: DefaultListModel<Recording.PossibleRecording>
 
     override fun onCreate() {
-
-        recordings.clear()
-        recordings.addAll(Recording.findPossibleRecordings(File(Recording.DEFAULT_PATH)))
-        recordings.sortByDescending { it.metaData.lastEdited }
 
         val buttonPanel = JPanel()
         val newButton = JButton("New Recording")
@@ -40,8 +37,8 @@ class RecordingsListPane : ApplicationPane() {
 
         val recentRecordingPanel = JPanel(BorderLayout())
 
-        val dataModel = DefaultListModel<Recording.PossibleRecording>()
-        recordings.forEach { dataModel.addElement(it) }
+        dataModel = DefaultListModel()
+
         recordingList = JList(dataModel)
         recordingList.setCellRenderer { _, value, _, isSelected, _ ->
             ListElement(value, isSelected)
@@ -60,7 +57,7 @@ class RecordingsListPane : ApplicationPane() {
             editButton.isEnabled = recordingList.selectedIndices.size == 1
         }
         newButton.addActionListener {
-            NewRecordingDialog()
+            NewRecordingDialog(recordings)
         }
         deleteButton.addActionListener {
             val choice = JOptionPane.showOptionDialog(AppInstance,
@@ -106,6 +103,13 @@ class RecordingsListPane : ApplicationPane() {
 
     override fun onResume() {
         repaintThread.isPaused = false
+
+        recordings.clear()
+        recordings.addAll(Recording.findPossibleRecordings(File(Recording.DEFAULT_PATH)))
+        recordings.sortByDescending { it.metaData.lastEdited }
+        dataModel.clear()
+        recordings.forEach { dataModel.addElement(it) }
+
     }
 
     override fun onDestroy() {
@@ -121,7 +125,7 @@ class RecordingsListPane : ApplicationPane() {
             leftLabel.font = leftLabel.font.deriveFont(20f)
 
             val rightPanel = JPanel(BorderLayout())
-            rightPanel.add(JLabel(possibleRecording.metaData.created.toRelativeTime()), BorderLayout.NORTH)
+            rightPanel.add(JLabel(possibleRecording.metaData.lastEdited.toRelativeTime()), BorderLayout.NORTH)
             rightPanel.add(JLabel(possibleRecording.metaData.length.toLength()), BorderLayout.SOUTH)
 
             add(leftLabel, BorderLayout.WEST)
@@ -161,7 +165,10 @@ class RecordingsListPane : ApplicationPane() {
         }
     }
 
-    private class NewRecordingDialog : JDialog(AppInstance, "New Recording", ModalityType.APPLICATION_MODAL) {
+    private class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
+        : JDialog(AppInstance, "New Recording", ModalityType.APPLICATION_MODAL) {
+
+        var customTuning: Tuning? = null
 
         init {
             layout = GridBagLayout()
@@ -169,9 +176,17 @@ class RecordingsListPane : ApplicationPane() {
             val constraint = GridBagConstraints()
 
             val nameField = JTextField()
-            val tuningComboBox = JComboBox<Tuning>()
-
+            val tunings = Tuning.defaultTunings.map { it.name }.toMutableList()
+            tunings.add("Custom Tuning")
+            val tuningComboBox = JComboBox<String>(tunings.toTypedArray())
+            tuningComboBox.addActionListener {
+                if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size) {
+                    tuningComboBox.transferFocus()
+                    TuningMakerDialog(this@NewRecordingDialog)
+                }
+            }
             val loadButton = JButton("Load File")
+            loadButton.isEnabled = false
             val recordButton = JButton("Record")
 
             constraint.anchor = GridBagConstraints.EAST
@@ -187,7 +202,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.insets = Insets(10, 5, 5, 10)
             add(nameField, constraint)
             nameField.addActionListener {
-                recordButton.grabFocus()
+                recordButton.doClick()
             }
 
             constraint.anchor = GridBagConstraints.EAST
@@ -211,8 +226,26 @@ class RecordingsListPane : ApplicationPane() {
 
             }
             recordButton.addActionListener {
-                //                        val session = Session(Recording(Tuning.defaultTunings[tuningComboBox.selectedIndex], ""))
-//                        AppInstance.push(RecordingEditPane(session))
+
+                val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
+                val regex = "$name(\\d| )*".toRegex()
+                println(recordings)
+                val sameNames = recordings.map { it.metaData.name }
+                        .filter { regex.matches(it) }
+                        .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
+                        .onEach { println(it) }
+                        .max()
+                val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
+
+                val tuning = if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size)
+                    customTuning ?: Tuning.defaultTunings[0] // this null case shouldn't happen
+                else
+                    Tuning.defaultTunings[tuningComboBox.selectedIndex]
+
+                val session = Session(Recording(tuning, newName))
+                AppInstance.push(RecordingEditPane(session))
+                dispose()
+
             }
 
             constraint.gridx = 0
@@ -226,6 +259,31 @@ class RecordingsListPane : ApplicationPane() {
             isVisible = true
         }
 
+    }
+
+    private class TuningMakerDialog(val previous: NewRecordingDialog) : JDialog(previous, "Tuning Editor", ModalityType.APPLICATION_MODAL) {
+        var tuning: Tuning = Tuning("NAME OF THE THING I HAVE", "e2", maxFret = 3)
+
+        init {
+
+            val button = JButton("make a tuning with one big button")
+            button.addActionListener {
+                dispose()
+            }
+            add(button)
+
+            preferredSize = Dimension(300, 300)
+
+            pack()
+            setLocationRelativeTo(previous)
+            defaultCloseOperation = JDialog.DISPOSE_ON_CLOSE
+            isVisible = true
+        }
+
+        override fun dispose() {
+            previous.customTuning = tuning
+            super.dispose()
+        }
     }
 
 }
@@ -252,9 +310,13 @@ private fun Long.toRelativeTime(): String {
     return when {
         seconds < 10 -> "just now"
         seconds < 60 -> "${seconds.roundToInt()} seconds ago"
+        minutes < 2 -> "1 minute ago"
         minutes < 60 -> "${minutes.roundToInt()} minutes ago"
+        hours < 2 -> "1 hour ago"
         hours < 24 -> "${hours.roundToInt()} hours ago"
+        days < 2 -> "1 day ago"
         days < 7 -> "${days.roundToInt()} days ago"
+        weeks < 2 -> "1 week ago"
         weeks < 52 -> "${weeks.roundToInt()} weeks ago"
         else -> "over a year ago"
     }

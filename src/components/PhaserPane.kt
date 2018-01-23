@@ -5,7 +5,6 @@ import java.awt.*
 import java.awt.geom.Line2D
 import java.awt.geom.Path2D
 import javax.swing.JPanel
-import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
 
@@ -13,6 +12,8 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
     private var scale: Float = 0f
     private var colour: Float = 0f
+
+    private val animationThread = AnimationThread(this)
 
     init {
 
@@ -24,52 +25,12 @@ internal class PhaserPane internal constructor(private val session: Session) : J
             repaint()
         }
 
-        thread(name = "Animation Thread") {
+        animationThread.start()
 
-            val period = 1000 / ANIMATION_REFRESH_RATE
-            var last = System.currentTimeMillis()
-            var current = last
-            var accumulated = 0.0
+    }
 
-            while (true) {
-
-                last = current
-                current = System.currentTimeMillis()
-                accumulated += current - last
-
-                while (accumulated > period) {
-                    accumulated -= period
-                    if (session.isRecording) {
-
-                        val scaleBefore = scale
-                        val colourBefore = colour
-
-                        scale = 1f + ANIMATION_TIME / IMMUNE_TIME
-                        colour = scale
-
-                        if (scale != scaleBefore || colour != colourBefore) {
-                            repaint()
-                        }
-
-                    } else {
-
-                        val scaleBefore = scale
-                        val colourBefore = colour
-
-                        scale = max(0f, scale - ANIMATION_STEP)
-                        colour = max(0f, colour - ANIMATION_STEP)
-
-                        if (scale != scaleBefore || colour != colourBefore) {
-                            repaint()
-                        }
-
-                    }
-                }
-
-            }
-
-        }
-
+    fun end() {
+        animationThread.interrupt()
     }
 
     override fun paintComponent(g2: Graphics) {
@@ -128,6 +89,57 @@ internal class PhaserPane internal constructor(private val session: Session) : J
             } else {
 
                 g.draw(Line2D.Double(0.0, height / 2.0, width.toDouble(), height / 2.0))
+
+            }
+
+        }
+
+    }
+
+    private class AnimationThread(val phaserPane: PhaserPane) : Thread("Animation Thread") {
+
+        override fun run() {
+
+
+            val period = 1000 / ANIMATION_REFRESH_RATE
+            var last = System.currentTimeMillis()
+            var current = last
+            var accumulated = 0.0
+
+            while (!isInterrupted) {
+
+                last = current
+                current = System.currentTimeMillis()
+                accumulated += current - last
+
+                while (accumulated > period) {
+                    accumulated -= period
+                    if (phaserPane.session.isRecording) {
+
+                        val scaleBefore = phaserPane.scale
+                        val colourBefore = phaserPane.colour
+
+                        phaserPane.scale = 1f + ANIMATION_TIME / IMMUNE_TIME
+                        phaserPane.colour = phaserPane.scale
+
+                        if (phaserPane.scale != scaleBefore || phaserPane.colour != colourBefore) {
+                            phaserPane.repaint()
+                        }
+
+                    } else {
+
+                        val scaleBefore = phaserPane.scale
+                        val colourBefore = phaserPane.colour
+
+                        phaserPane.scale = max(0f, phaserPane.scale - ANIMATION_STEP)
+                        phaserPane.colour = max(0f, phaserPane.colour - ANIMATION_STEP)
+
+                        if (phaserPane.scale != scaleBefore || phaserPane.colour != colourBefore) {
+                            phaserPane.repaint()
+                        }
+
+                    }
+                }
 
             }
 

@@ -192,6 +192,14 @@ class Session(val recording: Recording) {
         }
     }
 
+    fun end() {
+
+        soundGatheringController.end()
+        soundProcessingController.end()
+        playbackController.end()
+
+    }
+
     /**
      * Starts recording sound from the microphone
      * @return If this was performed successfully

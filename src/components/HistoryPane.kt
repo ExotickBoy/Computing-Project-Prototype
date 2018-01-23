@@ -11,7 +11,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.sign
 
-class HistoryPane internal constructor(private val session: Session) : JPanel() {
+internal class HistoryPane internal constructor(private val session: Session) : JPanel() {
 
     private val scrollController: ScrollController
 

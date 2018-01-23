@@ -1,7 +1,9 @@
 package core
 
 import components.RecordingsListPane
-import core.AppInstance.addWindowStateListener
+import java.awt.event.WindowEvent
+import java.awt.event.WindowListener
+
 import java.util.*
 import javax.swing.ImageIcon
 import javax.swing.JFrame
@@ -9,16 +11,15 @@ import javax.swing.JPanel
 
 const val FRAME_TITLE = "NoteWize"
 
-object AppInstance : JFrame(FRAME_TITLE) {
+object AppInstance : JFrame(FRAME_TITLE), WindowListener {
 
     private val paneStack: Stack<ApplicationPane> = Stack()
 
     fun start() {
 
-        addWindowStateListener { println(it) }
+        addWindowListener(this)
 
-        iconImage = ImageIcon("D:\\computingProject\\icon2.png").image
-        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        iconImage = ImageIcon("res/icon.png").image
         push(RecordingsListPane())
         isVisible = true
 
@@ -60,6 +61,33 @@ object AppInstance : JFrame(FRAME_TITLE) {
         }
 
     }
+
+    private fun popAll() {
+
+        paneStack.peek().onPause()
+        paneStack.pop().onDestroy()
+
+        while (paneStack.isNotEmpty()) {
+            paneStack.pop().onDestroy()
+        }
+
+        System.exit(0)
+
+    }
+
+    override fun windowActivated(e: WindowEvent?) {}
+    override fun windowDeactivated(e: WindowEvent?) {}
+    override fun windowOpened(e: WindowEvent?) {}
+    override fun windowClosing(e: WindowEvent?) {
+        dispose()
+    }
+
+    override fun windowClosed(e: WindowEvent?) {
+        popAll()
+    }
+
+    override fun windowIconified(e: WindowEvent?) {}
+    override fun windowDeiconified(e: WindowEvent?) {}
 
     abstract class ApplicationPane : JPanel() {
 

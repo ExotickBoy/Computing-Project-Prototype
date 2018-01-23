@@ -126,7 +126,6 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         val centrePanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 0))
-        centrePanel.border = BorderFactory.createEtchedBorder()
 
         centrePanel.add(recordButton)
         centrePanel.add(pauseRecordingButton)
@@ -135,6 +134,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         centrePanel.add(cutButton)
 
         layout = BorderLayout()
+        border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
         add(exitButton, BorderLayout.LINE_START)
         add(centrePanel, BorderLayout.CENTER)
 
