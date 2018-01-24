@@ -87,13 +87,14 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
     }
 
     override fun windowIconified(e: WindowEvent?) {}
+
     override fun windowDeiconified(e: WindowEvent?) {}
 
     abstract class ApplicationPane : JPanel() {
-
         abstract fun onCreate()
         abstract fun onPause()
         abstract fun onResume()
+
         abstract fun onDestroy()
 
     }
