@@ -11,6 +11,7 @@ import java.awt.event.MouseEvent
 import java.io.File
 import java.io.FileInputStream
 import javax.swing.*
+import javax.swing.border.Border
 import kotlin.math.roundToInt
 
 
@@ -277,41 +278,43 @@ class RecordingsListPane : ApplicationPane() {
         var tuning: Tuning = Tuning("NAME OF THE THING I HAVE", "e2", maxFret = 3)
 
         init {
+            val constraint = GridBagConstraints()
 
-            layout = GridLayout()
+            layout = GridBagLayout()
 
             val topPanel = JPanel(GridBagLayout())
 
-            val constraint = GridBagConstraints()
+            constraint.weightx = 0.0
             constraint.anchor = GridBagConstraints.EAST
             constraint.fill = GridBagConstraints.NONE
             constraint.gridx = 0
             constraint.gridy = 0
             topPanel.add(JLabel("Name:"), constraint)
 
+            constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
             constraint.fill = GridBagConstraints.HORIZONTAL
             constraint.gridx = 1
             constraint.gridy = 0
-            constraint.gridwidth = 2
             val nameField = JTextField()
             topPanel.add(nameField, constraint)
 
+            constraint.weightx = 0.0
             constraint.anchor = GridBagConstraints.EAST
             constraint.fill = GridBagConstraints.NONE
             constraint.gridx = 0
             constraint.gridy = 1
-            constraint.gridwidth = 1
             topPanel.add(JLabel("Capo:"), constraint)
 
+            constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
             constraint.fill = GridBagConstraints.HORIZONTAL
             constraint.gridx = 1
             constraint.gridy = 1
-            constraint.gridwidth = 2
             val capoSinner = JSpinner(SpinnerNumberModel(0, 0, 20, 1))
             topPanel.add(capoSinner, constraint)
 
+            constraint.weightx = 0.0
             constraint.anchor = GridBagConstraints.EAST
             constraint.fill = GridBagConstraints.NONE
             constraint.gridx = 0
@@ -320,6 +323,7 @@ class RecordingsListPane : ApplicationPane() {
             topPanel.add(JLabel("Max Fret:"), constraint)
             val maxFretSinner = JSpinner(SpinnerNumberModel(0, 0, 20, 1))
 
+            constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
             constraint.fill = GridBagConstraints.HORIZONTAL
             constraint.gridx = 1
@@ -327,51 +331,78 @@ class RecordingsListPane : ApplicationPane() {
             constraint.gridwidth = 2
             topPanel.add(maxFretSinner, constraint)
 
+
             val dataModel = DefaultListModel<String>()
             val stringList = JList<String>(dataModel)
 //            recordingList.setCellRenderer { _, value, _, isSelected, _ ->
 //                ListElement(value, isSelected)
 //            }
-            constraint.gridx = 0
-            constraint.gridy = 3
-            constraint.gridwidth = 3
-            add(JScrollPane(stringList), constraint)
 
+            val bottomPanel = JPanel(GridBagLayout())
+
+            constraint.weightx = 1.0
             constraint.gridx = 0
-            constraint.gridy = 4
+            constraint.gridy = 0
             constraint.gridwidth = 2
+            constraint.fill = GridBagConstraints.HORIZONTAL
             val newNoteField = JTextField()
-            add(newNoteField, constraint)
+            bottomPanel.add(newNoteField, constraint)
 
+            constraint.weightx = 0.0
             constraint.gridx = 2
-            constraint.gridy = 4
+            constraint.gridy = 0
             constraint.gridwidth = 1
             val addButton = JButton("Add")
-            add(addButton, constraint)
+            bottomPanel.add(addButton, constraint)
+
+            constraint.gridx = 3
+            constraint.gridy = 0
+            val deleteButton = JButton("Delete")
+            bottomPanel.add(deleteButton, constraint)
 
             constraint.gridx = 0
-            constraint.gridy = 5
+            constraint.gridy = 1
+            constraint.gridwidth = 2
             val upButton = JButton("Up")
-            add(upButton, constraint)
-
-            constraint.gridx = 1
-            constraint.gridy = 5
-            val deleteButton = JButton("Delete")
-            add(deleteButton, constraint)
+            bottomPanel.add(upButton, constraint)
 
             constraint.gridx = 2
-            constraint.gridy = 5
+            constraint.gridy = 1
+            constraint.gridwidth = 2
             val downButton = JButton("Down")
-            add(downButton, constraint)
+            bottomPanel.add(downButton, constraint)
 
             constraint.gridx = 0
-            constraint.gridy = 6
+            constraint.gridy = 2
+            constraint.gridwidth = 4
             val createButton = JButton("Create")
             createButton.addActionListener {
                 previous.refresh(tuning)
                 dispose()
             }
-            add(createButton, constraint)
+            bottomPanel.add(createButton, constraint)
+
+            constraint.gridx = 0
+            constraint.gridy = 0
+            constraint.gridwidth = 1
+            constraint.anchor = GridBagConstraints.CENTER
+            constraint.fill = GridBagConstraints.HORIZONTAL
+            constraint.insets = Insets(10, 10, 10, 10)
+            add(topPanel, constraint)
+
+            constraint.gridx = 0
+            constraint.gridy = 1
+            constraint.anchor = GridBagConstraints.CENTER
+            constraint.fill = GridBagConstraints.HORIZONTAL
+            constraint.insets = Insets(0, 10, 0, 10)
+            add(JScrollPane(stringList), constraint)
+
+            constraint.gridx = 0
+            constraint.gridy = 2
+            constraint.anchor = GridBagConstraints.CENTER
+            constraint.fill = GridBagConstraints.HORIZONTAL
+            constraint.insets = Insets(10, 10, 10, 10)
+            add(bottomPanel, constraint)
 
             pack()
             setLocationRelativeTo(previous)
