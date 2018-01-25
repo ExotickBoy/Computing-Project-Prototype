@@ -2,7 +2,7 @@ package components
 
 import components.RecordingEditPane.Companion.line
 import components.RecordingEditPane.Companion.overlap
-import core.Note.Companion.noteString
+import core.Note.Companion.noteStringShort
 import core.Session
 import java.awt.*
 import java.awt.event.ComponentEvent
@@ -28,7 +28,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
         val fontMetrics = getFontMetrics(font)
 
         margin = session.recording.tuning.strings
-                .map { it.noteString }
+                .map { it.noteStringShort }
                 .map { fontMetrics.stringWidth(it) }
                 .max() ?: 0
 
@@ -126,7 +126,11 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                 g.fill(Rectangle2D.Double(-(margin + 2 * padding) + stringHeaderOffset, index * lineHeight, margin + 2.0 * padding, lineHeight))
                 g.color = Color(86, 86, 86)
                 if (index != 0) {
-                    g.drawString(session.recording.tuning[index - 1].noteString, (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(), (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat())
+                    g.drawString(
+                            (session.recording.tuning[index - 1] + session.recording.tuning.capo).noteStringShort,
+                            (-(margin + 2 * padding) + stringHeaderOffset + padding).toFloat(),
+                            (lineHeight * (index + 1) - (lineHeight - g.font.size) / 2).toFloat()
+                    )
                 }
             }
             g.draw(line(stringHeaderOffset, lineHeight, stringHeaderOffset, height.toDouble()))

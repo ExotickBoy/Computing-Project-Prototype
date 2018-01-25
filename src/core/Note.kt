@@ -32,7 +32,7 @@ class Note(val pitch: Int, val start: Int, var duration: Int) {
         /**
          * This extension function makes it easy to change a string into the pitch it represents
          */
-        val String.pitch: Int
+        val String.pitch: Int?
             get() {
 
                 if ("/" in this || "\\" in this)
@@ -47,16 +47,17 @@ class Note(val pitch: Int, val start: Int, var duration: Int) {
                     // split the note into the letter and the octave by finding the note part first
 
                     val letter: String = this.substring(0, split.range.endInclusive + 1).toUpperCase()
-                    val octave: Int = this.substring(split.range.endInclusive + 1, this.length).toInt()
+                    val octave: Int? = this.substring(split.range.endInclusive + 1, this.length).toIntOrNull()
 
                     val letterIndex = noteLetters.indexOf(noteLetters.find {
                         it.split("/").any { it == letter }
                     })
 
-                    return if (letterIndex == -1)
-                        -1
-                    else
-                        letterIndex + octave * 12
+                    return when {
+                        octave == null -> null
+                        letterIndex == -1 -> null
+                        else -> letterIndex + octave * 12
+                    }
 
 
                 }

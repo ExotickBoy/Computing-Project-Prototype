@@ -1,17 +1,17 @@
 package components
 
-import core.AppInstance
+import core.*
 import core.AppInstance.ApplicationPane
-import core.Recording
-import core.Session
-import core.Tuning
+import core.Note.Companion.noteStringShort
+import core.Note.Companion.pitch
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.awt.event.WindowEvent
+import java.awt.event.WindowListener
 import java.io.File
 import java.io.FileInputStream
 import javax.swing.*
-import javax.swing.border.Border
 import kotlin.math.roundToInt
 
 
@@ -183,7 +183,7 @@ class RecordingsListPane : ApplicationPane() {
             tuningComboBox.addActionListener {
                 if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size) {
                     tuningComboBox.transferFocus()
-                    TuningMakerDialog(this@NewRecordingDialog)
+                    TuningMakerDialog(this@NewRecordingDialog, customTuning)
                 }
             }
             val loadButton = JButton("Load File")
@@ -260,13 +260,21 @@ class RecordingsListPane : ApplicationPane() {
             isVisible = true
         }
 
-        fun refresh(tuning: Tuning) {
+        fun refresh(tuning: Tuning?) {
 
             customTuning = tuning
-            tuningComboBox.removeItemAt(tuningComboBox.itemCount - 1)
-            tuningComboBox.addItem(tuning.name)
-            tuningComboBox.selectedIndex = tuningComboBox.itemCount - 1
 
+            if (tuning == null) {
+
+                tuningComboBox.selectedIndex = tuningComboBox.itemCount - 2
+
+            } else {
+
+                tuningComboBox.removeItemAt(tuningComboBox.itemCount - 1)
+                tuningComboBox.addItem(tuning.name)
+                tuningComboBox.selectedIndex = tuningComboBox.itemCount - 1
+
+            }
             pack()
             setLocationRelativeTo(AppInstance)
 
@@ -274,13 +282,98 @@ class RecordingsListPane : ApplicationPane() {
 
     }
 
-    private class TuningMakerDialog(val previous: NewRecordingDialog) : JDialog(previous, "Tuning Editor", ModalityType.APPLICATION_MODAL) {
-        var tuning: Tuning = Tuning("NAME OF THE THING I HAVE", "e2", maxFret = 3)
+    private class TuningMakerDialog(val previous: NewRecordingDialog, tuning: Tuning?)
+        : JDialog(previous, "Tuning Editor", ModalityType.APPLICATION_MODAL), WindowListener {
+
+        val strings = mutableListOf<Int>()
+
+        val nameField: JTextField
+        val capoSpinner: JSpinner
+        val maxFretSpinner: JSpinner
+
+        val stringsDataModel: DefaultListModel<String>
+        val stringList: JList<String>
+        val newNoteField: JTextField
+
+        val addButton: JButton
+        val deleteButton: JButton
+        val upButton: JButton
+        val downButton: JButton
+        val createButton: JButton
+
+        fun addString() {
+
+            val field = newNoteField.text
+            val fieldAsInt = field.toIntOrNull()
+            val fieldAsString = field.pitch
+
+            when {
+                fieldAsInt != null -> {
+                    if (fieldAsInt in Model.POSSIBLE_PITCHES) {
+                        strings.add(fieldAsInt)
+                        stringsDataModel.addElement(fieldAsInt.noteStringShort)
+                    }
+                    newNoteField.text = ""
+                }
+                fieldAsString != null -> {
+                    if (fieldAsString in Model.POSSIBLE_PITCHES) {
+                        strings.add(fieldAsString)
+                        stringsDataModel.addElement(fieldAsString.noteStringShort)
+                    }
+                    newNoteField.text = ""
+                }
+            }
+
+            println(strings)
+
+        }
 
         init {
             val constraint = GridBagConstraints()
 
             layout = GridBagLayout()
+
+            nameField = JTextField()
+            nameField.addActionListener { nameField.transferFocus() }
+            val capoSpinnerModel = SpinnerNumberModel(tuning?.capo ?: Tuning.DEFAULT_CAPO, 0, Tuning.MAX_MAX_FRET, 1)
+            val maxFretSpinnerModel = SpinnerNumberModel(tuning?.maxFret ?: Tuning.DEFAULT_MAX_FRET, 0, Tuning.MAX_MAX_FRET, 1)
+            capoSpinner = JSpinner(capoSpinnerModel)
+            maxFretSpinner = JSpinner(maxFretSpinnerModel)
+
+            capoSpinner.addChangeListener {
+                maxFretSpinnerModel.minimum = capoSpinnerModel.number as Int + 1
+            }
+            maxFretSpinner.addChangeListener {
+                capoSpinnerModel.maximum = maxFretSpinnerModel.number as Int - 1
+            }
+
+            stringsDataModel = DefaultListModel()
+            tuning?.strings?.forEach {
+                stringsDataModel.addElement(it.noteStringShort)
+            }
+            stringList = JList<String>(stringsDataModel)
+
+            newNoteField = JTextField()
+            newNoteField.addActionListener { addString() }
+
+            addButton = JButton("Add")
+            addButton.addActionListener { addString() }
+            deleteButton = JButton("Delete")
+            upButton = JButton("Up")
+            downButton = JButton("Down")
+            createButton = JButton("Create")
+            createButton.addActionListener {
+                val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
+                        strings,
+                        capoSpinner.value as Int,
+                        maxFretSpinner.value as Int)
+
+                println(newTuning)
+                previous.refresh(newTuning)
+                dispose()
+            }
+
+            // LAYOUT
 
             val topPanel = JPanel(GridBagLayout())
 
@@ -296,7 +389,6 @@ class RecordingsListPane : ApplicationPane() {
             constraint.fill = GridBagConstraints.HORIZONTAL
             constraint.gridx = 1
             constraint.gridy = 0
-            val nameField = JTextField()
             topPanel.add(nameField, constraint)
 
             constraint.weightx = 0.0
@@ -311,8 +403,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.fill = GridBagConstraints.HORIZONTAL
             constraint.gridx = 1
             constraint.gridy = 1
-            val capoSinner = JSpinner(SpinnerNumberModel(0, 0, 20, 1))
-            topPanel.add(capoSinner, constraint)
+            topPanel.add(capoSpinner, constraint)
 
             constraint.weightx = 0.0
             constraint.anchor = GridBagConstraints.EAST
@@ -321,7 +412,6 @@ class RecordingsListPane : ApplicationPane() {
             constraint.gridy = 2
             constraint.gridwidth = 1
             topPanel.add(JLabel("Max Fret:"), constraint)
-            val maxFretSinner = JSpinner(SpinnerNumberModel(0, 0, 20, 1))
 
             constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
@@ -329,14 +419,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.gridx = 1
             constraint.gridy = 2
             constraint.gridwidth = 2
-            topPanel.add(maxFretSinner, constraint)
-
-
-            val dataModel = DefaultListModel<String>()
-            val stringList = JList<String>(dataModel)
-//            recordingList.setCellRenderer { _, value, _, isSelected, _ ->
-//                ListElement(value, isSelected)
-//            }
+            topPanel.add(maxFretSpinner, constraint)
 
             val bottomPanel = JPanel(GridBagLayout())
 
@@ -345,41 +428,32 @@ class RecordingsListPane : ApplicationPane() {
             constraint.gridy = 0
             constraint.gridwidth = 2
             constraint.fill = GridBagConstraints.HORIZONTAL
-            val newNoteField = JTextField()
+
             bottomPanel.add(newNoteField, constraint)
 
             constraint.weightx = 0.0
             constraint.gridx = 2
             constraint.gridy = 0
             constraint.gridwidth = 1
-            val addButton = JButton("Add")
             bottomPanel.add(addButton, constraint)
 
             constraint.gridx = 3
             constraint.gridy = 0
-            val deleteButton = JButton("Delete")
             bottomPanel.add(deleteButton, constraint)
 
             constraint.gridx = 0
             constraint.gridy = 1
             constraint.gridwidth = 2
-            val upButton = JButton("Up")
             bottomPanel.add(upButton, constraint)
 
             constraint.gridx = 2
             constraint.gridy = 1
             constraint.gridwidth = 2
-            val downButton = JButton("Down")
             bottomPanel.add(downButton, constraint)
 
             constraint.gridx = 0
             constraint.gridy = 2
             constraint.gridwidth = 4
-            val createButton = JButton("Create")
-            createButton.addActionListener {
-                previous.refresh(tuning)
-                dispose()
-            }
             bottomPanel.add(createButton, constraint)
 
             constraint.gridx = 0
@@ -408,7 +482,25 @@ class RecordingsListPane : ApplicationPane() {
             setLocationRelativeTo(previous)
             defaultCloseOperation = JDialog.DISPOSE_ON_CLOSE
             isVisible = true
+
         }
+
+        override fun windowDeiconified(e: WindowEvent?) {}
+
+        override fun windowClosing(e: WindowEvent?) {
+            previous.refresh(null)
+            dispose()
+        }
+
+        override fun windowClosed(e: WindowEvent?) {}
+
+        override fun windowActivated(e: WindowEvent?) {}
+
+        override fun windowDeactivated(e: WindowEvent?) {}
+
+        override fun windowOpened(e: WindowEvent?) {}
+
+        override fun windowIconified(e: WindowEvent?) {}
 
     }
 

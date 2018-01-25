@@ -17,6 +17,7 @@ internal object Model {
     const val START_PITCH: Int = 24 // the lowest pitch the model outputs
     const val END_PITCH: Int = 60
     const val PITCH_RANGE: Int = END_PITCH - START_PITCH
+    val POSSIBLE_PITCHES = START_PITCH..END_PITCH
 
     const val CONFIDENCE_CUT_OFF = .95 // the confidence below which predictions will be discarded
     const val MEL_BINS_AMOUNT: Int = 124 // the size of the output spectrum
