@@ -26,8 +26,11 @@ class RecordingsListPane : ApplicationPane() {
 
         val buttonPanel = JPanel()
         val newButton = JButton("New Recording")
+        newButton.setMnemonic('N')
         val editButton = JButton("Edit")
+        editButton.setMnemonic('E')
         val deleteButton = JButton("Delete")
+        deleteButton.setMnemonic('D')
         editButton.isEnabled = false
         deleteButton.isEnabled = false
 
@@ -187,15 +190,24 @@ class RecordingsListPane : ApplicationPane() {
                 }
             }
             val loadButton = JButton("Load File")
+            loadButton.setMnemonic('L')
             loadButton.isEnabled = false
             val recordButton = JButton("Record")
+            recordButton.setMnemonic('R')
+
+            val nameLabel = JLabel("Name:")
+            nameLabel.setDisplayedMnemonic('N')
+            nameLabel.labelFor = nameField
+            val tuningLabel = JLabel("Tuning:")
+            tuningLabel.setDisplayedMnemonic('T')
+            tuningLabel.labelFor = tuningComboBox
 
             constraint.anchor = GridBagConstraints.EAST
             constraint.fill = GridBagConstraints.NONE
             constraint.gridy = 0
             constraint.gridx = 0
             constraint.insets = Insets(10, 10, 5, 5)
-            add(JLabel("Name:"), constraint)
+            add(nameLabel, constraint)
 
             constraint.anchor = GridBagConstraints.CENTER
             constraint.fill = GridBagConstraints.HORIZONTAL
@@ -211,7 +223,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.fill = GridBagConstraints.NONE
             constraint.gridx = 0
             constraint.insets = Insets(5, 10, 5, 5)
-            add(JLabel("Tuning:"), constraint)
+            add(tuningLabel, constraint)
 
             constraint.anchor = GridBagConstraints.CENTER
             constraint.fill = GridBagConstraints.HORIZONTAL
@@ -223,9 +235,7 @@ class RecordingsListPane : ApplicationPane() {
             buttons.add(loadButton, constraint)
             buttons.add(recordButton, constraint)
 
-            loadButton.addActionListener {
-
-            }
+            loadButton.addActionListener {}
             recordButton.addActionListener {
 
                 val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
@@ -333,16 +343,20 @@ class RecordingsListPane : ApplicationPane() {
 
             layout = GridBagLayout()
 
+
             nameField = JTextField()
+
             nameField.addActionListener { nameField.transferFocus() }
             val capoSpinnerModel = SpinnerNumberModel(tuning?.capo ?: Tuning.DEFAULT_CAPO, 0, Tuning.MAX_MAX_FRET, 1)
-            val maxFretSpinnerModel = SpinnerNumberModel(tuning?.maxFret ?: Tuning.DEFAULT_MAX_FRET, 0, Tuning.MAX_MAX_FRET, 1)
+            val maxFretSpinnerModel = SpinnerNumberModel(tuning?.maxFret
+                    ?: Tuning.DEFAULT_MAX_FRET, 0, Tuning.MAX_MAX_FRET, 1)
             capoSpinner = JSpinner(capoSpinnerModel)
             maxFretSpinner = JSpinner(maxFretSpinnerModel)
 
             capoSpinner.addChangeListener {
                 maxFretSpinnerModel.minimum = capoSpinnerModel.number as Int + 1
             }
+
             maxFretSpinner.addChangeListener {
                 capoSpinnerModel.maximum = maxFretSpinnerModel.number as Int - 1
             }
@@ -356,12 +370,31 @@ class RecordingsListPane : ApplicationPane() {
             newNoteField = JTextField()
             newNoteField.addActionListener { addString() }
 
+            val newNoteLabel = JLabel("To Add:")
+            newNoteLabel.setDisplayedMnemonic('T')
+            newNoteLabel.labelFor = newNoteField
+
+            val capoLabel = JLabel("Capo:")
+            capoLabel.setDisplayedMnemonic('p')
+            capoLabel.labelFor = capoSpinner
+            val maxFretLabel = JLabel("Max Fret:")
+            maxFretLabel.setDisplayedMnemonic('M')
+            maxFretLabel.labelFor = maxFretSpinner
+            val nameLabel = JLabel("Name:")
+            nameLabel.setDisplayedMnemonic('N')
+            nameLabel.labelFor = nameField
+
             addButton = JButton("Add")
+            addButton.setMnemonic('A')
             addButton.addActionListener { addString() }
             deleteButton = JButton("Delete")
+            deleteButton.setMnemonic('D')
             upButton = JButton("Up")
+            upButton.setMnemonic('U')
             downButton = JButton("Down")
+            downButton.setMnemonic('o')
             createButton = JButton("Create")
+            createButton.setMnemonic('C')
             createButton.addActionListener {
                 val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
                         strings,
@@ -382,7 +415,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.fill = GridBagConstraints.NONE
             constraint.gridx = 0
             constraint.gridy = 0
-            topPanel.add(JLabel("Name:"), constraint)
+            topPanel.add(nameLabel, constraint)
 
             constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
@@ -396,7 +429,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.fill = GridBagConstraints.NONE
             constraint.gridx = 0
             constraint.gridy = 1
-            topPanel.add(JLabel("Capo:"), constraint)
+            topPanel.add(capoLabel, constraint)
 
             constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
@@ -411,7 +444,7 @@ class RecordingsListPane : ApplicationPane() {
             constraint.gridx = 0
             constraint.gridy = 2
             constraint.gridwidth = 1
-            topPanel.add(JLabel("Max Fret:"), constraint)
+            topPanel.add(maxFretLabel, constraint)
 
             constraint.weightx = 1.0
             constraint.anchor = GridBagConstraints.CENTER
@@ -424,31 +457,35 @@ class RecordingsListPane : ApplicationPane() {
             val bottomPanel = JPanel(GridBagLayout())
 
             constraint.weightx = 1.0
+            constraint.fill = GridBagConstraints.HORIZONTAL
             constraint.gridx = 0
             constraint.gridy = 0
             constraint.gridwidth = 2
             constraint.fill = GridBagConstraints.HORIZONTAL
+            bottomPanel.add(newNoteLabel, constraint)
 
+            constraint.gridx = 1
+            constraint.gridy = 0
+            constraint.gridwidth = 1
             bottomPanel.add(newNoteField, constraint)
 
-            constraint.weightx = 0.0
             constraint.gridx = 2
             constraint.gridy = 0
             constraint.gridwidth = 1
             bottomPanel.add(addButton, constraint)
 
-            constraint.gridx = 3
-            constraint.gridy = 0
-            bottomPanel.add(deleteButton, constraint)
-
             constraint.gridx = 0
             constraint.gridy = 1
-            constraint.gridwidth = 2
+            bottomPanel.add(deleteButton, constraint)
+
+            constraint.gridx = 1
+            constraint.gridy = 1
+            constraint.gridwidth = 1
             bottomPanel.add(upButton, constraint)
 
             constraint.gridx = 2
             constraint.gridy = 1
-            constraint.gridwidth = 2
+            constraint.gridwidth = 1
             bottomPanel.add(downButton, constraint)
 
             constraint.gridx = 0
