@@ -19,7 +19,7 @@ internal object Model {
     const val PITCH_RANGE: Int = END_PITCH - START_PITCH
     val POSSIBLE_PITCHES = START_PITCH..END_PITCH
 
-    const val CONFIDENCE_CUT_OFF = .95 // the confidence below which predictions will be discarded
+    const val CONFIDENCE_CUT_OFF = .7 // the confidence below which predictions will be discarded
     const val MEL_BINS_AMOUNT: Int = 124 // the size of the output spectrum
 
     // The names of tensors in the model
@@ -30,7 +30,7 @@ internal object Model {
     private const val MEL_BINS_TENSOR: String = "mel_bins"
     private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
 
-    private const val MODEL_LOCATION = "res/model72" // the location of the model
+    private const val MODEL_LOCATION = "res/model66" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation

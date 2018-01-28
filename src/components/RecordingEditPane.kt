@@ -11,7 +11,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
 
-class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
+public class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
     private val historyPane = HistoryPane(session)
     private val phaserPane = PhaserPane(session)

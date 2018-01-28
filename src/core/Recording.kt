@@ -155,15 +155,18 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     internal fun removeSection(section: Int) {
         sections.removeAt(section)
 
-        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
-        for (i in 1 until sections.size) {
-            sections[i] = sections[i].copy(
-                    sampleStart = sections[i - 1].sampleEnd,
-                    timeStepStart = sections[i - 1].timeStepEnd,
-                    clusterStart = sections[i - 1].clusterEnd
-            )
-        }
+        if (sections.isNotEmpty()) {
 
+            sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
+            for (i in 1 until sections.size) {
+                sections[i] = sections[i].copy(
+                        sampleStart = sections[i - 1].sampleEnd,
+                        timeStepStart = sections[i - 1].timeStepEnd,
+                        clusterStart = sections[i - 1].clusterEnd
+                )
+            }
+
+        }
     }
 
     private fun getMetaData(): RecordingMetaData = RecordingMetaData(name, length, created, System.currentTimeMillis())

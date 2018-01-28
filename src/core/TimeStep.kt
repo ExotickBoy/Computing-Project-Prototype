@@ -74,21 +74,18 @@ class TimeStep private constructor(private val section: Section, val sampleRange
         }
 
         // This buffered image is a slice of the spectrogram at this time step
-        melImage = SerializableBufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
+        melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
             val value = ((min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
             melImage.setRGB(0, y, mapToColour(value))
         }
-        noteImage = SerializableBufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
+        noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.PITCH_RANGE) {
             val value = min(max(modelOutput.predictions[y], 0f), 1f)
             noteImage.setRGB(0, y, mapToColour(value))
         }
 
     }
-
-    private class SerializableBufferedImage(width: Int, height: Int, imageType: Int)
-        : BufferedImage(width, height, imageType), Serializable
 
     companion object {
 

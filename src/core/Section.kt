@@ -128,14 +128,19 @@ data class Section(
 
         }
 
+        if (paths.last().minBy { it.distance }?.route == null) {
+            println(paths)
+        }
+
         val bestPath = paths.last().minBy { it.distance }?.route!!
+
         // the path with the shortest distance to the last placement
 
         (clusters.size until chosenMatches.size).forEach { time ->
             // replaces all the placements in the current placement with the best ones
 
             val newCluster = NoteCluster(
-                    chosenMatches[time].notes.map { it.start }.min() ?: 0-timeStepStart,
+                    chosenMatches[time].stepStart,
                     possiblePlacements[time][bestPath[time]],
                     if (chosenMatches[time].pattern == null) {
                         chosenMatches[time].validRoots.minBy { it.pitch }?.pitch?.noteLetterShort ?: ""
@@ -211,8 +216,6 @@ data class Section(
 
         internal fun addNote(newNote: Note) {
 
-//            if (newNote.pitch !in notes.map { it.pitch }) {
-
             notes.add(newNote)
 
             possiblePlacements = findPossiblePlacements()
@@ -224,7 +227,6 @@ data class Section(
             possibleRoots.removeIf { !possibleWithRoot(it) }
             validRoots.clear()
             validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
-//            }
 
         }
 

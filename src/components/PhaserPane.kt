@@ -56,8 +56,6 @@ internal class PhaserPane internal constructor(private val session: Session) : J
                 if (sectionIndex != null) {
                     val section = session.recording.sections[sectionIndex]
 
-//                    println("${section.timeStepRange} ${session.correctedStepCursor}")
-
                     section.timeSteps[session.correctedStepCursor - section.timeStepStart]
                 } else {
                     null

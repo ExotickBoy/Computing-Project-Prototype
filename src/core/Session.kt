@@ -80,8 +80,6 @@ class Session(val recording: Recording) {
                         }
                     }
 
-                    println(clusters)
-
                     stepCursorField = (when {
                         toBecome == null -> null
                         toBecome > clusters.size + 0.5 -> null

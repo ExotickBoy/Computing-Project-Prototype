@@ -63,7 +63,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             }
 
         }
-
+        recordButton.setMnemonic('R')
         recordButton.addActionListener {
             if (session.record()) {
 
@@ -78,7 +78,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             }
         }
 
-
+        pauseRecordingButton.setMnemonic('R')
         pauseRecordingButton.isVisible = false
         pauseRecordingButton.addActionListener {
             if (session.pauseRecording()) {
@@ -91,6 +91,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             }
         }
 
+        playbackButton.setMnemonic('P')
         playbackButton.isEnabled = false
         playbackButton.addActionListener {
             if (session.playback()) {
@@ -103,6 +104,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             }
         }
 
+        pausePlaybackButton.setMnemonic('P')
         pausePlaybackButton.isVisible = false
         pausePlaybackButton.addActionListener {
             if (session.pausePlayback()) {
@@ -114,6 +116,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             }
         }
 
+        cutButton.setMnemonic('C')
         cutButton.isEnabled = false
         cutButton.addActionListener {
             if (session.isEditSafe) {
@@ -121,6 +124,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             }
         }
 
+        exitButton.setMnemonic('E')
         exitButton.addActionListener {
             AppInstance.pop()
         }

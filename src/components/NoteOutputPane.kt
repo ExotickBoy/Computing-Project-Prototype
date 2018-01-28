@@ -7,6 +7,7 @@ import core.Session
 import java.awt.*
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
+import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
 import javax.swing.JPanel
 import kotlin.math.ceil
@@ -92,12 +93,23 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
 
                         }
 
+                        val transformBefore = g.transform
+                        g.transform(AffineTransform(
+                                0.0,
+                                -1.0,
+                                1.0,
+                                0.0,
+                                stringHeaderOffset + (it.clusterStart - session.clusterFrom + 0.5f + index) * spacing - g.fontMetrics.stringWidth(cluster.heading) / 2,
+                                lineHeight * 1 - (lineHeight - g.font.size) / 2
+                        ))
+
                         g.color = if (cluster.boldHeading) Color(86, 86, 86) else Color(150, 150, 150)
                         g.drawString(
-                                cluster.heading,
-                                (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(cluster.heading) / 2,
-                                (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat()
+                                cluster.heading, 0, font.size
+//                                (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(cluster.heading) / 2,
+//                                (lineHeight * 1 - (lineHeight - g.font.size) / 2).toFloat()
                         )
+                        g.transform = transformBefore //making sure that I reset the transformation I set so that the rest of the ui doesn't renter incorrectly
 
                     }
                 }
