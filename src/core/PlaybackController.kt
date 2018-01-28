@@ -1,25 +1,20 @@
 package core
 
-import javax.sound.sampled.AudioFormat
+import core.SoundGatheringController.SAMPLE_BUFFER_SIZE
+import core.SoundGatheringController.floatsToBytes
 import javax.sound.sampled.AudioSystem
-import javax.sound.sampled.SourceDataLine
 import javax.sound.sampled.DataLine
-import kotlin.experimental.and
-import kotlin.math.max
+import javax.sound.sampled.SourceDataLine
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 
 internal class PlaybackController(private val session: Session, private val onEnd: () -> Unit) : Thread("Playback Thread") {
 
     var isPaused = true
         set(value) {
-            field = value
-            if (field) {
-                playHead = session.correctedStepCursor
-            }
+            field = value && isOpen
         }
-
-    var playHead = 0
 
     private var sourceLine: SourceDataLine? = null
 
@@ -32,60 +27,77 @@ internal class PlaybackController(private val session: Session, private val onEn
 
     override fun run() {
 
-        val period = 1000 / SoundProcessingController.FRAME_RATE
-        var last = System.currentTimeMillis();
-        var current = last;
-        var accumulated = 0.0;
+        val period = 1000.0 * SoundGatheringController.SAMPLE_BUFFER_SIZE / SoundProcessingController.SAMPLE_RATE
+        var last = System.currentTimeMillis()
+        var current = last
+        var accumulated = 0.0
+
+        val data = ByteArray(SoundGatheringController.SAMPLE_BUFFER_SIZE * 2)
 
         var currentSectionIndex = 0
         var sectionPlayHead = 0
 
-        while (!isInterrupted && isOpen) {
+        while (!isInterrupted) {
 
-            last = current;
-            current = System.currentTimeMillis();
-            accumulated += current - last;
+            last = current
+            current = System.currentTimeMillis()
+            accumulated += current - last
 
-            if (!isPaused) {
+            if (!isPaused && isOpen) {
                 while (accumulated > period) {
-                    accumulated -= period;
-
-                    if (session.stepCursor == null) {
-                        isPaused = true
-                        onEnd.invoke()
-                    }
+                    accumulated -= period
 
                     val section = session.recording.sections[currentSectionIndex]
+
                     val to = sectionPlayHead + SoundGatheringController.SAMPLE_BUFFER_SIZE
 
-                    val data = ByteArray(SoundGatheringController.SAMPLE_BUFFER_SIZE * 2)
-                    for (s in sectionPlayHead until min(to, section.samples.size)) {
+                    val currentFloats = min(to, section.samples.size) - sectionPlayHead
+                    floatsToBytes(section.samples, data,
+                            sectionPlayHead,
+                            0,
+                            currentFloats
+                    )
+                    if (currentSectionIndex != session.recording.sections.size - 1) {
 
-                        val sample = (section.samples[s] * 32768.0f).toShort()
-                        val high = ((sample.toInt() shr 8).toByte() and 0xFF.toByte())
-                        val low = (sample and 0xFF).toByte()
-
-                        data[2 * s] = high
-                        data[2 * s + 1] = low
-
+                        floatsToBytes(session.recording.sections[currentSectionIndex + 1].samples, data,
+                                0,
+                                currentFloats,
+                                SAMPLE_BUFFER_SIZE - currentFloats
+                        )
                     }
-                    val offset = min(to, section.samples.size)
-                    for (s in 0 until max(sectionPlayHead - section.samples.size, 0)) {
-
-//                        data[2*(s + offset)] = session.recording.sections[currentSectionIndex + 1].samples[s]
-
-                    }
-
                     sourceLine!!.write(data, 0, data.size)
-                    sourceLine!!.flush()
 
-                    session.stepCursor = session.correctedStepCursor + 1
+                    sectionPlayHead = when {
+                        to <= section.samples.size -> {
+                            session.stepCursor = (section.timeStepStart + section.timeSteps.size.toDouble()
+                                    * sectionPlayHead / section.samples.size).roundToInt()
+                            to
+                        }
+                        currentSectionIndex == session.recording.sections.size - 1 -> {
+                            isPaused = true
+                            onEnd.invoke()
 
+                            session.stepCursor = (section.timeStepStart + section.timeSteps.size.toDouble()
+                                    * sectionPlayHead / section.samples.size).roundToInt()
+
+                            section.samples.size
+                        }
+                        else -> {
+                            currentSectionIndex += 1
+                            val newSection = session.recording.sections[currentSectionIndex]
+                            session.stepCursor = (newSection.timeStepStart + newSection.timeSteps.size.toDouble()
+                                    * (to - section.samples.size) / newSection.samples.size).roundToInt()
+                            to - section.samples.size
+                        }
+                    }
                 }
+
             } else {
-                while (isPaused) {
+                sourceLine?.flush()
+                while (isPaused || !isOpen) {
                     onSpinWait()
                 }
+                // on resume
                 current = System.currentTimeMillis()
                 accumulated = 0.0
 
@@ -95,6 +107,10 @@ internal class PlaybackController(private val session: Session, private val onEn
                     onEnd.invoke()
                 } else {
                     currentSectionIndex = sectionIndex
+                    val section = session.recording.sections[currentSectionIndex]
+                    sectionPlayHead = (section.samples.size * (session.correctedStepCursor - section.timeStepStart) /
+                            section.timeSteps.size.toDouble()).roundToInt()
+                    println(sectionPlayHead)
                 }
             }
 

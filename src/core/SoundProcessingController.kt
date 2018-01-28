@@ -77,10 +77,11 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     companion object {
 
         const val FRAME_RATE = 30
-        private const val SAMPLE_RATE = 44100
-        private const val FRAME_SIZE = 1 shl 12
+        const val SAMPLE_RATE = 44100
+        const val FRAME_SIZE = 1 shl 12
         const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
         const val SAMPLE_PADDING = (FRAME_SIZE - SAMPLES_BETWEEN_FRAMES) / 2
+
     }
 
     /**

@@ -1,6 +1,9 @@
 package core;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.sound.sampled.*;
+import java.util.List;
 
 /**
  * This class is responsible for interfacing with the source of sound being used, i.e. the microphone.
@@ -108,14 +111,32 @@ class SoundGatheringController extends Thread {
                     }
                 }
             }
-            for (int i = 0; i < samples.length; i++) {
-                samples[i] = ((read[i * 2] << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
-            }
+            bytesToFloats(read, samples);
             session.addSamples(samples);
 
         }
 
     }
 
+    private static void bytesToFloats(@NotNull byte[] bytes, @NotNull float[] floats) {
+
+        assert bytes.length % 2 == 0;
+
+        for (int i = 0; i < floats.length; i++) {
+            floats[i] = ((bytes[i * 2] << 8) | (bytes[i * 2 + 1] & 0xFF)) / 32768.0F;
+        }
+    }
+
+    public static void floatsToBytes(@NotNull List<Float> floats, byte[] bytes, int inOffset, int outOffset, int size) {
+
+        for (int i = 0; i < size; i++) {
+
+            int nSample = Math.round(Math.min(1.0F, Math.max(-1.0F, floats.get(i + inOffset))) * 32767.0F);
+            bytes[2 * (i + outOffset)] = (byte) (nSample >> 8 & 0xFF);
+            bytes[2 * (i + outOffset) + 1] = (byte) (nSample & 0xFF);
+
+        }
+
+    }
 
 }
