@@ -47,9 +47,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                     isProcessing = true
                     val newStep = TimeStep(
-                            session.recording.sections.last(),
-                            processingCursor until processingCursor + FRAME_SIZE,
-                            previousStep
+                            section,
+                            processingCursor,
+                            if (previousStep?.section != section) null else previousStep
                     )
 
                     previousStep = newStep

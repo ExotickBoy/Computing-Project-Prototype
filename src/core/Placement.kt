@@ -1,5 +1,6 @@
 package core
 
+import java.io.Serializable
 import kotlin.math.abs
 import kotlin.math.pow
 
@@ -10,7 +11,7 @@ import kotlin.math.pow
  * @property string the string that the note is played on
  * @property time the start at which the note is played
  */
-data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val note: Note) {
+data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val note: Note) : Serializable {
 
     /**
      * This function finds the distance to a placement if it is the first one

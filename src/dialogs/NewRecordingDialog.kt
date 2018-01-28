@@ -116,7 +116,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
 
         if (tuning == null) {
 
-            tuningComboBox.selectedIndex = tuningComboBox.itemCount - 2
+            tuningComboBox.selectedIndex = 0
 
         } else {
 

@@ -16,13 +16,31 @@ internal class PlaybackController(private val session: Session, private val onEn
             field = value && isOpen
         }
 
+    var isMuted = false
+
+    var currentSectionIndex = 0
+    var sectionPlayHead = 0
+
     private var sourceLine: SourceDataLine? = null
 
     val isOpen: Boolean
         get() = sourceLine != null && sourceLine!!.isOpen
 
-    init {
+    fun begin() {
+
+        currentSectionIndex = session.recording.sectionAt(session.correctedStepCursor)!!
+        val section = session.recording.sections[currentSectionIndex]
+        sectionPlayHead = (section.samples.size * (session.correctedStepCursor - section.timeStepStart) /
+                section.timeSteps.size.toDouble()).roundToInt()
+
+        open()
         start()
+    }
+
+    fun toggleMute(): Boolean {
+        isMuted = !isMuted
+        sourceLine?.flush()
+        return isMuted
     }
 
     override fun run() {
@@ -33,9 +51,6 @@ internal class PlaybackController(private val session: Session, private val onEn
         var accumulated = 0.0
 
         val data = ByteArray(SoundGatheringController.SAMPLE_BUFFER_SIZE * 2)
-
-        var currentSectionIndex = 0
-        var sectionPlayHead = 0
 
         while (!isInterrupted) {
 
@@ -51,21 +66,23 @@ internal class PlaybackController(private val session: Session, private val onEn
 
                     val to = sectionPlayHead + SoundGatheringController.SAMPLE_BUFFER_SIZE
 
-                    val currentFloats = min(to, section.samples.size) - sectionPlayHead
-                    floatsToBytes(section.samples, data,
-                            sectionPlayHead,
-                            0,
-                            currentFloats
-                    )
-                    if (currentSectionIndex != session.recording.sections.size - 1) {
-
-                        floatsToBytes(session.recording.sections[currentSectionIndex + 1].samples, data,
+                    if (!isMuted) {
+                        val currentFloats = min(to, section.samples.size) - sectionPlayHead
+                        floatsToBytes(section.samples, data,
+                                sectionPlayHead,
                                 0,
-                                currentFloats,
-                                SAMPLE_BUFFER_SIZE - currentFloats
+                                currentFloats
                         )
+                        if (currentSectionIndex != session.recording.sections.size - 1) {
+
+                            floatsToBytes(session.recording.sections[currentSectionIndex + 1].samples, data,
+                                    0,
+                                    currentFloats,
+                                    SAMPLE_BUFFER_SIZE - currentFloats
+                            )
+                        }
+                        sourceLine!!.write(data, 0, data.size)
                     }
-                    sourceLine!!.write(data, 0, data.size)
 
                     sectionPlayHead = when {
                         to <= section.samples.size -> {
@@ -94,7 +111,7 @@ internal class PlaybackController(private val session: Session, private val onEn
 
             } else {
                 sourceLine?.flush()
-                while (isPaused || !isOpen) {
+                while (isPaused && !isInterrupted) {
                     onSpinWait()
                 }
                 // on resume
@@ -110,7 +127,6 @@ internal class PlaybackController(private val session: Session, private val onEn
                     val section = session.recording.sections[currentSectionIndex]
                     sectionPlayHead = (section.samples.size * (session.correctedStepCursor - section.timeStepStart) /
                             section.timeSteps.size.toDouble()).roundToInt()
-                    println(sectionPlayHead)
                 }
             }
 
@@ -118,7 +134,7 @@ internal class PlaybackController(private val session: Session, private val onEn
 
     }
 
-    fun open() {
+    private fun open() {
 
         val sourceInfo = DataLine.Info(SourceDataLine::class.java, SoundGatheringController.AUDIO_FORMAT)
         val line = AudioSystem.getLine(sourceInfo) as SourceDataLine
@@ -127,9 +143,9 @@ internal class PlaybackController(private val session: Session, private val onEn
         sourceLine = line
     }
 
-
     fun end() {
         interrupt()
+        sourceLine?.close()
     }
 
 }

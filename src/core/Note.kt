@@ -1,12 +1,14 @@
 package core
 
+import java.io.Serializable
+
 /**
  * This class stores a note that should be played, it stores the pitch and start
  * @property pitch the pitch which the note represents
  * @property start the start at which the note is played
  * @author Kacper Lubisz
  */
-class Note(val pitch: Int, val start: Int, var duration: Int) {
+class Note(val pitch: Int, val start: Int, var duration: Int) : Serializable {
 
     val end: Int
         get() = start + duration

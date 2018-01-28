@@ -45,6 +45,8 @@ internal class ScrollController(private val isNote: Boolean, private val compone
             session.lastY = e.y / component.height.toDouble()
         }
 
+        e.consume()
+
     }
 
     override fun mousePressed(e: MouseEvent) {
@@ -54,7 +56,6 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
         longPressTimer?.interrupt()
         longPressTimer = LongPressThread(this)
-
     }
 
     override fun mouseReleased(e: MouseEvent) {
@@ -67,9 +68,10 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
     override fun mouseClicked(e: MouseEvent) {
 
-        if (!isNote)
+        if (!isNote) {
             session.stepCursor = session.stepFrom + e.x
-
+            e.consume()
+        }
     }
 
     private fun mouseLongPressed() {

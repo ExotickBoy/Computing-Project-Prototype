@@ -190,7 +190,13 @@ class Session(val recording: Recording) {
         }
     }
 
-    fun end() {
+    fun toggleMute(): Boolean {
+
+        return playbackController.toggleMute()
+
+    }
+
+    fun dispose() {
 
         soundGatheringController.end()
         soundProcessingController.end()
@@ -249,7 +255,7 @@ class Session(val recording: Recording) {
     fun playback(): Boolean {
         return if (isEditSafe && stepCursor != null) {
             if (!playbackController.isOpen)
-                playbackController.open()
+                playbackController.begin()
             playbackController.isPaused = false
             onStateChange()
             true
@@ -302,6 +308,7 @@ class Session(val recording: Recording) {
         synchronized(recording) {
             recording.cut(cursor)
         }
+        stepCursor = correctedStepCursor
         onStepChange()
     }
 
@@ -405,7 +412,7 @@ class Session(val recording: Recording) {
                     }
 
                 } else {
-                    // this is when the cursor is off the end of the recording
+                    // this is when the cursor is off the dispose of the recording
                     // therefore to insert at the last edge
 
                     swapWith = recording.sections.size
@@ -432,12 +439,11 @@ class Session(val recording: Recording) {
                     }
                 }
                 this.swap = null
+                onStepChange()
             }
             stepCursor = correctedStepCursor
         }
-
     }
-
     /**
      * This is just a data class used locally for finding the absolute starts of all notes
      */
@@ -445,10 +451,11 @@ class Session(val recording: Recording) {
         override fun toString(): String {
             return "PlayedCluster(recordingStart=$recordingStart, index=$index)"
         }
-    }
 
+    }
     companion object {
         const val DELETE_DISTANCE = .3
+
     }
 
 }

@@ -10,13 +10,15 @@ import javax.swing.JPanel
 
 internal class ControlPane(private val session: Session) : JPanel() {
 
+    private val exitButton = JButton(EXIT_BUTTON_TEXT)
+
     private val recordButton = JButton(RECORD_EMOJI)
     private val pauseRecordingButton = JButton(STOP_EMOJI)
     private val playbackButton = JButton(PLAY_EMOJI)
     private val pausePlaybackButton = JButton(PAUSE_EMOJI)
-    private val exitButton = JButton(EXIT_BUTTON_TEXT)
-
     private val cutButton = JButton(SCISSORS_EMOJI)
+
+    private val muteButton = JButton(UNMUTED_EMOJI)
 
     init {
 
@@ -33,7 +35,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
                     playbackButton.isEnabled = true
 
                     cutButton.isEnabled = true
-
+                    muteButton.isEnabled = true
                 }
                 session.isRecording -> {
 
@@ -46,6 +48,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
                     playbackButton.isEnabled = false
 
                     cutButton.isEnabled = false
+                    muteButton.isEnabled = false
                 }
                 else -> {
 
@@ -61,9 +64,8 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
                 }
             }
-
         }
-        recordButton.setMnemonic('R')
+        recordButton.setMnemonic(RECORD_MNEMONIC)
         recordButton.addActionListener {
             if (session.record()) {
 
@@ -76,9 +78,11 @@ internal class ControlPane(private val session: Session) : JPanel() {
             } else {
                 recordButton.isEnabled = false
             }
+            parent.parent.requestFocusInWindow()
+            // pass the focus back onto RecordingEditPane for the key listeners there to work
         }
 
-        pauseRecordingButton.setMnemonic('R')
+        pauseRecordingButton.setMnemonic(RECORD_MNEMONIC)
         pauseRecordingButton.isVisible = false
         pauseRecordingButton.addActionListener {
             if (session.pauseRecording()) {
@@ -89,9 +93,10 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 playbackButton.isEnabled = true
                 cutButton.isEnabled = true
             }
+            parent.parent.requestFocusInWindow()
         }
 
-        playbackButton.setMnemonic('P')
+        playbackButton.setMnemonic(PLAY_MNEMONIC)
         playbackButton.isEnabled = false
         playbackButton.addActionListener {
             if (session.playback()) {
@@ -100,11 +105,11 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
                 recordButton.isEnabled = false
                 cutButton.isEnabled = false
-
             }
+            parent.parent.requestFocusInWindow()
         }
 
-        pausePlaybackButton.setMnemonic('P')
+        pausePlaybackButton.setMnemonic(PLAY_MNEMONIC)
         pausePlaybackButton.isVisible = false
         pausePlaybackButton.addActionListener {
             if (session.pausePlayback()) {
@@ -114,20 +119,34 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 recordButton.isEnabled = true
                 cutButton.isEnabled = true
             }
+            parent.parent.requestFocusInWindow()
         }
 
-        cutButton.setMnemonic('C')
+        cutButton.setMnemonic(CUT_MNEMONIC)
         cutButton.isEnabled = false
         cutButton.addActionListener {
             if (session.isEditSafe) {
                 session.makeCut(session.correctedStepCursor)
             }
+            parent.parent.requestFocusInWindow()
         }
 
-        exitButton.setMnemonic('E')
+        muteButton.setMnemonic(MUTE_MNEMONIC)
+        muteButton.addActionListener {
+            val isMuted = session.toggleMute()
+            if (isMuted) {
+                muteButton.text = MUTED_EMOJI
+            } else {
+                muteButton.text = UNMUTED_EMOJI
+            }
+            parent.parent.requestFocusInWindow()
+        }
+
+        exitButton.setMnemonic(EXIT_MNEMONIC)
         exitButton.addActionListener {
             AppInstance.pop()
         }
+
 
         val centrePanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 0))
 
@@ -141,6 +160,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
         add(exitButton, BorderLayout.LINE_START)
         add(centrePanel, BorderLayout.CENTER)
+        add(muteButton, BorderLayout.EAST)
 
     }
 
@@ -152,6 +172,16 @@ internal class ControlPane(private val session: Session) : JPanel() {
         private const val STOP_EMOJI = "\u23F9"
         private const val SCISSORS_EMOJI = "\u2702"
         private const val EXIT_BUTTON_TEXT = "Exit"
+
+        private const val MUTED_EMOJI = "🔇"
+        private const val UNMUTED_EMOJI = "\uD83D\uDD0A"
+
+        private const val MUTE_MNEMONIC = 'M'
+        private const val RECORD_MNEMONIC = 'R'
+        private const val PLAY_MNEMONIC = 'P'
+        private const val CUT_MNEMONIC = 'C'
+        private const val EXIT_MNEMONIC = 'E'
+
 
     }
 

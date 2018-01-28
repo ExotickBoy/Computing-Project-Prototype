@@ -39,18 +39,16 @@ class SoundGatheringController extends Thread {
     void begin() throws LineUnavailableException {
 
         openMicrophoneStream();
-        targetLine.start();
         start();
 
     }
 
     /**
-     * Permanently stops the thread from running by closing th input line
+     * Permanently stops the thread from running by closing the input line
      */
     void end() {
-        if (targetLine != null && targetLine.isOpen()) {
+        if (targetLine != null)
             targetLine.close();
-        }
     }
 
     boolean isPaused() {
@@ -82,6 +80,7 @@ class SoundGatheringController extends Thread {
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
         targetLine.open(format, SAMPLE_BUFFER_SIZE * 2);
+        targetLine.start();
 
     }
 

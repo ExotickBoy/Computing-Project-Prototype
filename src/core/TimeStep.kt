@@ -22,16 +22,18 @@ import kotlin.math.min
  * @property modelOutput The object that represents the outputs of the Model
  * @property notes The notes that are present in the time step
  */
-class TimeStep private constructor(private val section: Section, val sampleRange: IntRange, private val time: Int, private val previous: TimeStep? = null)
+class TimeStep private constructor(val section: Section, private val sampleStart: Int, private val time: Int, private val previous: TimeStep? = null)
     : Serializable { // start in steps
 
-    constructor(section: Section, sampleRange: IntRange, previous: TimeStep?) :
-            this(section, sampleRange, (previous?.time ?: -1) + 1, previous)
+    constructor(section: Section, sampleStart: Int, previous: TimeStep?) :
+            this(section, sampleStart, (previous?.time ?: -1) + 1, previous)
 
     private val modelOutput: StepOutput
 
-    val melImage: BufferedImage
-    val noteImage: BufferedImage // TODO this is only for debugging in the desktop version
+    @Transient
+    var melImage: BufferedImage
+    @Transient
+    var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
     val dePhased
         get() = modelOutput.dePhased
@@ -39,7 +41,7 @@ class TimeStep private constructor(private val section: Section, val sampleRange
     private val samples: FloatArray
         get() {
             synchronized(section) {
-                return section.samples.subList(sampleRange.start, sampleRange.endInclusive + 1).toFloatArray()
+                return section.samples.subList(sampleStart, sampleStart + SoundProcessingController.FRAME_SIZE).toFloatArray()
             }
         }
 

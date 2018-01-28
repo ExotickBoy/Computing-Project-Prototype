@@ -184,6 +184,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     fun save() {
 
+        TODO("Save to file is not ready")
         serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
 
     }

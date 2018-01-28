@@ -13,7 +13,7 @@ data class Section(
         val clusters: MutableList<NoteCluster> = mutableListOf(),
         var isGathered: Boolean = false,
         var isProcessed: Boolean = false
-) {
+) : Serializable {
 
     constructor(after: Section) : this(after.recording, after.sampleEnd, after.timeStepEnd, after.clusterEnd) // new Section
 
@@ -198,7 +198,7 @@ data class Section(
 
     }
 
-    private data class PossibleMatch(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) {
+    private data class PossibleMatch(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) : Serializable {
 
         constructor(stepStart: Int, clusterStart: Int, tuning: Tuning, note: Note) : this(stepStart, clusterStart, tuning, null, mutableListOf()) {
             addNote(note)
@@ -283,14 +283,14 @@ data class Section(
 
         }
 
-        data class PlacementPath(val placements: List<Placement>)
+        data class PlacementPath(val placements: List<Placement>) : Serializable
 
 
     }
 
-    private data class Path(val route: List<Int>, val distance: Double)
+    private data class Path(val route: List<Int>, val distance: Double) : Serializable
 
-    data class ChordPattern(val title: String, val suffix: String, val notes: List<Int>) {
+    data class ChordPattern(val title: String, val suffix: String, val notes: List<Int>) : Serializable {
         constructor(title: String, suffix: String, vararg notes: Int) : this(title, suffix, notes.asList())
     }
 
