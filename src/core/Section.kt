@@ -213,17 +213,17 @@ data class Section(
 
 //            if (newNote.pitch !in notes.map { it.pitch }) {
 
-                notes.add(newNote)
+            notes.add(newNote)
 
-                possiblePlacements = findPossiblePlacements()
-                if (possiblePlacements.isEmpty()) {
-                    possibleRoots.clear()
-                }
+            possiblePlacements = findPossiblePlacements()
+            if (possiblePlacements.isEmpty()) {
+                possibleRoots.clear()
+            }
 
-                possibleRoots.add(newNote)
-                possibleRoots.removeIf { !possibleWithRoot(it) }
-                validRoots.clear()
-                validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
+            possibleRoots.add(newNote)
+            possibleRoots.removeIf { !possibleWithRoot(it) }
+            validRoots.clear()
+            validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
 //            }
 
         }
