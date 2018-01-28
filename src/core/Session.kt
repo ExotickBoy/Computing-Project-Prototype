@@ -248,6 +248,8 @@ class Session(val recording: Recording) {
      */
     fun playback(): Boolean {
         return if (isEditSafe && stepCursor != null) {
+            if (!playbackController.isOpen)
+                playbackController.open()
             playbackController.isPaused = false
             onStateChange()
             true

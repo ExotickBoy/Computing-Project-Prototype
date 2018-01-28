@@ -1,6 +1,9 @@
 package core;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.sound.sampled.*;
+import java.util.List;
 
 /**
  * This class is responsible for interfacing with the source of sound being used, i.e. the microphone.
@@ -11,6 +14,8 @@ import javax.sound.sampled.*;
 class SoundGatheringController extends Thread {
 
     static final int SAMPLE_RATE = 44100;
+    static final int SAMPLE_BUFFER_SIZE = 2205;
+    static final AudioFormat AUDIO_FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
 
     private TargetDataLine targetLine;
 
@@ -72,11 +77,11 @@ class SoundGatheringController extends Thread {
      */
     private void openMicrophoneStream() throws IllegalArgumentException, LineUnavailableException {
 
-        AudioFormat format = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
+        AudioFormat format = AUDIO_FORMAT;
         DataLine.Info targetInfo = new DataLine.Info(TargetDataLine.class, format);
 
         targetLine = (TargetDataLine) AudioSystem.getLine(targetInfo);
-        targetLine.open(format, 4410);
+        targetLine.open(format, SAMPLE_BUFFER_SIZE * 2);
 
     }
 
@@ -106,14 +111,32 @@ class SoundGatheringController extends Thread {
                     }
                 }
             }
-            for (int i = 0; i < samples.length; i++) {
-                samples[i] = ((read[i * 2] << 8) | (read[i * 2 + 1] & 0xFF)) / 32768.0F;
-            }
+            bytesToFloats(read, samples);
             session.addSamples(samples);
 
         }
 
     }
 
+    private static void bytesToFloats(@NotNull byte[] bytes, @NotNull float[] floats) {
+
+        assert bytes.length % 2 == 0;
+
+        for (int i = 0; i < floats.length; i++) {
+            floats[i] = ((bytes[i * 2] << 8) | (bytes[i * 2 + 1] & 0xFF)) / 32768.0F;
+        }
+    }
+
+    public static void floatsToBytes(@NotNull List<Float> floats, byte[] bytes, int inOffset, int outOffset, int size) {
+
+        for (int i = 0; i < size; i++) {
+
+            int nSample = Math.round(Math.min(1.0F, Math.max(-1.0F, floats.get(i + inOffset))) * 32767.0F);
+            bytes[2 * (i + outOffset)] = (byte) (nSample >> 8 & 0xFF);
+            bytes[2 * (i + outOffset) + 1] = (byte) (nSample & 0xFF);
+
+        }
+
+    }
 
 }

@@ -1,5 +1,14 @@
 package core
 
+import core.SoundGatheringController.SAMPLE_BUFFER_SIZE
+import core.SoundGatheringController.floatsToBytes
+import javax.sound.sampled.AudioSystem
+import javax.sound.sampled.DataLine
+import javax.sound.sampled.SourceDataLine
+import kotlin.math.min
+import kotlin.math.roundToInt
+
+
 internal class PlaybackController(private val session: Session, private val onEnd: () -> Unit) : Thread("Playback Thread") {
 
     var isPaused = true
@@ -39,14 +48,31 @@ internal class PlaybackController(private val session: Session, private val onEn
                     }
 
                 }
+
             } else {
-                while (isPaused && !isInterrupted) {
+                sourceLine?.flush()
+                while (isPaused || !isOpen) {
                     onSpinWait()
                 }
+                // on resume
                 current = System.currentTimeMillis()
                 last = current
                 accumulated = 0.0
+
+                val sectionIndex = session.recording.sectionAt(session.correctedStepCursor)
+                if (sectionIndex == null) {
+                    isPaused = true
+                    onEnd.invoke()
+                } else {
+                    currentSectionIndex = sectionIndex
+                    val section = session.recording.sections[currentSectionIndex]
+                    sectionPlayHead = (section.samples.size * (session.correctedStepCursor - section.timeStepStart) /
+                            section.timeSteps.size.toDouble()).roundToInt()
+                    println(sectionPlayHead)
+                }
             }
+
+        }
 
         }
 

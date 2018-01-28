@@ -13,7 +13,7 @@ data class Section(
         val clusters: MutableList<NoteCluster> = mutableListOf(),
         var isGathered: Boolean = false,
         var isProcessed: Boolean = false
-) : Serializable {
+) {
 
     constructor(after: Section) : this(after.recording, after.sampleEnd, after.timeStepEnd, after.clusterEnd) // new Section
 
@@ -140,7 +140,7 @@ data class Section(
             // replaces all the placements in the current placement with the best ones
 
             val newCluster = NoteCluster(
-                    chosenMatches[time].stepStart,
+                    chosenMatches[time].notes.map { it.start }.min() ?: 0-timeStepStart,
                     possiblePlacements[time][bestPath[time]],
                     if (chosenMatches[time].pattern == null) {
                         chosenMatches[time].validRoots.minBy { it.pitch }?.pitch?.noteLetterShort ?: ""
