@@ -1,7 +1,7 @@
 package core
 
-import core.SoundGatheringController.SAMPLE_BUFFER_SIZE
-import core.SoundGatheringController.floatsToBytes
+import core.MicrophoneController.Companion.SAMPLE_BUFFER_SIZE
+import core.SoundUtils.floatsToBytes
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.SourceDataLine
@@ -45,12 +45,12 @@ internal class PlaybackController(private val session: Session, private val onEn
 
     override fun run() {
 
-        val period = 1000.0 * SoundGatheringController.SAMPLE_BUFFER_SIZE / SoundProcessingController.SAMPLE_RATE
+        val period = 1000.0 * MicrophoneController.SAMPLE_BUFFER_SIZE / SoundProcessingController.SAMPLE_RATE
         var last = System.currentTimeMillis()
         var current = last
         var accumulated = 0.0
 
-        val data = ByteArray(SoundGatheringController.SAMPLE_BUFFER_SIZE * 2)
+        val data = ByteArray(MicrophoneController.SAMPLE_BUFFER_SIZE * 2)
 
         while (!isInterrupted) {
 
@@ -64,7 +64,7 @@ internal class PlaybackController(private val session: Session, private val onEn
 
                     val section = session.recording.sections[currentSectionIndex]
 
-                    val to = sectionPlayHead + SoundGatheringController.SAMPLE_BUFFER_SIZE
+                    val to = sectionPlayHead + MicrophoneController.SAMPLE_BUFFER_SIZE
 
                     if (!isMuted) {
                         val currentFloats = min(to, section.samples.size) - sectionPlayHead
@@ -136,9 +136,9 @@ internal class PlaybackController(private val session: Session, private val onEn
 
     private fun open() {
 
-        val sourceInfo = DataLine.Info(SourceDataLine::class.java, SoundGatheringController.AUDIO_FORMAT)
+        val sourceInfo = DataLine.Info(SourceDataLine::class.java, MicrophoneController.AUDIO_FORMAT)
         val line = AudioSystem.getLine(sourceInfo) as SourceDataLine
-        line.open(SoundGatheringController.AUDIO_FORMAT)
+        line.open(MicrophoneController.AUDIO_FORMAT)
         line.start()
         sourceLine = line
     }

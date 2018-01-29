@@ -185,7 +185,7 @@ data class Section(
 
                 val newMatch = possibleMatches.find { it.isValid }
                 if (newMatch != null) {
-                    matches.add(newMatch)
+                    matches.add(newMatch.copy())
                 }
 
                 if (possibleMatches.isEmpty()) {
@@ -290,7 +290,8 @@ data class Section(
 
     private data class Path(val route: List<Int>, val distance: Double) : Serializable
 
-    data class ChordPattern(val title: String, val suffix: String, val notes: List<Int>) : Serializable {
+    data class
+    ChordPattern(val title: String, val suffix: String, val notes: List<Int>) : Serializable {
         constructor(title: String, suffix: String, vararg notes: Int) : this(title, suffix, notes.asList())
     }
 
@@ -304,6 +305,7 @@ data class Section(
                 ChordPattern("Diminished", "d", 0, 3, 6),
                 ChordPattern("Augmented", "a", 0, 4, 8),
                 ChordPattern("+7", "+7", 0, 7),
+                ChordPattern("Power Chord", "+7", 0, 7, 12),
                 ChordPattern("+5", "+5", 0, 5)
         )
 

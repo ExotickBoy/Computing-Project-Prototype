@@ -164,14 +164,18 @@ class Session(val recording: Recording) {
     var swapWithSection: Boolean? = false
 
     val isEditSafe: Boolean
-        get() = soundGatheringController.isPaused && playbackController.isPaused && !soundProcessingController.isProcessing
+        get() = microphoneController.isPaused && playbackController.isPaused && !soundProcessingController.isProcessing
 
     val isRecording
-        get() = !soundGatheringController.isPaused
+        get() = !microphoneController.isPaused
 
-    private val soundGatheringController = SoundGatheringController(this, true)
+    private val microphoneController = MicrophoneController(this)
     private val soundProcessingController = SoundProcessingController(this)
     private val playbackController = PlaybackController(this) {
+        onStateChange()
+    }
+
+    init {
         onStateChange()
     }
 
@@ -198,7 +202,7 @@ class Session(val recording: Recording) {
 
     fun dispose() {
 
-        soundGatheringController.end()
+        microphoneController.end()
         soundProcessingController.end()
         playbackController.end()
 
@@ -212,11 +216,11 @@ class Session(val recording: Recording) {
         return if (isEditSafe) {
             try {
                 synchronized(recording) {
-                    if (!soundGatheringController.isOpen)
-                        soundGatheringController.begin()
+                    if (!microphoneController.isOpen)
+                        microphoneController.begin()
 
                     stepCursor = null
-                    soundGatheringController.isPaused = false
+                    microphoneController.isPaused = false
 
                     recording.startSection()
                     onStateChange()
@@ -240,8 +244,8 @@ class Session(val recording: Recording) {
      * @return If this was performed successfully
      */
     fun pauseRecording(): Boolean {
-        return if (!soundGatheringController.isPaused) {
-            soundGatheringController.isPaused = true
+        return if (!microphoneController.isPaused) {
+            microphoneController.isPaused = true
             recording.endSection()
             onStateChange()
             true
@@ -444,6 +448,7 @@ class Session(val recording: Recording) {
             stepCursor = correctedStepCursor
         }
     }
+
     /**
      * This is just a data class used locally for finding the absolute starts of all notes
      */
@@ -453,9 +458,9 @@ class Session(val recording: Recording) {
         }
 
     }
+
     companion object {
         const val DELETE_DISTANCE = .3
-
     }
 
 }

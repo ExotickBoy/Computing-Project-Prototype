@@ -98,7 +98,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
     companion object {
 
-        const val holdTime: Int = (.5 * 1000).toInt()
+        const val holdTime: Int = (.3 * 1000).toInt()
 
     }
 

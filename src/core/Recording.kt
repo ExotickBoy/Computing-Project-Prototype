@@ -1,8 +1,8 @@
 package core
 
-import core.SoundGatheringController.SAMPLE_RATE
 import core.SoundProcessingController.Companion.SAMPLES_BETWEEN_FRAMES
 import core.SoundProcessingController.Companion.SAMPLE_PADDING
+import core.SoundProcessingController.Companion.SAMPLE_RATE
 import java.io.*
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream

@@ -1,14 +1,14 @@
 package dialogs
 
 import components.RecordingEditPane
-import core.AppInstance
-import core.Recording
-import core.Session
-import core.Tuning
+import core.*
+import java.awt.BorderLayout
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
+import java.io.File
 import javax.swing.*
+
 
 class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
     : JDialog(AppInstance, "New Recording", ModalityType.APPLICATION_MODAL) {
@@ -33,51 +33,65 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         }
         val loadButton = JButton("Load File")
         loadButton.setMnemonic('L')
-        loadButton.isEnabled = false
-        val recordButton = JButton("Record")
-        recordButton.setMnemonic('R')
+        loadButton.addActionListener {
+            //            val chooser = JFileChooser()
+//            chooser.fileFilter = FileNameExtensionFilter("WAV & MP3", "wav", "mp3")
+//            val returnVal = chooser.showOpenDialog(parent)
+//            if (returnVal == JFileChooser.APPROVE_OPTION) {
+//                println("You chose" + chooser.selectedFile)
+//            }
 
-        val nameLabel = JLabel("Name:")
-        nameLabel.setDisplayedMnemonic('N')
-        nameLabel.labelFor = nameField
-        val tuningLabel = JLabel("Tuning:")
-        tuningLabel.setDisplayedMnemonic('T')
-        tuningLabel.labelFor = tuningComboBox
+            val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
+            val regex = "$name(\\d| )*".toRegex()
+            val sameNames = recordings.map { it.metaData.name }
+                    .filter { regex.matches(it) }
+                    .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
+                    .max()
+            val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
 
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridy = 0
-        constraint.gridx = 0
-        constraint.insets = Insets(10, 10, 5, 5)
-        add(nameLabel, constraint)
+            val tuning = if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size)
+                customTuning ?: Tuning.defaultTunings[0] // this null case shouldn't happen
+            else
+                Tuning.defaultTunings[tuningComboBox.selectedIndex]
 
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.insets = Insets(10, 5, 5, 10)
-        add(nameField, constraint)
-        nameField.addActionListener {
-            recordButton.doClick()
+
+            val file = File("D:/cosmofamille2.wav")
+            val recording = Recording(tuning, newName)
+
+            val reader = SoundFileReader(recording, file)
+
+            try {
+
+                reader.open()
+
+                val loadingDialog = object : JDialog(AppInstance) {
+                    init {
+                        layout = BorderLayout()
+                        add(JLabel("Loading"), BorderLayout.NORTH)
+                        val bar = JProgressBar()
+                        bar.isIndeterminate = true
+                        add(bar, BorderLayout.CENTER)
+                    }
+                }
+                loadingDialog.isVisible = true
+                repaint()
+
+                reader.start()
+
+                loadingDialog.dispose()
+
+            } catch (e: Exception) { // TODO("different messages")
+                println("failed to open stream ${e.message}")
+            }
+
+            val session = Session(recording)
+            AppInstance.push(RecordingEditPane(session))
+            dispose()
+
         }
 
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.gridy = 1
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridx = 0
-        constraint.insets = Insets(5, 10, 5, 5)
-        add(tuningLabel, constraint)
-
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.insets = Insets(5, 5, 5, 10)
-        add(tuningComboBox, constraint)
-
-        val buttons = JPanel()
-        buttons.add(loadButton, constraint)
-        buttons.add(recordButton, constraint)
-
-        loadButton.addActionListener {}
+        val recordButton = JButton("Record")
+        recordButton.setMnemonic('R')
         recordButton.addActionListener {
 
             val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
@@ -98,6 +112,48 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
             dispose()
 
         }
+        nameField.addActionListener {
+            recordButton.doClick()
+        }
+
+        val nameLabel = JLabel("Name:")
+        nameLabel.setDisplayedMnemonic('N')
+        nameLabel.labelFor = nameField
+
+        val tuningLabel = JLabel("Tuning:")
+        tuningLabel.setDisplayedMnemonic('T')
+        tuningLabel.labelFor = tuningComboBox
+
+        constraint.anchor = GridBagConstraints.EAST
+        constraint.fill = GridBagConstraints.NONE
+        constraint.gridy = 0
+        constraint.gridx = 0
+        constraint.insets = Insets(10, 10, 5, 5)
+        add(nameLabel, constraint)
+
+        constraint.anchor = GridBagConstraints.CENTER
+        constraint.fill = GridBagConstraints.HORIZONTAL
+        constraint.gridx = 1
+        constraint.insets = Insets(10, 5, 5, 10)
+        add(nameField, constraint)
+
+        constraint.anchor = GridBagConstraints.EAST
+        constraint.gridy = 1
+        constraint.fill = GridBagConstraints.NONE
+        constraint.gridx = 0
+        constraint.insets = Insets(5, 10, 5, 5)
+        add(tuningLabel, constraint)
+
+        constraint.anchor = GridBagConstraints.CENTER
+        constraint.fill = GridBagConstraints.HORIZONTAL
+        constraint.gridx = 1
+        constraint.insets = Insets(5, 5, 5, 10)
+        add(tuningComboBox, constraint)
+
+        val buttons = JPanel()
+        buttons.add(loadButton, constraint)
+        buttons.add(recordButton, constraint)
+
 
         constraint.gridx = 0
         constraint.gridy = 2
