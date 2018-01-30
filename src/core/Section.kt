@@ -132,6 +132,8 @@ data class Section(
             println(paths)
         }
 
+        println(paths.last())
+
         val bestPath = paths.last().minBy { it.distance }?.route!!
 
         // the path with the shortest distance to the last placement

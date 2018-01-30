@@ -2,12 +2,10 @@ package dialogs
 
 import components.RecordingEditPane
 import core.*
-import java.awt.BorderLayout
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
-import java.awt.Insets
+import java.awt.*
 import java.io.File
 import javax.swing.*
+import kotlin.concurrent.thread
 
 
 class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
@@ -55,7 +53,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                 Tuning.defaultTunings[tuningComboBox.selectedIndex]
 
 
-            val file = File("D:/cosmofamille2.wav")
+            val file = File("D:/vid.wav")
             val recording = Recording(tuning, newName)
 
             val reader = SoundFileReader(recording, file)
@@ -63,22 +61,12 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
             try {
 
                 reader.open()
+                LoadingDialog(this@NewRecordingDialog, file.name) {
 
-                val loadingDialog = object : JDialog(AppInstance) {
-                    init {
-                        layout = BorderLayout()
-                        add(JLabel("Loading"), BorderLayout.NORTH)
-                        val bar = JProgressBar()
-                        bar.isIndeterminate = true
-                        add(bar, BorderLayout.CENTER)
-                    }
+                    reader.start()
+                    reader.join()
+
                 }
-                loadingDialog.isVisible = true
-                repaint()
-
-                reader.start()
-
-                loadingDialog.dispose()
 
             } catch (e: Exception) { // TODO("different messages")
                 println("failed to open stream ${e.message}")
@@ -86,6 +74,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
 
             val session = Session(recording)
             AppInstance.push(RecordingEditPane(session))
+            repaint()
             dispose()
 
         }
@@ -185,5 +174,37 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         setLocationRelativeTo(AppInstance)
 
     }
+
+    private class LoadingDialog(owner: Window, fileName: String, action: () -> Unit) : JDialog(owner, "Reading from file", ModalityType.APPLICATION_MODAL) {
+
+        init {
+
+            val content = JPanel(BorderLayout())
+            content.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
+
+            val label = JLabel("Reading $fileName")
+            label.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
+
+            val progressBar = JProgressBar()
+            progressBar.isIndeterminate = true
+
+            content.add(label, BorderLayout.NORTH)
+            content.add(progressBar, BorderLayout.CENTER)
+
+            contentPane = content
+            pack()
+            setLocationRelativeTo(owner)
+            defaultCloseOperation = JFrame.DO_NOTHING_ON_CLOSE
+
+            thread(name = "Loading Worker") {
+                action.invoke()
+                dispose()
+            }
+            isVisible = true
+
+        }
+
+    }
+
 
 }

@@ -97,7 +97,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         playbackButton.setMnemonic(PLAY_MNEMONIC)
-        playbackButton.isEnabled = false
+        playbackButton.isEnabled = !session.recording.isEmpty
         playbackButton.addActionListener {
             if (session.playback()) {
                 playbackButton.isVisible = false
@@ -123,7 +123,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         cutButton.setMnemonic(CUT_MNEMONIC)
-        cutButton.isEnabled = false
+        cutButton.isEnabled = !session.recording.isEmpty
         cutButton.addActionListener {
             if (session.isEditSafe) {
                 session.makeCut(session.correctedStepCursor)

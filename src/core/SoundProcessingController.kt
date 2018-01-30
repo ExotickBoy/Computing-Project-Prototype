@@ -40,6 +40,10 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
         while (!isInterrupted) { // until the thread is stopped
 
+            while (timeStepQueue.size >= MAX_QUEUE_SIZE) {
+                onSpinWait()
+            }
+
             synchronized(session.recording) {
 
                 val section = session.recording.lastSection()
@@ -81,6 +85,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
     companion object {
 
+        private const val MAX_QUEUE_SIZE = 10
         const val FRAME_RATE = 30
         const val SAMPLE_RATE = 44100
         const val FRAME_SIZE = 1 shl 12
@@ -127,6 +132,10 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                         session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
                     } // else flag up slow performance
 
+                }
+
+                while (queue.isEmpty()) {
+                    onSpinWait()
                 }
 
             }

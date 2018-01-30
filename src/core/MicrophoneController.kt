@@ -75,7 +75,7 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
             if (isPaused)
                 continue // this will read the samples and then not use them
 
-            SoundUtils.bytesToFloats(read, samples, true)
+            SoundUtils.bytesToFloats(read, samples, targetLine!!.format.isBigEndian)
             session.addSamples(samples)
 
         }

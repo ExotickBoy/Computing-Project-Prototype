@@ -27,6 +27,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     val length: Double
         get() = if (sections.isEmpty()) 0.0 else (sections.last().sampleEnd.toDouble() / SAMPLE_RATE)
 
+    val isEmpty: Boolean
+        get() = length == 0.0
+
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
      * It may do nothing if one of the created sections is less than the minimum section length
