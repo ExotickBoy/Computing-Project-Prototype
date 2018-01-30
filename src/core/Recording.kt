@@ -17,7 +17,7 @@ import java.util.zip.GZIPOutputStream
  */
 class Recording(val tuning: Tuning, val name: String) : Serializable {
 
-    val created = System.currentTimeMillis()
+    private val created = System.currentTimeMillis()
     val sections = mutableListOf<Section>()
 
     val timeStepLength
@@ -31,7 +31,10 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         get() = length == 0.0
 
     val isProcessed: Boolean
-        get() = sections.all { it.isProcessed }
+        get() = sections.lastOrNull()?.isProcessed ?: true
+
+    val isPreProcessed: Boolean
+        get() = sections.lastOrNull()?.isPreProcessed ?: true
 
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.

@@ -25,6 +25,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         session.addOnStateChange {
             when {
                 session.isEditSafe -> {
+                    println("session.isEditSafe")
 
                     recordButton.isVisible = true
                     pauseRecordingButton.isVisible = false
@@ -37,8 +38,8 @@ internal class ControlPane(private val session: Session) : JPanel() {
                     cutButton.isEnabled = true
                     muteButton.isEnabled = true
                 }
-                session.isRecording -> {
-
+                session.isRecording || !session.recording.isProcessed -> {
+                    println("session.isRecording || !session.recording.isProcessed ->")
                     recordButton.isVisible = false
                     pauseRecordingButton.isVisible = true
                     playbackButton.isVisible = true
@@ -50,8 +51,8 @@ internal class ControlPane(private val session: Session) : JPanel() {
                     cutButton.isEnabled = false
                     muteButton.isEnabled = false
                 }
-                else -> {
-
+                session.recording.isPreProcessed && session.recording.isProcessed -> {
+                    println("session.recording.isPreProcessed && session.recording.isProcessed -> ")
                     recordButton.isVisible = true
                     pauseRecordingButton.isVisible = false
                     playbackButton.isVisible = false
@@ -97,7 +98,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         playbackButton.setMnemonic(PLAY_MNEMONIC)
-        playbackButton.isEnabled = !session.recording.isEmpty
+        playbackButton.isEnabled = false
         playbackButton.addActionListener {
             if (session.playback()) {
                 playbackButton.isVisible = false
@@ -123,7 +124,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         cutButton.setMnemonic(CUT_MNEMONIC)
-        cutButton.isEnabled = !session.recording.isEmpty
+        cutButton.isEnabled = false
         cutButton.addActionListener {
             if (session.isEditSafe) {
                 session.makeCut(session.correctedStepCursor)

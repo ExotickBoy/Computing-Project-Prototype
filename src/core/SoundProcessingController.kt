@@ -48,7 +48,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
             synchronized(session.recording) {
 
                 val section = session.recording.lastSection()
-                if (section != null && !section.isProcessed && processingCursor + FRAME_SIZE <= section.samples.size) { // new frame
+                if (section != null && !section.isPreProcessed && processingCursor + FRAME_SIZE <= section.samples.size) { // new frame
 
                     isProcessing = true
                     val newStep = TimeStep(
@@ -63,7 +63,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                 } else {
                     if (section != null && section.isGathered) {
-                        section.isProcessed = true
+                        section.isPreProcessed = true
                         processingCursor = 0
                     }
                     isProcessing = false
@@ -85,8 +85,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     }
 
     fun fastProcess(section: Section) {
-        if (!section.isProcessed)
+        if (!section.isPreProcessed || !section.isProcessed)
             bufferThread.fastProcess.add(section)
+
     }
 
     companion object {
@@ -133,12 +134,15 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                 current = System.currentTimeMillis()
                 accumulated += current - last
 
-                if (session.recording.lastSection() == fastProcess.getOrNull(0)) {
+                val lastSection = session.recording.lastSection()
 
-                    while (session.recording.lastSection()?.isProcessed == false) {
+                if (lastSection != null && lastSection == fastProcess.getOrNull(0)) {
+
+                    while (queue.isNotEmpty()) {
                         session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
                     } // else flag up slow performance
 
+                    lastSection.isProcessed = true
                     accumulated = 0.0
 
                 } else {
@@ -148,7 +152,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                         if (!queue.isEmpty()) {
                             session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
-                        } // else flag up slow performance
+                        } else if (lastSection?.isPreProcessed == true) {
+                            lastSection.isProcessed = true
+                        }
 
                     }
 

@@ -12,6 +12,7 @@ data class Section(
         val timeSteps: MutableList<TimeStep> = mutableListOf(),
         val clusters: MutableList<NoteCluster> = mutableListOf(),
         var isGathered: Boolean = false,
+        var isPreProcessed: Boolean = false,
         var isProcessed: Boolean = false
 ) : Serializable {
 
@@ -91,10 +92,6 @@ data class Section(
                 false
             }
         }
-        println("====================================")
-        println("matches ${new.matches.size}")
-        println("new chosen ${chosenMatches.last()}")
-        println("it's placements ${chosenMatches.last().possiblePlacements}")
 
         if (removeLast) {
             paths.removeAt(paths.lastIndex)
@@ -279,6 +276,7 @@ data class Section(
 
         private fun canPlaceWithRoot(root: Note): Boolean {
 
+            //TODO("This need to be implemented")
             return false
 
         }
@@ -300,7 +298,6 @@ data class Section(
         }
 
         data class PlacementPath(val placements: List<Placement>) : Serializable
-
 
     }
 
