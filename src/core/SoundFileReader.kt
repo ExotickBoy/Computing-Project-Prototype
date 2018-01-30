@@ -7,7 +7,7 @@ import javax.sound.sampled.AudioSystem
 
 internal class SoundFileReader(private val recording: Recording, private val file: File) : Thread("Sound File Reader") {
 
-    lateinit var inputStream: AudioInputStream;
+    lateinit var inputStream: AudioInputStream
 
     fun open() { // this throws exceptions
         //https://www.ntu.edu.sg/home/ehchua/programming/java/J8c_PlayingSound.html
@@ -43,6 +43,8 @@ internal class SoundFileReader(private val recording: Recording, private val fil
                 recording.addSamples(samples.slice(0 until bytesRead).toFloatArray())
 
         }
+
+        recording.endSection()
 
     }
 

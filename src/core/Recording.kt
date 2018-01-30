@@ -30,6 +30,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     val isEmpty: Boolean
         get() = length == 0.0
 
+    val isProcessed: Boolean
+        get() = sections.all { it.isProcessed }
+
     /**
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
      * It may do nothing if one of the created sections is less than the minimum section length

@@ -176,7 +176,9 @@ class Session(val recording: Recording) {
     }
 
     init {
-        onStateChange()
+        if (!recording.isEmpty && recording.isProcessed){
+            recording.sections.filter { !it.isProcessed }.forEach(soundProcessingController::fastProcess)
+        }
     }
 
     /**

@@ -71,6 +71,8 @@ data class Section(
         liveStates.removeIf { it.isDead }
 
         val new = liveStates.minBy { it.clusterStart }!!
+        // choose to add the pattern that started first
+
 
         val removeLast = when {
             chosenMatches.isEmpty() -> {
@@ -89,6 +91,10 @@ data class Section(
                 false
             }
         }
+        println("====================================")
+        println("matches ${new.matches.size}")
+        println("new chosen ${chosenMatches.last()}")
+        println("it's placements ${chosenMatches.last().possiblePlacements}")
 
         if (removeLast) {
             paths.removeAt(paths.lastIndex)
@@ -128,13 +134,15 @@ data class Section(
 
         }
 
-        if (paths.last().minBy { it.distance }?.route == null) {
-            println(paths)
+
+        val bestPath: List<Int>
+        bestPath = try {
+            paths.last().minBy { it.distance }?.route!!
+        } catch (e: Exception) {
+            println(e.toString())
+            mutableListOf()
         }
 
-        println(paths.last())
-
-        val bestPath = paths.last().minBy { it.distance }?.route!!
 
         // the path with the shortest distance to the last placement
 
@@ -260,13 +268,19 @@ data class Section(
         private fun possibleWithRoot(root: Note): Boolean {
             return pattern == null || notes.all {
                 (it.pitch - root.pitch).floorMod(12) in pattern.notes
-            }
+            } && canPlaceWithRoot(root)
         }
 
         private fun validWithRoot(root: Note): Boolean {
             return pattern == null || pattern.notes.none {
                 (it + root.pitch) !in notes.map { it.pitch }
-            }
+            } && canPlaceWithRoot(root)
+        }
+
+        private fun canPlaceWithRoot(root: Note): Boolean {
+
+            return false
+
         }
 
         /**

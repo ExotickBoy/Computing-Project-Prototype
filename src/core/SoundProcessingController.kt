@@ -41,6 +41,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         while (!isInterrupted) { // until the thread is stopped
 
             while (timeStepQueue.size >= MAX_QUEUE_SIZE) {
+                // this is purely to prevent hogging cpu time while the TimeSteps aren't even being added
                 onSpinWait()
             }
 
@@ -83,6 +84,11 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         interrupt()
     }
 
+    fun fastProcess(section: Section) {
+        if (!section.isProcessed)
+            bufferThread.fastProcess.add(section)
+    }
+
     companion object {
 
         private const val MAX_QUEUE_SIZE = 10
@@ -109,6 +115,8 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     private class TimeStepBufferThread(val session: Session, val queue: LinkedList<TimeStep>)
         : Thread("TimeStepBufferThread") {
 
+        var fastProcess: MutableList<Section> = mutableListOf()
+
         /**
          * When the thread is started
          */
@@ -125,19 +133,30 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                 current = System.currentTimeMillis()
                 accumulated += current - last
 
-                while (accumulated > period) {
-                    accumulated -= period
+                if (session.recording.lastSection() == fastProcess.getOrNull(0)) {
 
-                    if (!queue.isEmpty()) {
+                    while (session.recording.lastSection()?.isProcessed == false) {
                         session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
                     } // else flag up slow performance
 
-                }
+                    accumulated = 0.0
 
-                while (queue.isEmpty()) {
-                    onSpinWait()
-                }
+                } else {
 
+                    while (accumulated > period) {
+                        accumulated -= period
+
+                        if (!queue.isEmpty()) {
+                            session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
+                        } // else flag up slow performance
+
+                    }
+
+                    while (queue.isEmpty()) {
+                        onSpinWait()
+                    }
+
+                }
             }
 
         }
