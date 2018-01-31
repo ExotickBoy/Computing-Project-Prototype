@@ -15,7 +15,7 @@ import kotlin.math.min
 class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
     private val historyPane = HistoryPane(session)
-    private val phaserPane = PhaserPane(session)
+    private val phaserPane = DePhaserPane(session)
     private val networkOutputPane = NetworkOutputPane(session)
     private val noteOutputPane = NoteOutputPane(session)
     private val controlPane = ControlPane(session)
@@ -98,7 +98,7 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
         actionMap.put(stroke.hashCode(), object : AbstractAction() {
             override fun actionPerformed(e: ActionEvent) {
                 synchronized(session.recording) {
-                    if (session.isEditSafe)
+                    if (session.state == Session.SessionState.EDIT_SAFE)
                         action.invoke(e)
                 }
             }
@@ -142,10 +142,10 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
         // for if something is in range, thus you can't know the start and end values
 
         const val SHIFT_STEP_MOVE = 1
-        const val SHIFT_CLUSTER_MOVE = 3
+        const val SHIFT_CLUSTER_MOVE = 1
 
         const val REGULAR_STEP_MOVE = 15
-        const val REGULAR_CLUSTER_MOVE = 1
+        const val REGULAR_CLUSTER_MOVE = 5
 
     }
 

@@ -30,6 +30,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     val isEmpty: Boolean
         get() = length == 0.0
 
+    val isGathered: Boolean
+        get() = sections.lastOrNull()?.isGathered ?: true
+
     val isProcessed: Boolean
         get() = sections.lastOrNull()?.isProcessed ?: true
 
@@ -61,7 +64,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING),
                     cutSection.timeSteps.subList(0, time - cutSection.timeStepStart),
                     cutSection.clusters.subList(0, clusterCut),
-                    true, true
+                    true, true, true
             )
 
             val right = Section(
@@ -72,9 +75,10 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size),
                     cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size),
                     cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
-                        NoteCluster(it.relTimeStepStart - left.timeSteps.size, it.placements, it.heading, it.boldHeading)
+                        it.copy(relTimeStepStart = it.relTimeStepStart - left.timeSteps.size)
+//                        NoteCluster(it.relTimeStepStart - left.timeSteps.size, it.placements, it.heading, it.boldHeading)
                     }.toMutableList(),
-                    true, true
+                    true, true, true
             )
 
             if (left.timeSteps.size >= Section.MIN_STEP_LENGTH && right.timeSteps.size >= Section.MIN_STEP_LENGTH) {

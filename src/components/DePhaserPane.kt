@@ -8,7 +8,7 @@ import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.min
 
-internal class PhaserPane internal constructor(private val session: Session) : JPanel() {
+internal class DePhaserPane internal constructor(private val session: Session) : JPanel() {
 
     private var scale: Float = 0f
     private var colour: Float = 0f
@@ -66,18 +66,15 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
                 val graph = Path2D.Double()
 
-                val resolution = 1
-                for (i in 0 until currentStep.dePhased.size step resolution) {
+                val multiplier = MULTIPLIER * height * min(1f, scale) * (2 - min(1f, scale))
+
+                for (i in 0 until currentStep.dePhased.size step RESOLUTION) {
 
                     val x = size.getWidth() * i / currentStep.dePhased.size
                     if (i == 0) {
-
-                        graph.moveTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * min(1f, scale))
-
+                        graph.moveTo(x, size.height / 2 + currentStep.dePhased[i] * multiplier)
                     } else {
-
-                        graph.lineTo(x, size.height / 2 + currentStep.dePhased[i] * SCALE * min(1f, scale))
-
+                        graph.lineTo(x, size.height / 2 + currentStep.dePhased[i] * multiplier)
                     }
 
                 }
@@ -94,7 +91,7 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
     }
 
-    private class AnimationThread(val phaserPane: PhaserPane) : Thread("Animation Thread") {
+    private class AnimationThread(val phaserPane: DePhaserPane) : Thread("Animation Thread") {
 
         override fun run() {
 
@@ -112,7 +109,7 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
                 while (accumulated > period) {
                     accumulated -= period
-                    if (phaserPane.session.isRecording) {
+                    if (!phaserPane.session.recording.isGathered) {
 
                         val scaleBefore = phaserPane.scale
                         val colourBefore = phaserPane.colour
@@ -147,12 +144,12 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
     companion object {
 
-        private const val SCALE = 250.0
-
         private const val ANIMATION_TIME = .4f
         private const val IMMUNE_TIME = .8f
         private const val ANIMATION_REFRESH_RATE = 60
         private const val ANIMATION_STEP = (1 / ANIMATION_TIME / ANIMATION_REFRESH_RATE)
+        private const val RESOLUTION = 1
+        private const val MULTIPLIER = 7.5
 
         /**
          * Interpolates between two colours and then converts the resulting colour to the 32 bit integer that
@@ -169,6 +166,14 @@ internal class PhaserPane internal constructor(private val session: Session) : J
 
         }
 
+    }
+
+    private fun Path2D.Double.lineTo(x: Number, y: Number) {
+        this.lineTo(x.toDouble(), y.toDouble())
+    }
+
+    private fun Path2D.Double.moveTo(x: Number, y: Number) {
+        this.moveTo(x.toDouble(), y.toDouble())
     }
 
 }

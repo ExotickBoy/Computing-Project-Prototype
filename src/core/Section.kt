@@ -75,27 +75,25 @@ data class Section(
         // choose to add the pattern that started first
 
 
-        val removeLast = when {
+        when {
             chosenMatches.isEmpty() -> {
                 chosenMatches.add(new.matches.last())
                 possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
-                false
+
             }
             chosenMatches[chosenMatches.lastIndex].clusterStart >= new.clusterStart -> {
                 chosenMatches[chosenMatches.lastIndex] = new.matches.last()
                 possiblePlacements[possiblePlacements.lastIndex] = chosenMatches[chosenMatches.lastIndex].possiblePlacements
-                true
+
+                paths.removeAt(paths.lastIndex)
+                clusters.removeAt(clusters.lastIndex)
+
             }
             else -> {
                 chosenMatches.add(new.matches.last())
                 possiblePlacements.add(chosenMatches[chosenMatches.lastIndex].possiblePlacements)
-                false
-            }
-        }
 
-        if (removeLast) {
-            paths.removeAt(paths.lastIndex)
-            clusters.removeAt(clusters.lastIndex)
+            }
         }
 
         (paths.size until possiblePlacements.size).forEach { time ->
@@ -131,15 +129,7 @@ data class Section(
 
         }
 
-
-        val bestPath: List<Int>
-        bestPath = try {
-            paths.last().minBy { it.distance }?.route!!
-        } catch (e: Exception) {
-            println(e.toString())
-            mutableListOf()
-        }
-
+        val bestPath = paths.last().minBy { it.distance }?.route!!
 
         // the path with the shortest distance to the last placement
 
@@ -152,7 +142,7 @@ data class Section(
                     if (chosenMatches[time].pattern == null) {
                         chosenMatches[time].validRoots.minBy { it.pitch }?.pitch?.noteLetterShort ?: ""
                     } else {
-                        (chosenMatches[time].validRoots.minBy { it.pitch }?.pitch?.noteLetterShort
+                        (chosenMatches[time].validRoots.map { it.pitch }.min()?.noteLetterShort
                                 ?: "") + (chosenMatches[time].pattern?.suffix ?: "")
                     },
                     chosenMatches[time].pattern != null
@@ -179,7 +169,7 @@ data class Section(
                 possibleMatches.addAll(patters.map { pattern ->
                     PossibleMatch(note.start - section.timeStepStart, clusterStart, tuning, pattern, mutableListOf(note))
                 })
-                matches.add(PossibleMatch(note.start - section.timeStepStart, clusterStart, tuning, note))
+                matches.add(PossibleMatch(note.start - section.timeStepStart, clusterStart, tuning, null, mutableListOf(note)))
 
             } else {
 
@@ -190,44 +180,64 @@ data class Section(
                 possibleMatches.forEach { it.addNote(note) }
                 possibleMatches.removeIf { !it.isPossible }
 
-                val newMatch = possibleMatches.find { it.isValid }
-                if (newMatch != null) {
-                    matches.add(newMatch.copy())
-                }
+                possibleMatches.filter { it.isValid }.forEach { matches.add(it.copy()) }
 
                 if (possibleMatches.isEmpty()) {
                     isDead = true
                 }
 
             }
+            if (clusterStart == 0) {
+                println(matches.map {
+                    "${it.pattern} + ${it.notes}"
+                })
+            }
             notes.add(note)
         }
 
     }
 
-    private data class PossibleMatch(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) : Serializable {
-
-        constructor(stepStart: Int, clusterStart: Int, tuning: Tuning, note: Note) : this(stepStart, clusterStart, tuning, null, mutableListOf()) {
-            addNote(note)
-        }
+    private data class PossibleMatch constructor(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) : Serializable {
 
         val isValid: Boolean
             get() = validRoots.isNotEmpty()
         val isPossible: Boolean
             get() = possibleRoots.isNotEmpty()
 
-        var possiblePlacements: List<List<Placement>> = mutableListOf()
+        val notePlacements: MutableList<List<Placement>> = mutableListOf()
+        var placementCombinations: List<List<Int>> = listOf()
+
+        val possiblePlacements: List<List<Placement>>
+            get() = placementCombinations.map { list ->
+                list.mapIndexed { index, which ->
+                    notePlacements[index][which]
+                }
+            }
 
         private val possibleRoots: MutableList<Note> = mutableListOf()
         val validRoots: MutableList<Note> = mutableListOf()
 
+        init {
+            val startNotes = notes.toList()
+            notes.clear()
+            startNotes.forEach { addNote(it) }
+        }
+
         internal fun addNote(newNote: Note) {
 
-            notes.add(newNote)
+            val newPlacement = findPossiblePlacements(newNote, tuning)
+            notePlacements.add(newPlacement)
 
-            possiblePlacements = findPossiblePlacements()
-            if (possiblePlacements.isEmpty()) {
-                possibleRoots.clear()
+            placementCombinations = if (notes.isEmpty()) {
+                (0 until newPlacement.size).map { listOf(it) }
+            } else {
+                placementCombinations.flatMap { existing ->
+                    (0 until newPlacement.size).map { new ->
+                        existing + new
+                    }.filter { list ->
+                                Placement.isPossible(list.mapIndexed { index, i -> notePlacements[index][i] }, pattern)
+                            }
+                }
             }
 
             possibleRoots.add(newNote)
@@ -235,50 +245,19 @@ data class Section(
             validRoots.clear()
             validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
 
-        }
-
-        private fun findPossiblePlacements(): List<List<Placement>> {
-
-            val notePlacements: List<List<Placement>> = notes.map { findPossiblePlacements(it, tuning) }
-            val possiblePlacementPaths: MutableList<PlacementPath> = mutableListOf()
-
-            notes.forEachIndexed { index, _ ->
-                if (index == 0) {
-                    possiblePlacementPaths.addAll(notePlacements[0].map { PlacementPath(listOf(it)) })
-                } else {
-                    val lastPossible = possiblePlacementPaths.toList()
-                    possiblePlacementPaths.clear()
-                    possiblePlacementPaths.addAll(lastPossible.flatMap {
-                        notePlacements[index].map { next ->
-                            PlacementPath(it.placements + next)
-                        }
-                    }.filter {
-                                it.placements.map { it.string }.distinct().size == it.placements.size
-                            })
-                }
-            } // this is essentially a breadth first search through this graph
-
-            return possiblePlacementPaths.map { it.placements }
-
+            notes.add(newNote)
         }
 
         private fun possibleWithRoot(root: Note): Boolean {
             return pattern == null || notes.all {
                 (it.pitch - root.pitch).floorMod(12) in pattern.notes
-            } && canPlaceWithRoot(root)
+            } && placementCombinations.isNotEmpty()
         }
 
         private fun validWithRoot(root: Note): Boolean {
             return pattern == null || pattern.notes.none {
                 (it + root.pitch) !in notes.map { it.pitch }
-            } && canPlaceWithRoot(root)
-        }
-
-        private fun canPlaceWithRoot(root: Note): Boolean {
-
-            //TODO("This need to be implemented")
-            return false
-
+            } && placementCombinations.isNotEmpty()
         }
 
         /**
@@ -297,15 +276,13 @@ data class Section(
 
         }
 
-        data class PlacementPath(val placements: List<Placement>) : Serializable
-
     }
 
     private data class Path(val route: List<Int>, val distance: Double) : Serializable
 
-    data class
-    ChordPattern(val title: String, val suffix: String, val notes: List<Int>) : Serializable {
-        constructor(title: String, suffix: String, vararg notes: Int) : this(title, suffix, notes.asList())
+    data class ChordPattern(val title: String, val suffix: String, val notes: List<Int>, val maxStringSep: Int?) : Serializable {
+        constructor(title: String, suffix: String, vararg notes: Int, maxStringSep: Int? = null)
+                : this(title, suffix, notes.asList(), maxStringSep)
     }
 
     companion object {
@@ -317,9 +294,9 @@ data class Section(
                 ChordPattern("Minor", "m", 0, 3, 7),
                 ChordPattern("Diminished", "d", 0, 3, 6),
                 ChordPattern("Augmented", "a", 0, 4, 8),
-                ChordPattern("+7", "+7", 0, 7),
-                ChordPattern("Power Chord", "+7", 0, 7, 12),
-                ChordPattern("+5", "+5", 0, 5)
+                ChordPattern("+7", "+7", 0, 7, maxStringSep = 2),
+                ChordPattern("Power Chord", "+7", 0, 7, 12, maxStringSep = 3),
+                ChordPattern("+5", "+5", 0, 5, maxStringSep = 2)
         )
 
         const val MAX_CHORD_SEPARATION = 10 // timeSteps

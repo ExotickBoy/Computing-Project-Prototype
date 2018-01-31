@@ -52,7 +52,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
             else
                 Tuning.defaultTunings[tuningComboBox.selectedIndex]
 
-            val file = File("res/cosmofamille2.wav")
+            val file = File("res/smallEd.wav")
             val recording = Recording(tuning, newName)
 
             val reader = SoundFileReader(recording, file)

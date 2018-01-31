@@ -23,52 +23,11 @@ internal class ControlPane(private val session: Session) : JPanel() {
     init {
 
         session.addOnStateChange {
-            when {
-                session.isEditSafe -> {
-                    println("session.isEditSafe")
-
-                    recordButton.isVisible = true
-                    pauseRecordingButton.isVisible = false
-                    playbackButton.isVisible = true
-                    pausePlaybackButton.isVisible = false
-
-                    recordButton.isEnabled = true
-                    playbackButton.isEnabled = true
-
-                    cutButton.isEnabled = true
-                    muteButton.isEnabled = true
-                }
-                session.isRecording || !session.recording.isProcessed -> {
-                    println("session.isRecording || !session.recording.isProcessed ->")
-                    recordButton.isVisible = false
-                    pauseRecordingButton.isVisible = true
-                    playbackButton.isVisible = true
-                    pausePlaybackButton.isVisible = false
-
-                    pauseRecordingButton.isEnabled = true
-                    playbackButton.isEnabled = false
-
-                    cutButton.isEnabled = false
-                    muteButton.isEnabled = false
-                }
-                session.recording.isPreProcessed && session.recording.isProcessed -> {
-                    println("session.recording.isPreProcessed && session.recording.isProcessed -> ")
-                    recordButton.isVisible = true
-                    pauseRecordingButton.isVisible = false
-                    playbackButton.isVisible = false
-                    pausePlaybackButton.isVisible = true
-
-                    recordButton.isEnabled = true
-                    pausePlaybackButton.isEnabled = true
-
-                    cutButton.isEnabled = false
-
-                }
-            }
+            onStateUpdate(session.state)
         }
         recordButton.setMnemonic(RECORD_MNEMONIC)
         recordButton.addActionListener {
-            if (session.record()) {
+            if (session.record() && session.state == Session.SessionState.EDIT_SAFE) {
 
                 pauseRecordingButton.isVisible = true
                 recordButton.isVisible = false
@@ -86,7 +45,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         pauseRecordingButton.setMnemonic(RECORD_MNEMONIC)
         pauseRecordingButton.isVisible = false
         pauseRecordingButton.addActionListener {
-            if (session.pauseRecording()) {
+            if (session.pauseRecording() && session.state == Session.SessionState.EDIT_SAFE) {
 
                 recordButton.isVisible = true
                 pauseRecordingButton.isVisible = false
@@ -100,7 +59,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         playbackButton.setMnemonic(PLAY_MNEMONIC)
         playbackButton.isEnabled = false
         playbackButton.addActionListener {
-            if (session.playback()) {
+            if (session.playback() && session.state == Session.SessionState.EDIT_SAFE) {
                 playbackButton.isVisible = false
                 pausePlaybackButton.isVisible = true
 
@@ -113,7 +72,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         pausePlaybackButton.setMnemonic(PLAY_MNEMONIC)
         pausePlaybackButton.isVisible = false
         pausePlaybackButton.addActionListener {
-            if (session.pausePlayback()) {
+            if (session.pausePlayback() && session.state == Session.SessionState.EDIT_SAFE) {
                 pausePlaybackButton.isVisible = false
                 playbackButton.isVisible = true
 
@@ -126,7 +85,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         cutButton.setMnemonic(CUT_MNEMONIC)
         cutButton.isEnabled = false
         cutButton.addActionListener {
-            if (session.isEditSafe) {
+            if (session.state == Session.SessionState.EDIT_SAFE) {
                 session.makeCut(session.correctedStepCursor)
             }
             parent.parent.requestFocusInWindow()
@@ -162,6 +121,26 @@ internal class ControlPane(private val session: Session) : JPanel() {
         add(exitButton, BorderLayout.LINE_START)
         add(centrePanel, BorderLayout.CENTER)
         add(muteButton, BorderLayout.EAST)
+
+        onStateUpdate(session.state)
+
+    }
+
+    private fun onStateUpdate(state: Session.SessionState) {
+
+        recordButton.isVisible = state != Session.SessionState.GATHERING
+        playbackButton.isVisible = state != Session.SessionState.PLAYING_BACK
+
+        recordButton.isEnabled = state == Session.SessionState.EDIT_SAFE || state == Session.SessionState.GATHERING
+        playbackButton.isEnabled = state == Session.SessionState.EDIT_SAFE || state == Session.SessionState.PLAYING_BACK
+
+        cutButton.isEnabled = state == Session.SessionState.EDIT_SAFE
+        muteButton.isEnabled = true
+
+        pauseRecordingButton.isVisible = !recordButton.isVisible
+        pausePlaybackButton.isVisible = !playbackButton.isVisible
+        pauseRecordingButton.isEnabled = recordButton.isEnabled
+        pausePlaybackButton.isEnabled = playbackButton.isEnabled
 
     }
 

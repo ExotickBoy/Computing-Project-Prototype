@@ -25,29 +25,15 @@ internal class SoundFileReader(private val recording: Recording, private val fil
 
         recording.startSection()
 
-        // recording -> PCM_SIGNED 44100.0 Hz, 16 bit, stereo, 4 bytes/frame, little-endian
-        // microphone -> PCM_SIGNED 44100.0 Hz, 16 bit, mono, 2 bytes/frame, big-endian
-
-        val read = ByteArray(inputStream.frameLength.toInt() * inputStream.format.sampleSizeInBits / 8)
+        val read = inputStream.readAllBytes()
         val samples = FloatArray(read.size / 2)
 
-        while (!isInterrupted) {
+        SoundUtils.bytesToFloats(read, samples, inputStream.format.isBigEndian)
 
-            val bytesRead = inputStream.read(read, 0, read.size)
-            SoundUtils.bytesToFloats(read, samples, inputStream.format.isBigEndian)
-            if (bytesRead == -1)
-                break
-            else if (bytesRead == read.size)
-                recording.addSamples(samples.sliceArray(0 until bytesRead))
-            else
-                recording.addSamples(samples.slice(0 until bytesRead).toFloatArray())
-
-        }
-
+        recording.addSamples(samples)
         recording.endSection()
 
     }
-
 
     internal class UnsupportedBitDepthException : Exception("Only 16 bit files are supported")
     internal class UnsupportedChannelsException : Exception("Only mono supported")

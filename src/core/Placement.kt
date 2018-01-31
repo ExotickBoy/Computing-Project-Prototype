@@ -32,6 +32,8 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
 
         private const val INTERNAL_SCALING_FACTOR: Double = 1.0
 
+        private const val MAX_FRET_SEPARATION = 5
+
         /**
          * The base in the exponential function relating to time's significance
          */
@@ -51,6 +53,20 @@ data class Placement(val tuning: Tuning, val fret: Int, val string: Int, val not
                     distance(first, second)
                 }
             }.average()
+
+        }
+
+        fun isPossible(placements: List<Placement>, pattern: Section.ChordPattern?): Boolean {
+
+            val strings = placements.map { it.string }
+            val stringSep = strings.range()
+            val fretSep = placements.map { it.fret }.range()
+            return when {
+                strings.distinct().size != strings.size -> false
+                pattern?.maxStringSep != null && stringSep > pattern.maxStringSep -> false
+                fretSep > MAX_FRET_SEPARATION -> false
+                else -> true
+            }
 
         }
 

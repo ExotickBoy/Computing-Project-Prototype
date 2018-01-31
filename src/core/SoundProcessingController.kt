@@ -48,7 +48,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
             synchronized(session.recording) {
 
                 val section = session.recording.lastSection()
-                if (section != null && !section.isPreProcessed && processingCursor + FRAME_SIZE <= section.samples.size) { // new frame
+                if (section?.isPreProcessed != false) {
+                    onSpinWait()
+                } else if (processingCursor + FRAME_SIZE <= section.samples.size) { // new frame
 
                     isProcessing = true
                     val newStep = TimeStep(
@@ -62,8 +64,8 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                     processingCursor += SAMPLES_BETWEEN_FRAMES
 
                 } else {
-                    if (section != null && section.isGathered) {
-                        section.isPreProcessed = true
+                    if (section.isGathered && !section.isPreProcessed) {
+                        session.setPreProcessed(section)
                         processingCursor = 0
                     }
                     isProcessing = false
@@ -135,34 +137,41 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                 accumulated += current - last
 
                 val lastSection = session.recording.lastSection()
+                if (lastSection != null && !lastSection.isProcessed) {
 
-                if (lastSection != null && lastSection == fastProcess.getOrNull(0)) {
+                    if (lastSection == fastProcess.getOrNull(0)) {
 
-                    while (queue.isNotEmpty()) {
-                        session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
-                    } // else flag up slow performance
+                        while (!lastSection.isProcessed) {
 
-                    lastSection.isProcessed = true
-                    accumulated = 0.0
+                            if (!queue.isEmpty())
+                                session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
+                            else if (lastSection.isPreProcessed) {
+                                session.setProcessed(lastSection)
+                            } else {
+                                onSpinWait()
+                            }
+                        }
 
-                } else {
+                        accumulated = 0.0
 
-                    while (accumulated > period) {
-                        accumulated -= period
+                    } else {
 
-                        if (!queue.isEmpty()) {
-                            session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
-                        } else if (lastSection?.isPreProcessed == true) {
-                            lastSection.isProcessed = true
+                        while (accumulated > period) {
+                            accumulated -= period
+
+                            if (!queue.isEmpty()) {
+                                session.addTimeStep(queue.removeFirst()) // add time step to recording for further processing
+                            } else if (lastSection.isPreProcessed) {
+                                session.setProcessed(lastSection)
+                            } else {
+                                onSpinWait()
+                            }
+
                         }
 
                     }
-
-                    while (queue.isEmpty()) {
-                        onSpinWait()
-                    }
-
                 }
+
             }
 
         }

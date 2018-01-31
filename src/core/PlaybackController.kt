@@ -30,8 +30,7 @@ internal class PlaybackController(private val session: Session, private val onEn
 
         currentSectionIndex = session.recording.sectionAt(session.correctedStepCursor)!!
         val section = session.recording.sections[currentSectionIndex]
-        sectionPlayHead = (section.samples.size * (session.correctedStepCursor - section.timeStepStart) /
-                section.timeSteps.size.toDouble()).roundToInt()
+        sectionPlayHead = (section.samples.size * (session.correctedStepCursor.toDouble() / section.timeSteps.size)).roundToInt()
 
         open()
         start()

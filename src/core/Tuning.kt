@@ -49,7 +49,7 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
 
         const val DEFAULT_NAME: String = "Nameless Tuning"
         const val DEFAULT_CAPO = 0
-        const val DEFAULT_MAX_FRET = 12
+        const val DEFAULT_MAX_FRET = 15
 
         const val MAX_MAX_FRET = 20
 

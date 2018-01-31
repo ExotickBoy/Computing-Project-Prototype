@@ -27,11 +27,12 @@ internal object Model {
     private const val OUTPUT_TENSOR_NAME: String = "predictions"
     private const val ENQUEUE_START_INPUTS: String = "enqueue_start_inputs"
     private const val ENQUEUE_NEW_INPUT: String = "enqueue_new_inputs"
-    private const val DEQUEUE_INPUTS: String = "dequeue_inputs"
+    private const val DEQUEUE_INPUTS: String = "deque_inputs"
     private const val MEL_BINS_TENSOR: String = "mel_bins"
-    private const val DEPHASED_SAMPLES: String = "no_phase_reconstruction"
+    private const val DEPHASED_SAMPLES: String = "de_phased_reconstruction"
+    private const val DE_PHASED_POWER: String = "de_phased_rms"
 
-    private const val MODEL_LOCATION = "res/model74" // the location of the model
+    private const val MODEL_LOCATION = "res/model75" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -39,7 +40,7 @@ internal object Model {
     private val samplesInputBuffer: FloatBuffer // The FloatBuffer used for writing the samples and feeding them into the Model
     private val noteOutputBuffer: FloatBuffer // The buffer used for reading predictions from the Model
     private val spectrumOutputBuffer: FloatBuffer // The buffer used for reading the spectrum output from the Model
-    private val dephasedBuffer: FloatBuffer // The buffer used for reading the depahsed samples from the Model
+    private val dePhasedBuffer: FloatBuffer // The buffer used for reading the depahsed samples from the Model
 
     private var isSet = false
 
@@ -49,7 +50,7 @@ internal object Model {
         samplesInputBuffer = FloatBuffer.allocate(FFT_SIZE)
         noteOutputBuffer = FloatBuffer.allocate(PITCH_RANGE)
         spectrumOutputBuffer = FloatBuffer.allocate(MEL_BINS_AMOUNT)
-        dephasedBuffer = FloatBuffer.allocate(FFT_SIZE)
+        dePhasedBuffer = FloatBuffer.allocate(FFT_SIZE)
 
     }
 
@@ -75,21 +76,27 @@ internal object Model {
                     .fetch(OUTPUT_TENSOR_NAME)
                     .fetch(MEL_BINS_TENSOR)
                     .fetch(DEPHASED_SAMPLES)
+                    .fetch(DE_PHASED_POWER)
                     .feed(INPUT_TENSOR_NAME,
-                            Tensor.create(longArrayOf(1, 1, Model.FFT_SIZE.toLong()), samplesInputBuffer))
+                            Tensor.create(longArrayOf(Model.FFT_SIZE.toLong()), samplesInputBuffer))
                     .run()
             // to understand fetches and feeds, see Model in train.py
 
             noteOutputBuffer.rewind()
             spectrumOutputBuffer.rewind()
-            dephasedBuffer.rewind()
+            dePhasedBuffer.rewind()
             results[0].writeTo(noteOutputBuffer) // result[0] = OUTPUT_TENSOR_NAME
             results[1].writeTo(spectrumOutputBuffer) // result[1] = MEL_BINS_TENSOR
-            results[2].writeTo(dephasedBuffer) // result[1] = DEPHASED_SAMPLES
+            results[2].writeTo(dePhasedBuffer) // result[1] = DEPHASED_SAMPLES
+            return StepOutput(
+                    noteOutputBuffer.array().copyOf(),
+                    spectrumOutputBuffer.array().copyOf(),
+                    dePhasedBuffer.array().copyOf(),
+                    results[3].floatValue()
+            )
 
         }
 
-        return StepOutput(noteOutputBuffer.array().copyOf(), spectrumOutputBuffer.array().copyOf(), dephasedBuffer.array().copyOf())
 
     }
 

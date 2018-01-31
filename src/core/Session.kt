@@ -128,9 +128,10 @@ class Session(val recording: Recording) {
     var onScreenStepCursor: Int = 0
     var onScreenClusterCursor: Double = 0.0
     var stepFrom: Int = 0
-    var stepTo: Int = 0
     var clusterFrom: Double = 0.0
-    var clusterTo: Double = 0.0
+
+    private var stepTo: Int = 0
+    private var clusterTo: Double = 0.0
 
     val visibleStepRange
         get() = stepFrom..stepTo
@@ -163,11 +164,19 @@ class Session(val recording: Recording) {
     var swapWith: Int = 0
     var swapWithSection: Boolean? = false
 
-    val isEditSafe: Boolean
-        get() = microphoneController.isPaused && playbackController.isPaused && !soundProcessingController.isProcessing
+    val state: SessionState
+        get() = when {
+            !playbackController.isPaused -> SessionState.PLAYING_BACK
+            recording.isProcessed -> SessionState.EDIT_SAFE
+            recording.isPreProcessed -> SessionState.PROCESSING
+            recording.isGathered -> SessionState.PRE_PROCESSING
+            else -> SessionState.GATHERING
+        }
 
-    val isRecording
-        get() = !microphoneController.isPaused
+//    GATHERING,
+//    PRE_PROCESSING,
+//    PROCESSING,
+//    EDIT_SAFE
 
     private val microphoneController = MicrophoneController(this)
     private val soundProcessingController = SoundProcessingController(this)
@@ -179,7 +188,6 @@ class Session(val recording: Recording) {
         if (!recording.isEmpty && !recording.isProcessed) {
             recording.sections.takeLastWhile { !it.isProcessed }.forEach(soundProcessingController::fastProcess)
         }
-        onStateChange()
     }
 
     /**
@@ -216,7 +224,7 @@ class Session(val recording: Recording) {
      * @return If this was performed successfully
      */
     fun record(): Boolean {
-        return if (isEditSafe) {
+        return if (state == SessionState.EDIT_SAFE) {
             try {
                 synchronized(recording) {
                     if (!microphoneController.isOpen)
@@ -260,7 +268,7 @@ class Session(val recording: Recording) {
      * @return If this was performed successfully
      */
     fun playback(): Boolean {
-        return if (isEditSafe && stepCursor != null) {
+        return if (state == SessionState.EDIT_SAFE && stepCursor != null) {
             if (!playbackController.isOpen)
                 playbackController.begin()
             playbackController.isPaused = false
@@ -464,6 +472,28 @@ class Session(val recording: Recording) {
 
     companion object {
         const val DELETE_DISTANCE = .3
+    }
+
+    fun setPreProcessed(section: Section) {
+
+        section.isPreProcessed = true
+        onStateChange()
+
+    }
+
+    fun setProcessed(section: Section) {
+
+        section.isProcessed = true
+        onStateChange()
+
+    }
+
+    enum class SessionState {
+        GATHERING,
+        PRE_PROCESSING,
+        PROCESSING,
+        EDIT_SAFE,
+        PLAYING_BACK
     }
 
 }

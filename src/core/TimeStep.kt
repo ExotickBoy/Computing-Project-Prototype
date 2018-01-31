@@ -38,6 +38,9 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     val dePhased
         get() = modelOutput.dePhased
 
+    val dePhasedPower
+        get() = modelOutput.dePahsedPower
+
     private val samples: FloatArray
         get() {
             synchronized(section) {
@@ -94,8 +97,8 @@ class TimeStep private constructor(val section: Section, private val sampleStart
         /**
          * This is the range between which the volumes should be interpolated
          */
-        private const val maxMagnitude = 0.0f
-        private const val minMagnitude = -13.0f
+        private const val maxMagnitude = -1.0f
+        private const val minMagnitude = -15.0f
 
         /**
          * The colours can interpolate between to create a scale.

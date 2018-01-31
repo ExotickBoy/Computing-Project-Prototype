@@ -29,7 +29,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
         synchronized(session.recording) {
 
-            if (session.isEditSafe && dx != 0 && draggingThread?.isAlive != true) {
+            if (session.state == Session.SessionState.EDIT_SAFE && dx != 0 && draggingThread?.isAlive != true) {
                 // im using != true, because it cold be null
 
                 if (!isNote) {
@@ -76,7 +76,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
     private fun mouseLongPressed() {
 
-        if (session.isEditSafe && !isNote) {
+        if (session.state == Session.SessionState.EDIT_SAFE && !isNote) {
             synchronized(session.recording) {
 
                 session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor
