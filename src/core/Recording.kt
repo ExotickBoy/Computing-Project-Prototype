@@ -61,9 +61,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     cutSection.sampleStart,
                     cutSection.timeStepStart,
                     cutSection.clusterStart,
-                    cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING),
-                    cutSection.timeSteps.subList(0, time - cutSection.timeStepStart),
-                    cutSection.clusters.subList(0, clusterCut),
+                    cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING).toMutableList(),
+                    cutSection.timeSteps.subList(0, time - cutSection.timeStepStart).toMutableList(),
+                    cutSection.clusters.subList(0, clusterCut).toMutableList(),
                     true, true, true
             )
 
@@ -72,8 +72,8 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     left.sampleEnd,
                     left.timeStepEnd,
                     left.clusterEnd,
-                    cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size),
-                    cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size),
+                    cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size).toMutableList(),
+                    cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size).toMutableList(),
                     cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
                         it.copy(relTimeStepStart = it.relTimeStepStart - left.timeSteps.size)
 //                        NoteCluster(it.relTimeStepStart - left.timeSteps.size, it.placements, it.heading, it.boldHeading)
@@ -188,7 +188,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     private fun serialize(output: OutputStream) {
 
-        val stream = ObjectOutputStream(GZIPOutputStream(output))
+        val stream = ObjectOutputStream(if (USE_COMPRESSION) GZIPOutputStream(output) else output)
         stream.writeObject(this.getMetaData())
         stream.writeObject(this)
         stream.close()
@@ -197,7 +197,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     fun save() {
 
-        TODO("Save to file is not ready")
         serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
 
     }
@@ -206,7 +205,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         fun deserialize(input: InputStream): Recording {
 
-            val stream = ObjectInputStream(GZIPInputStream(input))
+            val stream = ObjectInputStream(if (USE_COMPRESSION) GZIPInputStream(input) else input)
             stream.readObject() // read and discard the metadata
             val recording = stream.readObject() as Recording
             stream.close()
@@ -218,8 +217,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
             return root.listFiles()?.filter { it.name.endsWith(FILE_EXTENSION) }?.map {
                 try {
-
-                    val stream = ObjectInputStream(GZIPInputStream(FileInputStream(it)))
+                    val stream = ObjectInputStream(if (USE_COMPRESSION) GZIPInputStream(FileInputStream(it)) else FileInputStream(it))
                     val metaData = stream.readObject() as RecordingMetaData
                     stream.close() // close the stream without reading the full recording
                     return@map PossibleRecording(it, metaData)
@@ -235,6 +233,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         private const val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
         private const val FILE_EXTENSION = ".rec"
         const val DEFAULT_PATH = "recordings/"
+        const val USE_COMPRESSION = false
 
     }
 

@@ -187,11 +187,6 @@ data class Section(
                 }
 
             }
-            if (clusterStart == 0) {
-                println(matches.map {
-                    "${it.pattern} + ${it.notes}"
-                })
-            }
             notes.add(note)
         }
 
@@ -282,7 +277,7 @@ data class Section(
 
     data class ChordPattern(val title: String, val suffix: String, val notes: List<Int>, val maxStringSep: Int?) : Serializable {
         constructor(title: String, suffix: String, vararg notes: Int, maxStringSep: Int? = null)
-                : this(title, suffix, notes.asList(), maxStringSep)
+                : this(title, suffix, notes.toList(), maxStringSep)
     }
 
     companion object {

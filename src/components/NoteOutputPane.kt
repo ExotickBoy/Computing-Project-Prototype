@@ -22,8 +22,9 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
     private var lineHeight: Double = 0.0
     private val margin: Int
     private val padding: Int
-    private val spacing: Float
     private val headerHeight: Int
+
+    val spacing: Float
 
     private val fontMetrics = getFontMetrics(font)
 
@@ -75,10 +76,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
             g.color = STRIPE_LIGHT
             g.fill(Rectangle2D.Double(0.0, 0.0, width.toDouble(), headerHeight.toDouble()))
             (0 until session.recording.tuning.size).forEach { index ->
-                g.color = when (index % 2) {
-                    1 -> STRIPE_LIGHT
-                    else -> STRIPE_DARK
-                }
+                g.color = if (index % 2 == 1) STRIPE_LIGHT else STRIPE_DARK
                 g.fill(Rectangle2D.Double(0.0, index * lineHeight + headerHeight, width.toDouble(), lineHeight))
             }
 
@@ -141,10 +139,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
             g.color = STRIPE_LIGHT
             g.fill(Rectangle2D.Double(-(margin + 2 * padding) + stringHeaderOffset, 0.0, margin + 2.0 * padding, headerHeight.toDouble()))
             for (index in 0 until session.recording.tuning.size) {
-                g.color = when (index % 2) {
-                    1 -> STRIPE_LIGHT
-                    else -> STRIPE_DARK
-                }
+                g.color = if (index % 2 == 1) STRIPE_LIGHT else STRIPE_DARK
                 g.color = Color(86, 86, 86)
 
                 g.drawString(
@@ -192,7 +187,6 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
     override fun componentShown(e: ComponentEvent) {}
 
     private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double> = start.toDouble()..endInclusive.toDouble()
-
 
     companion object {
 

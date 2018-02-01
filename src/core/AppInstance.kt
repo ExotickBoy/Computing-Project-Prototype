@@ -39,6 +39,8 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
 
         pane.onResume()
 
+        repaint()
+
     }
 
     fun pop() {
@@ -57,6 +59,8 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
             setLocationRelativeTo(null)
 
             paneStack.peek().onResume()
+
+            repaint()
 
         }
 

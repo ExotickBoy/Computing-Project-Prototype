@@ -22,8 +22,8 @@ class Session(val recording: Recording) {
     private val onStateChange: MutableList<() -> Unit> = mutableListOf()
     private val onSwapChange: MutableList<() -> Unit> = mutableListOf()
 
-    private var stepCursorField: Int? = null
-    private var clusterCursorField: Double? = null
+    private var stepCursorField: Int? = 0
+    private var clusterCursorField: Double? = 0.0
 
     var stepCursor: Int?
         set(value) {
@@ -141,9 +141,15 @@ class Session(val recording: Recording) {
     var width: Int = 0
         set(value) {
             field = value
+            updateLocations()
             onCursorChange()
         }
     var clusterWidth: Double = 0.0
+        set(value) {
+            field = value
+            updateLocations()
+            onCursorChange()
+        }
 
     var lastX: Int = 0
         set(value) {

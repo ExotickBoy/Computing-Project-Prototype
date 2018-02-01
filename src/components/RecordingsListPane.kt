@@ -7,6 +7,8 @@ import core.Session
 import dialogs.NewRecordingDialog
 import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.event.KeyAdapter
+import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.io.File
@@ -23,7 +25,6 @@ class RecordingsListPane : ApplicationPane() {
     private lateinit var dataModel: DefaultListModel<Recording.PossibleRecording>
 
     override fun onCreate() {
-
 
         val newButton = JButton("New Recording")
         newButton.setMnemonic('N')
@@ -43,11 +44,8 @@ class RecordingsListPane : ApplicationPane() {
         }
         recordingList.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
-                if (event.clickCount == 2) { // double click
-                    val possibleRecording = recordings[recordingList.selectedIndex]
-                    val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
-                    AppInstance.push(RecordingEditPane(session))
-                }
+                if (event.clickCount == 2)  // double click
+                    edit()
             }
 
         })
@@ -55,6 +53,15 @@ class RecordingsListPane : ApplicationPane() {
             deleteButton.isEnabled = !recordingList.selectedIndices.isEmpty()
             editButton.isEnabled = recordingList.selectedIndices.size == 1
         }
+        recordingList.addKeyListener(object : KeyAdapter() {
+            override fun keyReleased(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER)
+                    edit()
+                else if (e.keyCode == KeyEvent.VK_DELETE)
+                    delete()
+
+            }
+        })
         newButton.addActionListener {
             NewRecordingDialog(recordings)
         }
@@ -71,20 +78,12 @@ class RecordingsListPane : ApplicationPane() {
                     listOf("Delete", "No").toTypedArray(),
                     0)
 
-            if (choice == 0) { // delete pressed
+            if (choice == 0)  // delete pressed
+                delete()
 
-                recordingList.selectedIndices.sortedDescending().forEach {
-                    recordings[it].file.delete()
-                    recordings.removeAt(it)
-                    dataModel.removeElementAt(it)
-                }
-
-            }
         }
         editButton.addActionListener {
-            val possibleRecording = recordings[recordingList.selectedIndex]
-            val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
-            AppInstance.push(RecordingEditPane(session))
+            edit()
         }
         val recentRecordingLabel = JLabel("Recent Recordings:")
         recentRecordingLabel.setDisplayedMnemonic('R')
@@ -106,6 +105,22 @@ class RecordingsListPane : ApplicationPane() {
         add(recentRecordingPanel, BorderLayout.CENTER)
         add(buttonPanel, BorderLayout.NORTH)
 
+    }
+
+    private fun delete() {
+        recordingList.selectedIndices.sortedDescending().forEach {
+            recordings[it].file.delete()
+            recordings.removeAt(it)
+            dataModel.removeElementAt(it)
+        }
+    }
+
+    private fun edit() {
+        if (recordingList.selectedIndex != -1) {
+            val possibleRecording = recordings[recordingList.selectedIndex]
+            val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
+            AppInstance.push(RecordingEditPane(session))
+        }
     }
 
     override fun onPause() {

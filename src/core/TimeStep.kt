@@ -2,9 +2,14 @@ package core
 
 import java.awt.Color
 import java.awt.image.BufferedImage
+import java.io.IOException
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.io.Serializable
+import javax.imageio.ImageIO
 import kotlin.math.max
 import kotlin.math.min
+
 
 /**
  * This class is for storing the data related to each section of time.
@@ -31,9 +36,9 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     private val modelOutput: StepOutput
 
     @Transient
-    var melImage: BufferedImage
+    lateinit var melImage: BufferedImage
     @Transient
-    var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
+    lateinit var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
     val dePhased
         get() = modelOutput.dePhased
@@ -89,6 +94,51 @@ class TimeStep private constructor(val section: Section, private val sampleStart
             val value = min(max(modelOutput.predictions[y], 0f), 1f)
             noteImage.setRGB(0, y, mapToColour(value))
         }
+
+    }
+
+    @Throws(IOException::class)
+    private fun writeObject(output: ObjectOutputStream) {
+        output.defaultWriteObject()
+
+        val resultImage = BufferedImage(1, melImage.height + noteImage.height, BufferedImage.TYPE_INT_RGB)
+        val g = resultImage.graphics
+        g.drawImage(melImage, 0, 0, null)
+        g.drawImage(noteImage, 0, melImage.height, null)
+
+        ImageIO.write(resultImage, "png", output) // this object isn't serializable
+
+
+//        val images = mutableListOf(melImage, noteImage)
+//        output.writeInt(images.size) // how many images are serialized?
+//        for (eachImage in images) {
+//            ImageIO.write(eachImage, "png", output) // png is lossless
+//        }
+
+    }
+
+
+    @Throws(IOException::class, ClassNotFoundException::class)
+    private fun readObject(input: ObjectInputStream) {
+        input.defaultReadObject()
+
+//        val imageCount = input.readInt()
+//        val images = ArrayList<BufferedImage>(imageCount)
+//        for (i in 0 until imageCount) {
+//            images.add(ImageIO.read(input))
+//        }
+//
+////        melImage = images[0].getSubimage(0,0,1,10)
+////        noteImage = images[1].getSubimage(0,0,1,10)
+//
+//        println(images)
+//        melImage = images[0]
+//        noteImage = images[0]
+
+        val resultImage = ImageIO.read(input)
+
+        melImage = resultImage.getSubimage(0, 0, 1, Model.MEL_BINS_AMOUNT)
+        noteImage = resultImage.getSubimage(0, Model.MEL_BINS_AMOUNT, 1, resultImage.height - Model.MEL_BINS_AMOUNT)
 
     }
 

@@ -26,6 +26,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
             onStateUpdate(session.state)
         }
         recordButton.setMnemonic(RECORD_MNEMONIC)
+        recordButton.isEnabled = false
         recordButton.addActionListener {
             if (session.record() && session.state == Session.SessionState.EDIT_SAFE) {
 
@@ -43,6 +44,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         pauseRecordingButton.setMnemonic(RECORD_MNEMONIC)
+        pauseRecordingButton.isEnabled = false
         pauseRecordingButton.isVisible = false
         pauseRecordingButton.addActionListener {
             if (session.pauseRecording() && session.state == Session.SessionState.EDIT_SAFE) {
@@ -70,6 +72,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         pausePlaybackButton.setMnemonic(PLAY_MNEMONIC)
+        pausePlaybackButton.isEnabled = false
         pausePlaybackButton.isVisible = false
         pausePlaybackButton.addActionListener {
             if (session.pausePlayback() && session.state == Session.SessionState.EDIT_SAFE) {
@@ -103,6 +106,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         }
 
         exitButton.setMnemonic(EXIT_MNEMONIC)
+        exitButton.isEnabled = false
         exitButton.addActionListener {
             AppInstance.pop()
         }
@@ -136,6 +140,8 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
         cutButton.isEnabled = state == Session.SessionState.EDIT_SAFE
         muteButton.isEnabled = true
+
+        exitButton.isEnabled = state == Session.SessionState.EDIT_SAFE
 
         pauseRecordingButton.isVisible = !recordButton.isVisible
         pausePlaybackButton.isVisible = !playbackButton.isVisible

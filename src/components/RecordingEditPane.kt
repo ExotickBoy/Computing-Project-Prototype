@@ -87,10 +87,8 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
             session.stepCursor = 0
         }
         addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_END, 0)) {
-
             session.stepCursor = null
         }
-
     }
 
     private fun addSynchronizedSafeKeyListener(stroke: KeyStroke, action: (ActionEvent) -> (Unit)) {
@@ -114,6 +112,8 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
     override fun onResume() {
 
         AppInstance.title = "${core.FRAME_TITLE} - ${session.recording.name}"
+        session.width = width
+        session.clusterWidth = width.toDouble() / noteOutputPane.spacing
 
     }
 

@@ -10,7 +10,6 @@ internal class SoundFileReader(private val recording: Recording, private val fil
     lateinit var inputStream: AudioInputStream
 
     fun open() { // this throws exceptions
-        //https://www.ntu.edu.sg/home/ehchua/programming/java/J8c_PlayingSound.html
 
         inputStream = AudioSystem.getAudioInputStream(file)
 

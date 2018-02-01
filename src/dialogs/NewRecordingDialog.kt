@@ -2,10 +2,12 @@ package dialogs
 
 import components.RecordingEditPane
 import core.*
-import java.awt.*
-import java.io.File
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
+import java.awt.Insets
+import java.io.IOException
 import javax.swing.*
-import kotlin.concurrent.thread
+import javax.swing.filechooser.FileNameExtensionFilter
 
 
 class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
@@ -32,49 +34,56 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         val loadButton = JButton("Load File")
         loadButton.setMnemonic('L')
         loadButton.addActionListener {
-            //            val chooser = JFileChooser()
-//            chooser.fileFilter = FileNameExtensionFilter("WAV & MP3", "wav", "mp3")
-//            val returnVal = chooser.showOpenDialog(parent)
-//            if (returnVal == JFileChooser.APPROVE_OPTION) {
-//                println("You chose" + chooser.selectedFile)
-//            }
 
-            val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
-            val regex = "$name(\\d| )*".toRegex()
-            val sameNames = recordings.map { it.metaData.name }
-                    .filter { regex.matches(it) }
-                    .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
-                    .max()
-            val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
+            val fileChooser = JFileChooser()
+            fileChooser.fileFilter = FileNameExtensionFilter("WAV(16 bit PMC)", "wav")
+            val returnVal = fileChooser.showOpenDialog(parent)
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
 
-            val tuning = if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size)
-                customTuning ?: Tuning.defaultTunings[0] // this null case shouldn't happen
-            else
-                Tuning.defaultTunings[tuningComboBox.selectedIndex]
+                val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
+                val regex = "$name(\\d| )*".toRegex()
+                val sameNames = recordings.map { it.metaData.name }
+                        .filter { regex.matches(it) }
+                        .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
+                        .max()
+                val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
 
-            val file = File("res/smallEd.wav")
-            val recording = Recording(tuning, newName)
+                val tuning = if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size)
+                    customTuning ?: Tuning.defaultTunings[0] // this null case shouldn't happen
+                else
+                    Tuning.defaultTunings[tuningComboBox.selectedIndex]
 
-            val reader = SoundFileReader(recording, file)
+                val recording = Recording(tuning, newName)
+                val reader = SoundFileReader(recording, fileChooser.selectedFile)
 
-            try {
+                try {
 
-                reader.open()
-                LoadingDialog(this@NewRecordingDialog, file.name) {
+                    reader.open()
+                    LoadingDialog(this@NewRecordingDialog, "Reading ${fileChooser.selectedFile.name}", "Reading from file", {
 
-                    reader.start()
-                    reader.join()
+                        reader.start()
+                        reader.join()
 
+                    })
+
+                    val session = Session(recording)
+                    AppInstance.push(RecordingEditPane(session))
+                    dispose()
+
+                } catch (e: Exception) {
+                    JOptionPane.showMessageDialog(this@NewRecordingDialog,
+                            "Loading ${fileChooser.selectedFile} failed\n${
+                            when (e) {
+                                is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
+                                is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
+                                is SoundFileReader.UnsupportedChannelsException -> "Only mono supported"
+                                is IOException -> "Read error occurred"
+                                else -> "Unknown error occurred"
+                            }
+                            }", "Error", JOptionPane.ERROR_MESSAGE)
                 }
 
-            } catch (e: Exception) { // TODO("different messages")
-                println("failed to open stream ${e.message}")
             }
-
-            val session = Session(recording)
-            AppInstance.push(RecordingEditPane(session))
-            repaint()
-            dispose()
 
         }
 
@@ -173,37 +182,5 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         setLocationRelativeTo(AppInstance)
 
     }
-
-    private class LoadingDialog(owner: Window, fileName: String, action: () -> Unit) : JDialog(owner, "Reading from file", ModalityType.APPLICATION_MODAL) {
-
-        init {
-
-            val content = JPanel(BorderLayout())
-            content.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-
-            val label = JLabel("Reading $fileName")
-            label.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
-
-            val progressBar = JProgressBar()
-            progressBar.isIndeterminate = true
-
-            content.add(label, BorderLayout.NORTH)
-            content.add(progressBar, BorderLayout.CENTER)
-
-            contentPane = content
-            pack()
-            setLocationRelativeTo(owner)
-            defaultCloseOperation = JFrame.DO_NOTHING_ON_CLOSE
-
-            thread(name = "Loading Worker") {
-                action.invoke()
-                dispose()
-            }
-            isVisible = true
-
-        }
-
-    }
-
 
 }
