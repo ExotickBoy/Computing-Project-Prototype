@@ -26,14 +26,17 @@ internal class PlaybackController(private val session: Session, private val onEn
     val isOpen: Boolean
         get() = sourceLine != null && sourceLine!!.isOpen
 
-    fun begin() {
+    fun begin() : Boolean {
 
-        currentSectionIndex = session.recording.sectionAt(session.correctedStepCursor)!!
+        currentSectionIndex = session.recording.sectionAt(session.correctedStepCursor) ?: return false
         val section = session.recording.sections[currentSectionIndex]
         sectionPlayHead = (section.samples.size * (session.correctedStepCursor.toDouble() / section.timeSteps.size)).roundToInt()
 
         open()
         start()
+
+        return true
+
     }
 
     fun toggleMute(): Boolean {

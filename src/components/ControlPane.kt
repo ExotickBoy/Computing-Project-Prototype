@@ -36,8 +36,6 @@ internal class ControlPane(private val session: Session) : JPanel() {
                 playbackButton.isEnabled = false
                 cutButton.isEnabled = false
 
-            } else {
-                recordButton.isEnabled = false
             }
             parent.parent.requestFocusInWindow()
             // pass the focus back onto RecordingEditPane for the key listeners there to work

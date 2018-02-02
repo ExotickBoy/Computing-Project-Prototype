@@ -117,7 +117,6 @@ class TimeStep private constructor(val section: Section, private val sampleStart
 
     }
 
-
     @Throws(IOException::class, ClassNotFoundException::class)
     private fun readObject(input: ObjectInputStream) {
         input.defaultReadObject()

@@ -59,7 +59,6 @@ internal class HistoryPane internal constructor(private val session: Session) : 
 
             }
 
-
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
             g.draw(line(session.onScreenStepCursor, 0.0, session.onScreenStepCursor, height))

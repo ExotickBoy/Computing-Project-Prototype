@@ -14,7 +14,6 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
 
     @Volatile // so that each time isPaused is accessed it is read from main memory, this prevents a thread caching it
     var isPaused = true
-    // TODO set the thing to be bathered
 
     /**
      * @return whether the thread already has an open stream

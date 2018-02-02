@@ -1,5 +1,7 @@
 package core
 
+import javax.sound.sampled.LineUnavailableException
+import javax.swing.JOptionPane
 import kotlin.math.max
 import kotlin.math.min
 
@@ -116,7 +118,7 @@ class Session(val recording: Recording) {
     val correctedStepCursor: Int
         get() {
             synchronized(recording) {
-                return stepCursor ?: (recording.timeStepLength - 1)
+                return stepCursor ?: max(recording.timeStepLength - 1, 0)
             }
         }
     val correctedClusterCursor: Double
@@ -126,9 +128,13 @@ class Session(val recording: Recording) {
             }
         }
     var onScreenStepCursor: Int = 0
+        private set
     var onScreenClusterCursor: Double = 0.0
+        private set
     var stepFrom: Int = 0
+        private set
     var clusterFrom: Double = 0.0
+        private set
 
     private var stepTo: Int = 0
     private var clusterTo: Double = 0.0
@@ -204,6 +210,7 @@ class Session(val recording: Recording) {
             onScreenStepCursor = min(max(width - (recording.timeStepLength - correctedStepCursor), width / 2), correctedStepCursor)
             stepFrom = max(correctedStepCursor - onScreenStepCursor, 0)
             stepTo = min(correctedStepCursor + (width - onScreenStepCursor), recording.timeStepLength)
+            println("$width ${recording.timeStepLength} $correctedStepCursor $correctedStepCursor")
 
             onScreenClusterCursor = min(max(clusterWidth - (recording.clusterLength - correctedClusterCursor), clusterWidth / 2), correctedClusterCursor)
             clusterFrom = max(correctedClusterCursor - onScreenClusterCursor, 0.0)
@@ -246,7 +253,12 @@ class Session(val recording: Recording) {
                 }
             } catch (e: Exception) {
 
-                println("Couldn't open microphone line")
+                JOptionPane.showMessageDialog(AppInstance,
+                        "Failed to open microphone\n" + when (e) {
+                            is LineUnavailableException -> "Couldn't find a valid microphone"
+                            is IllegalArgumentException -> "Couldn't find a valid microphone"
+                            else -> "Unknown error occurred"
+                        }, "Error", JOptionPane.ERROR_MESSAGE)
                 false
 
             }
@@ -274,7 +286,8 @@ class Session(val recording: Recording) {
     fun playback(): Boolean {
         return if (state == SessionState.EDIT_SAFE && stepCursor != null) {
             if (!playbackController.isOpen)
-                playbackController.begin()
+                if (!playbackController.begin()) return false
+            // if it couldn't begin the playback controller
             playbackController.isPaused = false
             onStateChange()
             true
