@@ -93,18 +93,20 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     }
 
-    internal fun startSection() {
+    internal fun gatherSection(): Section {
 
-        if (sections.size == 0)
-            sections.add(Section(this, 0, 0, 0))
-        else
-            sections.add(Section(sections.last()))
+        val section = if (sections.size == 0) {
+            Section(this, 0, 0, 0)
+        } else {
+            Section(sections.last())
+        }
+        sections.add(section)
+        return section
 
     }
 
-    fun endSection() {
-        sections.last().isGathered = true
-    }
+    fun preProcessSection(): Section? = sections.firstOrNull { !it.isPreProcessed }
+    fun processSection(): Section? = sections.firstOrNull { !it.isProcessed }
 
     /**
      * Finds the section at the time given
@@ -113,18 +115,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
      */
     internal fun sectionAt(time: Int) = (0 until sections.size)
             .firstOrNull { time < sections[it].timeStepEnd }
-
-    fun addSamples(samples: FloatArray) {
-        sections.last().addSamples(samples)
-    }
-
-    /**
-     * Adds a new time step to the end of the recording
-     * @param timeStep The TimeStep that is to be added
-     */
-    internal fun addTimeStep(timeStep: TimeStep) {
-        sections.last().addTimeStep(timeStep)
-    }
 
     /**
      * Swaps two sections of the recording by their incises
@@ -183,8 +173,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     }
 
     private fun getMetaData(): RecordingMetaData = RecordingMetaData(name, length, created, System.currentTimeMillis())
-
-    fun lastSection(): Section? = if (sections.isEmpty()) null else sections.last()
 
     private fun serialize(output: OutputStream) {
 

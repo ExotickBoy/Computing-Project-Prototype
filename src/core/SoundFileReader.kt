@@ -22,15 +22,15 @@ internal class SoundFileReader(private val recording: Recording, private val fil
 
     override fun run() {
 
-        recording.startSection()
+        val section = recording.gatherSection()
 
         val read = inputStream.readAllBytes()
         val samples = FloatArray(read.size / 2)
 
         SoundUtils.bytesToFloats(read, samples, inputStream.format.isBigEndian)
 
-        recording.addSamples(samples)
-        recording.endSection()
+        section.addSamples(samples)
+        section.isGathered = true
 
     }
 

@@ -36,9 +36,9 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     private val modelOutput: StepOutput
 
     @Transient
-    lateinit var melImage: BufferedImage
+    var melImage: BufferedImage
     @Transient
-    lateinit var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
+    var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
     val dePhased
         get() = modelOutput.dePhased

@@ -239,7 +239,6 @@ class Session(val recording: Recording) {
                     stepCursor = null
                     microphoneController.isPaused = false
 
-                    recording.startSection()
                     onStateChange()
 
                     true
@@ -263,7 +262,6 @@ class Session(val recording: Recording) {
     fun pauseRecording(): Boolean {
         return if (!microphoneController.isPaused) {
             microphoneController.isPaused = true
-            recording.endSection()
             onStateChange()
             true
         } else false
@@ -297,28 +295,6 @@ class Session(val recording: Recording) {
         } else {
             false
         }
-    }
-
-    /**
-     * Adds samples to the recording
-     * @param samples A batch of samples that is to be added to the recording
-     */
-    fun addSamples(samples: FloatArray) {
-        synchronized(recording) {
-            recording.addSamples(samples)
-        }
-    }
-
-    /**
-     * Adds a TimeStep to the recording
-     * @param step The TimeStep that is to be added
-     */
-    fun addTimeStep(step: TimeStep) {
-        synchronized(recording) {
-            recording.addTimeStep(step)
-            updateLocations()
-        }
-        onStepChange()
     }
 
     /**
@@ -368,28 +344,28 @@ class Session(val recording: Recording) {
     /**
      * Invokes all the onStepChange listeners
      */
-    private fun onStepChange() {
+    internal fun onStepChange() {
         onStepChange.forEach { it.invoke() }
     }
 
     /**
      * Invokes all the onCursorChange listeners
      */
-    private fun onCursorChange() {
+    internal fun onCursorChange() {
         onCursorChange.forEach { it.invoke() }
     }
 
     /**
      * Invokes all the onStateChange listeners
      */
-    private fun onStateChange() {
+    internal fun onStateChange() {
         onStateChange.forEach { it.invoke() }
     }
 
     /**
      * Invokes all the onSwapChange listeners
      */
-    private fun onSwapChange() {
+    internal fun onSwapChange() {
         onSwapChange.forEach { it.invoke() }
     }
 
@@ -476,10 +452,6 @@ class Session(val recording: Recording) {
 
     }
 
-    companion object {
-        const val DELETE_DISTANCE = .3
-    }
-
     fun setPreProcessed(section: Section) {
 
         section.isPreProcessed = true
@@ -492,6 +464,10 @@ class Session(val recording: Recording) {
         section.isProcessed = true
         onStateChange()
 
+    }
+
+    companion object {
+        const val DELETE_DISTANCE = .3
     }
 
     enum class SessionState {

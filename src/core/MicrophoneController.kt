@@ -14,6 +14,7 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
 
     @Volatile // so that each time isPaused is accessed it is read from main memory, this prevents a thread caching it
     var isPaused = true
+    // TODO set the thing to be bathered
 
     /**
      * @return whether the thread already has an open stream
@@ -69,15 +70,25 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
 
         while (isOpen) { // this thread stops when the microphone line is stopped
 
-            numBytesRead = targetLine!!.read(read, 0, read.size)
-            if (numBytesRead == -1)
-                break // this will only happen if there is a problem with the input stream, i.e. microphone is disconnected
-            if (isPaused)
-                continue // this will read the samples and then not use them
+            val section = session.recording.gatherSection()
 
-            SoundUtils.bytesToFloats(read, samples, targetLine!!.format.isBigEndian)
-            session.addSamples(samples)
+            while (!isPaused) {
 
+                numBytesRead = targetLine!!.read(read, 0, read.size)
+                if (numBytesRead == -1)
+                    break // this will only happen if there is a problem with the input stream, i.e. microphone is disconnected
+
+                SoundUtils.bytesToFloats(read, samples, targetLine!!.format.isBigEndian)
+                section.addSamples(samples)
+
+            }
+
+            section.isGathered = true
+
+            while (!isPaused) {
+                targetLine!!.read(read, 0, read.size)
+                onSpinWait()
+            }
         }
 
     }

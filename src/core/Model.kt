@@ -32,7 +32,7 @@ internal object Model {
     private const val DEPHASED_SAMPLES: String = "de_phased_reconstruction"
     private const val DE_PHASED_POWER: String = "de_phased_rms"
 
-    private const val MODEL_LOCATION = "res/model75" // the location of the model
+    private const val MODEL_LOCATION = "res/model76" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
