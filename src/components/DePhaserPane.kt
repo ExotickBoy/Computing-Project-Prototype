@@ -19,8 +19,7 @@ internal class DePhaserPane internal constructor(private val session: Session) :
 
         preferredSize = Dimension(500, 150)
 
-        session.addOnStepChange { repaint() }
-        session.addOnCursorChange {
+        session.addOnUpdate {
             scale = 1f + ANIMATION_TIME / IMMUNE_TIME
             repaint()
         }

@@ -23,9 +23,8 @@ internal class HistoryPane internal constructor(private val session: Session) : 
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
 
-        session.addOnCursorChange { repaint() }
-        session.addOnSwapChange { repaint() }
-        session.addOnStepChange { repaint() }
+        session.addOnUpdate { repaint() }
+        session.addOnEdited { repaint() }
 
     }
 

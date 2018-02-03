@@ -48,7 +48,7 @@ class TimeStep private constructor(val section: Section, private val sampleStart
 
     private val samples: FloatArray
         get() {
-            synchronized(section) {
+            synchronized(section.recording) {
                 return section.samples.subList(sampleStart, sampleStart + SoundProcessingController.FRAME_SIZE).toFloatArray()
             }
         }
@@ -147,18 +147,26 @@ class TimeStep private constructor(val section: Section, private val sampleStart
          * This is the range between which the volumes should be interpolated
          */
         private const val maxMagnitude = -1.0f
-        private const val minMagnitude = -15.0f
+        private const val minMagnitude = -16.0f
 
         /**
          * The colours can interpolate between to create a scale.
          * I chose these colors because I wanted to reduce the amount of colours that the heat map uses so that
          * I can use other colours over it
          */
-        private val colourMapColours: Array<Color> = arrayOf(
+        private val viridisColourMap: Array<Color> = arrayOf(
                 Color(70, 6, 90),
                 Color(54, 91, 141),
                 Color(47, 180, 124),
                 Color(248, 230, 33)
+        )
+
+        private val infernoColourMap = arrayOf(
+                Color(0.001462f, 0.000466f, 0.013866f),
+                Color(0.335217f, 0.060060f, 0.428524f),
+                Color(0.729909f, 0.212759f, 0.333861f),
+                Color(0.975677f, 0.543798f, 0.043618f),
+                Color(0.988362f, 0.998364f, 0.644924f)
         )
 
         /**
@@ -166,7 +174,7 @@ class TimeStep private constructor(val section: Section, private val sampleStart
          * @param x The value to be mapped
          * @param colours The list of colours that are to be interpolated between, by default colourMapColours
          */
-        private fun mapToColour(x: Float, colours: Array<Color> = colourMapColours): Int {
+        private fun mapToColour(x: Float, colours: Array<Color> = viridisColourMap): Int {
             val h = (x * (colours.size - 1)).toInt()
             val f = (x * (colours.size - 1)) % 1
 

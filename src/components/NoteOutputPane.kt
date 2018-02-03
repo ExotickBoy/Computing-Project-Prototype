@@ -50,8 +50,8 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
         addMouseListener(scrollController)
         addComponentListener(this)
 
-        session.addOnCursorChange { repaint() }
-        session.addOnStepChange { repaint() }
+        session.addOnUpdate { repaint() }
+        session.addOnEdited { repaint() }
 
         preferredSize = Dimension(500, session.recording.tuning.size * PREFERRED_LINE_HEIGHT + headerHeight)
 

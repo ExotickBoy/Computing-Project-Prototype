@@ -111,7 +111,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
         override fun run() {
 
-            val mspt = 1000.0 / 30 // milliseconds per tick
+            val period = 1000.0 / 30 // milliseconds per tick
             var last = System.currentTimeMillis()
             var current = last
             var difference = 0.0
@@ -122,8 +122,8 @@ internal class ScrollController(private val isNote: Boolean, private val compone
                 current = System.currentTimeMillis()
                 difference += (current - last).toDouble()
 
-                while (difference > mspt) {
-                    difference -= mspt
+                while (difference > period) {
+                    difference -= period
                     controller.session.stepCursor = controller.session.correctedStepCursor + controller.movementDirection(controller.session.lastX)
                     controller.session.updateSwapWith()
 
@@ -150,16 +150,11 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
         override fun run() {
 
-            try {
-
-                while (System.currentTimeMillis() < endAt) {
-                    sleep(1)
-                }
-
-                controller.mouseLongPressed()
-
-            } catch (e: InterruptedException) {
+            while (System.currentTimeMillis() < endAt) {
+                onSpinWait()
             }
+            if (!isInterrupted)
+                controller.mouseLongPressed()
 
         }
 

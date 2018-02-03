@@ -21,9 +21,8 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
     private val timeStepQueue: LinkedList<TimeStep> = LinkedList()
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
-    var isProcessing = false
 
-    init {
+    fun begin() {
 
         bufferThread.start()
         start()
@@ -35,45 +34,37 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
      */
     override fun run() {
 
-        var previousStep: TimeStep? = null
-        var processingCursor = 0
-
         while (!isInterrupted) { // until the thread is stopped
 
-            while (timeStepQueue.size >= MAX_QUEUE_SIZE) {
-                // this is purely to prevent hogging cpu time while the TimeSteps aren't even being added
-                onSpinWait()
+            val section = synchronized(session.recording) {
+                session.recording.preProcessSection()
             }
+            if (section != null) {
+                var processingCursor = 0
+                var previousStep: TimeStep? = null
 
-            synchronized(session.recording) {
+                while (!section.isGathered || processingCursor + FRAME_SIZE < section.samples.size) {
 
-                val section = session.recording.sections.filter { !it.isProcessed }.firstOrNull()
-                if (section?.isPreProcessed != false) {
-                    onSpinWait()
-                } else if (processingCursor + FRAME_SIZE <= section.samples.size) { // new frame
+                    if (processingCursor + FRAME_SIZE < section.samples.size) {
 
-                    isProcessing = true
-                    val newStep = TimeStep(
-                            section,
-                            processingCursor,
-                            if (previousStep?.section != section) null else previousStep
-                    )
+                        val newStep = TimeStep(
+                                section,
+                                processingCursor,
+                                if (previousStep?.section != section) null else previousStep
+                        )
 
-                    previousStep = newStep
-                    timeStepQueue.add(newStep)
-                    processingCursor += SAMPLES_BETWEEN_FRAMES
-
-                } else {
-                    if (section.isGathered && !section.isPreProcessed) {
-                        session.setPreProcessed(section)
-                        processingCursor = 0
+                        previousStep = newStep
+                        timeStepQueue.add(newStep)
+                        processingCursor += SAMPLES_BETWEEN_FRAMES
+                    } else {
+                        onSpinWait()
                     }
-                    isProcessing = false
                 }
 
-            }
+                section.isPreProcessed = true
+                session.onUpdated()
 
-            if (!isProcessing) {
+            } else {
                 onSpinWait()
             }
 
@@ -87,14 +78,14 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     }
 
     fun fastProcess(section: Section) {
+
         if (!section.isPreProcessed || !section.isProcessed)
-            bufferThread.fastProcess.add(section)
+            bufferThread.addToFastProcessing(section)
 
     }
 
     companion object {
 
-        private const val MAX_QUEUE_SIZE = 10
         const val FRAME_RATE = 30
         const val SAMPLE_RATE = 44100
         const val FRAME_SIZE = 1 shl 12
@@ -118,7 +109,13 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     private class TimeStepBufferThread(val session: Session, val queue: LinkedList<TimeStep>)
         : Thread("TimeStepBufferThread") {
 
-        var fastProcess: MutableList<Section> = mutableListOf()
+        private var fastProcess: MutableList<Section> = mutableListOf()
+
+        fun addToFastProcessing(section: Section) {
+            synchronized(fastProcess) {
+                fastProcess.add(section)
+            }
+        }
 
         /**
          * When the thread is started
@@ -127,10 +124,13 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
             while (!(isInterrupted && queue.isEmpty())) { // it must output the data is is given before it stops
 
-                val section = session.recording.processSection()
-                val willFastProcess = section in fastProcess
+                val section = synchronized(session.recording) {
+                    session.recording.processSection()
+                }
                 if (section != null) {
-
+                    val willFastProcess = synchronized(fastProcess) {
+                        section in fastProcess
+                    }
                     val period = 1000 / FRAME_RATE // timing logic
                     var last = System.currentTimeMillis()
                     var current = last
@@ -147,18 +147,24 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                             accumulated -= period
 
                             if (!queue.isEmpty()) {
-                                section.addTimeStep(queue.removeFirst())
-                                session.onStepChange()
-                                // add time step to recording where further processing happens
-                            } else if (section.isProcessed) {
-                                section.isProcessed = true
-                                session.onStateChange()
+                                synchronized(session.recording) {
+                                    section.addTimeStep(queue.removeFirst())
+                                    session.onEdited()
+                                    session.onUpdated()
+                                    // add time step to recording where further processing happens
+                                }
+                            } else if (section.isPreProcessed) {
+                                synchronized(session.recording) {
+                                    section.isProcessed = true
+                                }
+                            } else {
+                                onSpinWait()
                             }
 
                         }
 
                     }
-
+                    session.onUpdated()
                 }
 
             }

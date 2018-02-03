@@ -5,6 +5,7 @@ import core.*
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
+import java.io.File
 import java.io.IOException
 import javax.swing.*
 import javax.swing.filechooser.FileNameExtensionFilter
@@ -37,6 +38,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
 
             val fileChooser = JFileChooser()
             fileChooser.fileFilter = FileNameExtensionFilter("WAV(16 bit PMC)", "wav")
+            fileChooser.currentDirectory = File("res/smallEd.wav")
             val returnVal = fileChooser.showOpenDialog(parent)
             if (returnVal == JFileChooser.APPROVE_OPTION) {
 
@@ -67,6 +69,8 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                     })
 
                     val session = Session(recording)
+                    session.stepCursor = null
+                    session.onEdited()
                     AppInstance.push(RecordingEditPane(session))
                     dispose()
 

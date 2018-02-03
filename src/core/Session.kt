@@ -20,9 +20,9 @@ import kotlin.math.min
 class Session(val recording: Recording) {
 
     private val onStepChange: MutableList<() -> Unit> = mutableListOf()
-    private val onCursorChange: MutableList<() -> Unit> = mutableListOf()
+    private val onUpdated: MutableList<() -> Unit> = mutableListOf()
     private val onStateChange: MutableList<() -> Unit> = mutableListOf()
-    private val onSwapChange: MutableList<() -> Unit> = mutableListOf()
+    private val onEdit: MutableList<() -> Unit> = mutableListOf()
 
     private var stepCursorField: Int? = 0
     private var clusterCursorField: Double? = 0.0
@@ -61,7 +61,7 @@ class Session(val recording: Recording) {
                     }
 
                     updateLocations()
-                    onCursorChange()
+                    onUpdated()
                 }
 
             }
@@ -108,7 +108,7 @@ class Session(val recording: Recording) {
                     })?.toInt()
 
                     updateLocations()
-                    onCursorChange()
+                    onUpdated()
                 }
             }
 
@@ -148,30 +148,30 @@ class Session(val recording: Recording) {
         set(value) {
             field = value
             updateLocations()
-            onCursorChange()
+            onUpdated()
         }
     var clusterWidth: Double = 0.0
         set(value) {
             field = value
             updateLocations()
-            onCursorChange()
+            onUpdated()
         }
 
     var lastX: Int = 0
         set(value) {
             field = value
-            onSwapChange()
+            onUpdated()
         }
     var lastY: Double = 0.0
         set(value) {
             field = value
-            onSwapChange()
+            onUpdated()
         }
 
     var swap: Int? = null
         set(value) {
             field = value
-            onSwapChange()
+            onUpdated()
         }
     var swapWith: Int = 0
     var swapWithSection: Boolean? = false
@@ -179,27 +179,28 @@ class Session(val recording: Recording) {
     val state: SessionState
         get() = when {
             !playbackController.isPaused -> SessionState.PLAYING_BACK
+            swap != null -> SessionState.SWAPPING
             recording.isProcessed -> SessionState.EDIT_SAFE
             recording.isPreProcessed -> SessionState.PROCESSING
             recording.isGathered -> SessionState.PRE_PROCESSING
             else -> SessionState.GATHERING
         }
 
-//    GATHERING,
-//    PRE_PROCESSING,
-//    PROCESSING,
-//    EDIT_SAFE
+    var isEdited = false
+        private set (value) {
+            field = value
+        }
 
     private val microphoneController = MicrophoneController(this)
     private val soundProcessingController = SoundProcessingController(this)
-    private val playbackController = PlaybackController(this) {
-        onStateChange()
-    }
+    private val playbackController = PlaybackController(this)
 
     init {
         if (!recording.isEmpty && !recording.isProcessed) {
             recording.sections.takeLastWhile { !it.isProcessed }.forEach(soundProcessingController::fastProcess)
         }
+
+        soundProcessingController.begin()
     }
 
     /**
@@ -210,7 +211,6 @@ class Session(val recording: Recording) {
             onScreenStepCursor = min(max(width - (recording.timeStepLength - correctedStepCursor), width / 2), correctedStepCursor)
             stepFrom = max(correctedStepCursor - onScreenStepCursor, 0)
             stepTo = min(correctedStepCursor + (width - onScreenStepCursor), recording.timeStepLength)
-            println("$width ${recording.timeStepLength} $correctedStepCursor $correctedStepCursor")
 
             onScreenClusterCursor = min(max(clusterWidth - (recording.clusterLength - correctedClusterCursor), clusterWidth / 2), correctedClusterCursor)
             clusterFrom = max(correctedClusterCursor - onScreenClusterCursor, 0.0)
@@ -220,6 +220,7 @@ class Session(val recording: Recording) {
 
     fun toggleMute(): Boolean {
 
+        onUpdated()
         return playbackController.toggleMute()
 
     }
@@ -237,34 +238,34 @@ class Session(val recording: Recording) {
      * @return If this was performed successfully
      */
     fun record(): Boolean {
-        return if (state == SessionState.EDIT_SAFE) {
-            try {
-                synchronized(recording) {
-                    if (!microphoneController.isOpen)
+        if (state == SessionState.EDIT_SAFE) {
+            synchronized(recording) {
+                if (!microphoneController.isOpen)
+                    try {
                         microphoneController.begin()
+                    } catch (e: Exception) {
 
-                    stepCursor = null
-                    microphoneController.isPaused = false
+                        JOptionPane.showMessageDialog(AppInstance,
+                                "Failed to open microphone\n" + when (e) {
+                                    is LineUnavailableException -> "Couldn't find a valid microphone"
+                                    is IllegalArgumentException -> "Couldn't find a valid microphone"
+                                    else -> "Unknown error occurred"
+                                }, "Error", JOptionPane.ERROR_MESSAGE)
+                        return false
 
-                    onStateChange()
+                    }
 
-                    true
+                stepCursor = null
+                microphoneController.isPaused = false
 
-                }
-            } catch (e: Exception) {
+                onUpdated()
 
-                JOptionPane.showMessageDialog(AppInstance,
-                        "Failed to open microphone\n" + when (e) {
-                            is LineUnavailableException -> "Couldn't find a valid microphone"
-                            is IllegalArgumentException -> "Couldn't find a valid microphone"
-                            else -> "Unknown error occurred"
-                        }, "Error", JOptionPane.ERROR_MESSAGE)
-                false
+                return true
 
             }
-        } else {
-            false
-        }
+
+        } else return false
+
     }
 
     /**
@@ -274,7 +275,6 @@ class Session(val recording: Recording) {
     fun pauseRecording(): Boolean {
         return if (!microphoneController.isPaused) {
             microphoneController.isPaused = true
-            onStateChange()
             true
         } else false
     }
@@ -289,7 +289,7 @@ class Session(val recording: Recording) {
                 if (!playbackController.begin()) return false
             // if it couldn't begin the playback controller
             playbackController.isPaused = false
-            onStateChange()
+            onUpdated()
             true
         } else {
             false
@@ -303,83 +303,30 @@ class Session(val recording: Recording) {
     fun pausePlayback(): Boolean {
         return if (!playbackController.isPaused) {
             playbackController.isPaused = true
-            onStateChange()
             true
         } else {
             false
         }
     }
 
-    /**
-     * Cuts the recording at the cursor location and invokes update listeners
-     * @param cursor The time at which the cut should happen
-     */
-    fun makeCut(cursor: Int) {
-        synchronized(recording) {
-            recording.cut(cursor)
-        }
-        stepCursor = correctedStepCursor
-        onStepChange()
+    fun addOnUpdate(callback: () -> Unit) {
+        onUpdated.add(callback)
     }
 
-    /**
-     * Add a listener that will be called when TimeSteps are changed, i.e. added or moved via a swap
-     */
-    fun addOnStepChange(callback: () -> Unit) {
-        onStepChange.add(callback)
+    fun addOnEdited(callback: () -> Unit) {
+        onEdit.add(callback)
     }
 
-    /**
-     * Add a listener that will be called when the cursor is moved
-     * @param callback The callback that will be invoked
-     */
-    fun addOnCursorChange(callback: () -> Unit) {
-        onCursorChange.add(callback)
+    internal fun onUpdated() {
+
+        onUpdated.forEach { it.invoke() }
     }
 
-    /**
-     * Add a listener that will be called when the state of the session is changed
-     * (recording, playing back, safe to edit)
-     * @param callback The callback that will be invoked
-     */
-    fun addOnStateChange(callback: () -> Unit) {
-        onStateChange.add(callback)
-    }
+    internal fun onEdited() {
 
-    /**
-     * Add a listener that will be called when a swap property is changed
-     *
-     */
-    fun addOnSwapChange(callback: () -> Unit) {
-        onSwapChange.add(callback)
-    }
-
-    /**
-     * Invokes all the onStepChange listeners
-     */
-    internal fun onStepChange() {
-        onStepChange.forEach { it.invoke() }
-    }
-
-    /**
-     * Invokes all the onCursorChange listeners
-     */
-    internal fun onCursorChange() {
-        onCursorChange.forEach { it.invoke() }
-    }
-
-    /**
-     * Invokes all the onStateChange listeners
-     */
-    internal fun onStateChange() {
-        onStateChange.forEach { it.invoke() }
-    }
-
-    /**
-     * Invokes all the onSwapChange listeners
-     */
-    internal fun onSwapChange() {
-        onSwapChange.forEach { it.invoke() }
+        updateLocations()
+        isEdited = true
+        onEdit.forEach { it.invoke() }
     }
 
     /**
@@ -449,7 +396,7 @@ class Session(val recording: Recording) {
                     }
                 }
                 this.swap = null
-                onStepChange()
+                onEdited()
             }
             stepCursor = correctedStepCursor
         }
@@ -465,20 +412,6 @@ class Session(val recording: Recording) {
 
     }
 
-    fun setPreProcessed(section: Section) {
-
-        section.isPreProcessed = true
-        onStateChange()
-
-    }
-
-    fun setProcessed(section: Section) {
-
-        section.isProcessed = true
-        onStateChange()
-
-    }
-
     companion object {
         const val DELETE_DISTANCE = .3
     }
@@ -488,6 +421,7 @@ class Session(val recording: Recording) {
         PRE_PROCESSING,
         PROCESSING,
         EDIT_SAFE,
+        SWAPPING,
         PLAYING_BACK
     }
 

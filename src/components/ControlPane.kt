@@ -2,10 +2,12 @@ package components
 
 import core.AppInstance
 import core.Session
+import dialogs.LoadingDialog
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
 import javax.swing.JButton
+import javax.swing.JOptionPane
 import javax.swing.JPanel
 
 internal class ControlPane(private val session: Session) : JPanel() {
@@ -22,7 +24,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
     init {
 
-        session.addOnStateChange {
+        session.addOnUpdate {
             onStateUpdate(session.state)
         }
         recordButton.setMnemonic(RECORD_MNEMONIC)
@@ -86,8 +88,9 @@ internal class ControlPane(private val session: Session) : JPanel() {
         cutButton.setMnemonic(CUT_MNEMONIC)
         cutButton.isEnabled = false
         cutButton.addActionListener {
-            if (session.state == Session.SessionState.EDIT_SAFE) {
-                session.makeCut(session.correctedStepCursor)
+            if (session.state == Session.SessionState.EDIT_SAFE && session.recording.cut(session.correctedStepCursor)) {
+                session.stepCursor = session.correctedStepCursor
+                session.onEdited()
             }
             parent.parent.requestFocusInWindow()
         }
@@ -106,7 +109,32 @@ internal class ControlPane(private val session: Session) : JPanel() {
         exitButton.setMnemonic(EXIT_MNEMONIC)
         exitButton.isEnabled = false
         exitButton.addActionListener {
-            AppInstance.pop()
+            if (session.isEdited) {
+
+                val options = arrayOf("Save", "Don't save", "Cancel")
+
+                val choice = JOptionPane.showOptionDialog(AppInstance,
+                        "Do you want to save your changes?",
+                        "Save and Return?",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        options,
+                        options[2])
+
+                when (choice) {
+                    0 -> {
+                        LoadingDialog(AppInstance, "Saving to file", "Saving") {
+
+                            session.recording.save()
+
+                        }
+                        AppInstance.pop()
+                    }
+                    1 -> AppInstance.pop()
+                }
+            } else AppInstance.pop()
+
         }
 
 
@@ -155,7 +183,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         private const val PAUSE_EMOJI = "❚❚"
         private const val STOP_EMOJI = "\u23F9"
         private const val SCISSORS_EMOJI = "\u2702"
-        private const val EXIT_BUTTON_TEXT = "Exit"
+        private const val EXIT_BUTTON_TEXT = "Save & Exit"
 
         private const val MUTED_EMOJI = "🔇"
         private const val UNMUTED_EMOJI = "\uD83D\uDD0A"
@@ -164,7 +192,7 @@ internal class ControlPane(private val session: Session) : JPanel() {
         private const val RECORD_MNEMONIC = 'R'
         private const val PLAY_MNEMONIC = 'P'
         private const val CUT_MNEMONIC = 'C'
-        private const val EXIT_MNEMONIC = 'E'
+        private const val EXIT_MNEMONIC = 'S'
 
 
     }

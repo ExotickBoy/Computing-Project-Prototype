@@ -19,9 +19,8 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
         addMouseMotionListener(scrollController)
         addMouseListener(scrollController)
 
-        session.addOnCursorChange { repaint() }
-        session.addOnSwapChange { repaint() }
-        session.addOnStepChange { repaint() }
+        session.addOnUpdate { repaint() }
+        session.addOnEdited { repaint() }
 
     }
 

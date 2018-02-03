@@ -2,6 +2,7 @@ package components
 
 import core.AppInstance
 import core.Session
+import dialogs.LoadingDialog
 import java.awt.BorderLayout
 import java.awt.GridLayout
 import java.awt.event.ActionEvent
@@ -12,15 +13,18 @@ import javax.swing.*
 import kotlin.math.max
 import kotlin.math.min
 
+
 class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
     private val historyPane = HistoryPane(session)
     private val phaserPane = DePhaserPane(session)
     private val networkOutputPane = NetworkOutputPane(session)
     private val noteOutputPane = NoteOutputPane(session)
-    private val controlPane = ControlPane(session)
+    private val controlPane = ControlPane(this, session)
 
     override fun onCreate() {
+
+        session.addOnEdited { setTitle() }
 
         val historyPanel = JPanel(GridLayout())
         historyPanel.border = BorderFactory.createEtchedBorder()
@@ -89,6 +93,7 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
         addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_END, 0)) {
             session.stepCursor = null
         }
+
     }
 
     private fun addSynchronizedSafeKeyListener(stroke: KeyStroke, action: (ActionEvent) -> (Unit)) {
@@ -111,9 +116,15 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
     override fun onResume() {
 
-        AppInstance.title = "${core.FRAME_TITLE} - ${session.recording.name}"
+        setTitle()
         session.width = width
         session.clusterWidth = width.toDouble() / noteOutputPane.spacing
+
+    }
+
+    private fun setTitle() {
+
+        AppInstance.title = "${session.recording.name}${if (session.isEdited) "*" else ""} - ${core.FRAME_TITLE}"
 
     }
 
@@ -122,11 +133,38 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
         session.dispose()
         phaserPane.end()
 
-        if (session.recording.length != 0.0) {
+    }
 
-            session.recording.save()
+    override fun onClose() {
 
-        }
+        val back = if (session.isEdited) {
+
+            val options = arrayOf("Save", "Don't save", "Cancel")
+
+            val choice = JOptionPane.showOptionDialog(AppInstance,
+                    "Do you want to save your changes?",
+                    "Save and Exit?",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[2])
+
+            when (choice) {
+                0 -> {
+                    LoadingDialog(AppInstance, "Saving to file", "Saving") {
+
+                        session.recording.save()
+
+                    }
+                    true
+                }
+                1 -> true
+                else -> false
+            }
+        } else true
+
+        if (back) AppInstance.popAll()
 
     }
 

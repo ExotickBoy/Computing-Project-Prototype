@@ -4,6 +4,7 @@ import core.AppInstance
 import core.AppInstance.ApplicationPane
 import core.Recording
 import core.Session
+import dialogs.LoadingDialog
 import dialogs.NewRecordingDialog
 import java.awt.BorderLayout
 import java.awt.Color
@@ -117,9 +118,13 @@ class RecordingsListPane : ApplicationPane() {
 
     private fun edit() {
         if (recordingList.selectedIndex != -1) {
-            val possibleRecording = recordings[recordingList.selectedIndex]
-            val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
-            AppInstance.push(RecordingEditPane(session))
+
+            LoadingDialog(AppInstance, "Loading from file", "Loading") {
+                val possibleRecording = recordings[recordingList.selectedIndex]
+                val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
+                AppInstance.push(RecordingEditPane(session))
+            }
+
         }
     }
 
@@ -139,6 +144,10 @@ class RecordingsListPane : ApplicationPane() {
     }
 
     override fun onDestroy() {
+    }
+
+    override fun onClose() {
+        AppInstance.popAll()
     }
 
     private class ListElement(possibleRecording: Recording.PossibleRecording, selected: Boolean) : JPanel() {

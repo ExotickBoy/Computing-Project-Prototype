@@ -9,7 +9,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 
-internal class PlaybackController(private val session: Session, private val onEnd: () -> Unit) : Thread("Playback Thread") {
+internal class PlaybackController(private val session: Session) : Thread("Playback Thread") {
 
     var isPaused = true
         set(value) {
@@ -26,11 +26,11 @@ internal class PlaybackController(private val session: Session, private val onEn
     val isOpen: Boolean
         get() = sourceLine != null && sourceLine!!.isOpen
 
-    fun begin() : Boolean {
+    fun begin(): Boolean {
 
         currentSectionIndex = session.recording.sectionAt(session.correctedStepCursor) ?: return false
         val section = session.recording.sections[currentSectionIndex]
-        sectionPlayHead = (section.samples.size * (session.correctedStepCursor.toDouble() / section.timeSteps.size)).roundToInt()
+        sectionPlayHead = (section.samples.size * ((session.correctedStepCursor - section.timeStepStart).toDouble() / section.timeSteps.size)).roundToInt()
 
         open()
         start()
@@ -94,7 +94,7 @@ internal class PlaybackController(private val session: Session, private val onEn
                         }
                         currentSectionIndex == session.recording.sections.size - 1 -> {
                             isPaused = true
-                            onEnd.invoke()
+                            session.onUpdated()
 
                             session.stepCursor = (section.timeStepStart + section.timeSteps.size.toDouble()
                                     * sectionPlayHead / section.samples.size).roundToInt()
@@ -123,12 +123,12 @@ internal class PlaybackController(private val session: Session, private val onEn
                 val sectionIndex = session.recording.sectionAt(session.correctedStepCursor)
                 if (sectionIndex == null) {
                     isPaused = true
-                    onEnd.invoke()
+                    session.onUpdated()
                 } else {
                     currentSectionIndex = sectionIndex
                     val section = session.recording.sections[currentSectionIndex]
-                    sectionPlayHead = (section.samples.size * (session.correctedStepCursor - section.timeStepStart) /
-                            section.timeSteps.size.toDouble()).roundToInt()
+                    sectionPlayHead = (section.samples.size * ((session.correctedStepCursor - section.timeStepStart).toDouble() / section.timeSteps.size)).roundToInt()
+
                 }
             }
 

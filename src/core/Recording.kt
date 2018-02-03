@@ -43,12 +43,13 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
      * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
      * It may do nothing if one of the created sections is less than the minimum section length
      * @param time The time to cut the recording at in timesteps
+     * TODO
      */
-    internal fun cut(time: Int) {
+    internal fun cut(time: Int): Boolean {
 
         val cutIndex = sectionAt(time)
 
-        if (cutIndex != null) {
+        return if (cutIndex != null) {
 
             val cutSection = sections[cutIndex]
 
@@ -87,26 +88,31 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                 sections.add(cutIndex, right)
                 sections.add(cutIndex, left)
 
-            }
+                true
 
-        }
+            } else false
 
+        } else false
     }
 
     internal fun gatherSection(): Section {
 
-        val section = if (sections.size == 0) {
-            Section(this, 0, 0, 0)
-        } else {
-            Section(sections.last())
+        synchronized(this) {
+
+            val section = if (sections.size == 0) {
+                Section(this, 0, 0, 0)
+            } else {
+                Section(sections.last())
+            }
+            sections.add(section)
+            return section
+
         }
-        sections.add(section)
-        return section
 
     }
 
-    fun preProcessSection(): Section? = sections.firstOrNull { !it.isPreProcessed }
-    fun processSection(): Section? = sections.firstOrNull { !it.isProcessed }
+    fun preProcessSection(): Section? = synchronized(this) { sections.firstOrNull { !it.isPreProcessed } }
+    fun processSection(): Section? = synchronized(this) { sections.firstOrNull { !it.isProcessed } }
 
     /**
      * Finds the section at the time given

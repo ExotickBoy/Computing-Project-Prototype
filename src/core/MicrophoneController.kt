@@ -69,7 +69,7 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
 
         while (isOpen) { // this thread stops when the microphone line is stopped
 
-            val section = session.recording.gatherSection()
+            val section = synchronized(session.recording) { session.recording.gatherSection() }
 
             while (!isPaused) {
 
@@ -78,13 +78,17 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
                     break // this will only happen if there is a problem with the input stream, i.e. microphone is disconnected
 
                 SoundUtils.bytesToFloats(read, samples, targetLine!!.format.isBigEndian)
-                section.addSamples(samples)
+                synchronized(session.recording) {
+                    section.addSamples(samples)
+                }
+                session.onEdited()
 
             }
 
             section.isGathered = true
+            session.onUpdated()
 
-            while (!isPaused) {
+            while (isPaused) {
                 targetLine!!.read(read, 0, read.size)
                 onSpinWait()
             }

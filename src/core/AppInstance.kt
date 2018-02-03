@@ -8,6 +8,7 @@ import java.util.*
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JPanel
+import javax.swing.WindowConstants
 
 const val FRAME_TITLE = "NoteWize"
 
@@ -17,6 +18,7 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
 
     fun start() {
 
+        defaultCloseOperation = WindowConstants.DO_NOTHING_ON_CLOSE
         addWindowListener(this)
 
         iconImage = ImageIcon("res/icon.png").image
@@ -50,6 +52,7 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
 
         if (paneStack.isEmpty()) {
 
+            dispose()
             System.exit(0)
 
         } else {
@@ -66,7 +69,7 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
 
     }
 
-    private fun popAll() {
+    internal fun popAll() {
 
         paneStack.peek().onPause()
         paneStack.pop().onDestroy()
@@ -75,6 +78,7 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
             paneStack.pop().onDestroy()
         }
 
+        dispose()
         System.exit(0)
 
     }
@@ -83,24 +87,19 @@ object AppInstance : JFrame(FRAME_TITLE), WindowListener {
     override fun windowDeactivated(e: WindowEvent?) {}
     override fun windowOpened(e: WindowEvent?) {}
     override fun windowClosing(e: WindowEvent?) {
-        dispose()
+        paneStack.peek().onClose()
     }
 
-    override fun windowClosed(e: WindowEvent?) {
-        popAll()
-    }
-
+    override fun windowClosed(e: WindowEvent) {}
     override fun windowIconified(e: WindowEvent?) {}
-
     override fun windowDeiconified(e: WindowEvent?) {}
 
     abstract class ApplicationPane : JPanel() {
         abstract fun onCreate()
         abstract fun onPause()
         abstract fun onResume()
-
         abstract fun onDestroy()
-
+        abstract fun onClose()
     }
 
 }

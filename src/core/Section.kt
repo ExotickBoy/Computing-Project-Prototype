@@ -30,9 +30,6 @@ data class Section(
     val timeStepRange
         get() = timeStepStart until timeStepEnd
 
-    val sampleRange
-        get() = sampleStart until sampleEnd
-
     val clusterRange
         get() = clusterStart until clusterEnd
 
@@ -47,7 +44,9 @@ data class Section(
     private val chosenMatches: MutableList<PossibleMatch> = mutableListOf()
 
     fun addSamples(newSamples: FloatArray) {
-        samples.addAll(newSamples.toTypedArray())
+        synchronized(recording) {
+            samples.addAll(newSamples.toTypedArray())
+        }
     }
 
     fun addTimeStep(timeStep: TimeStep) {
@@ -155,11 +154,10 @@ data class Section(
 
     private class PatternMatchingState(val section: Section, val tuning: Tuning, val clusterStart: Int) : Serializable {
 
-        val notes = mutableListOf<Note>()
+        private val notes = mutableListOf<Note>()
+        private var possibleMatches = mutableListOf<PossibleMatch>()
 
-        var possibleMatches = mutableListOf<PossibleMatch>()
         var isDead = false
-
         val matches: MutableList<PossibleMatch> = mutableListOf()
 
         fun add(note: Note) {
@@ -199,8 +197,8 @@ data class Section(
         val isPossible: Boolean
             get() = possibleRoots.isNotEmpty()
 
-        val notePlacements: MutableList<List<Placement>> = mutableListOf()
-        var placementCombinations: List<List<Int>> = listOf()
+        private val notePlacements: MutableList<List<Placement>> = mutableListOf()
+        private var placementCombinations: List<List<Int>> = listOf()
 
         val possiblePlacements: List<List<Placement>>
             get() = placementCombinations.map { list ->
@@ -244,15 +242,15 @@ data class Section(
         }
 
         private fun possibleWithRoot(root: Note): Boolean {
-            return pattern == null || notes.all {
+            return placementCombinations.isNotEmpty() && (pattern == null || notes.all {
                 (it.pitch - root.pitch).floorMod(12) in pattern.notes
-            } && placementCombinations.isNotEmpty()
+            })
         }
 
         private fun validWithRoot(root: Note): Boolean {
-            return pattern == null || pattern.notes.none {
+            return placementCombinations.isNotEmpty() && (pattern == null || pattern.notes.none {
                 (it + root.pitch) !in notes.map { it.pitch }
-            } && placementCombinations.isNotEmpty()
+            })
         }
 
         /**
