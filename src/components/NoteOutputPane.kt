@@ -94,7 +94,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                         cluster.placements.forEach { placement ->
 
                             g.drawString(
-                                    placement.correctedFret.toString(),
+                                    placement.fret.toString(),
                                     (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2,
                                     (lineHeight * (placement.string + 1) - (lineHeight - g.font.size) / 2 + headerHeight).toFloat()
                             )

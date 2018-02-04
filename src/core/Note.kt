@@ -10,9 +10,6 @@ import java.io.Serializable
  */
 class Note(val pitch: Int, val start: Int, var duration: Int) : Serializable {
 
-    val end: Int
-        get() = start + duration
-
     companion object {
 
         const val SHARP = "♯"

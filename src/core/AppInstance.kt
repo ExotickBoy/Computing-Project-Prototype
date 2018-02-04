@@ -10,7 +10,7 @@ import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.WindowConstants
 
-const val FRAME_TITLE = "NoteWize"
+const val FRAME_TITLE: String = "NoteWize"
 
 object AppInstance : JFrame(FRAME_TITLE), WindowListener {
 

@@ -15,9 +15,20 @@ import java.io.Serializable
 data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFAULT_CAPO, val maxFret: Int = DEFAULT_MAX_FRET) : Serializable {
 
     constructor(name: String, vararg strings: String, capo: Int = DEFAULT_CAPO, maxFret: Int = DEFAULT_MAX_FRET)
-            : this(name, strings.map { it.pitch }.filterNotNull().reversed(), capo, maxFret)
+            : this(name, strings.mapNotNull { it.pitch }.reversed(), capo, maxFret)
     // an easy to use constructor for testing the Tuning class
     // e.g. Tuning("E2","A3")
+
+    private val placements: MutableMap<Int, List<Placement>> = mutableMapOf()
+
+    internal fun getPlacements(pitch: Int): List<Placement> = placements.getOrPut(pitch) { findPlacements(pitch) }
+
+    private fun findPlacements(pitch: Int): List<Placement> = strings.mapIndexedNotNull { index, it ->
+        val placement = Placement(pitch - it - capo, index)
+        if (placement.fret in 0..(maxFret - capo)) placement else null
+    }
+
+    fun getPlacements(pitch: Note): List<Placement> = getPlacements(pitch.pitch)
 
     /**
      * Returns the indexed string of the tuning
@@ -35,14 +46,11 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
     /**
      * Checks if a pitch has any placements in this tuning
      */
-    operator fun contains(pitch: Int): Boolean = strings.any {
-        // each string is checked because in boundary case tunings some pitches in the middle of the scale may be missed
-        (pitch - it) in 0..maxFret
-    }
+    operator fun contains(pitch: Int): Boolean = findPlacements(pitch).isNotEmpty()
 
     companion object {
 
-        val defaultTunings: List<Tuning> = mutableListOf(
+        val DEFAULT_TUNINGS: List<Tuning> = mutableListOf(
                 Tuning("Standard Guitar", "E2", "A2", "D3", "G3", "B3", "E4"),
                 Tuning("Standard Bass", "E1", "A1", "D2", "G2")
         )

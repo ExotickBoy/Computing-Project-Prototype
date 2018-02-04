@@ -22,8 +22,9 @@ internal class StepOutput(val predictions: FloatArray, val spectrum: FloatArray,
     init {
 
         pitches = predictions.mapIndexed { index, confidence -> index to confidence }
-                .filter { it.second >= Model.CONFIDENCE_CUT_OFF }
-                .map {
+                .filter {
+                    return@filter it.second >= Model.CONFIDENCE_CUT_OFF
+                }.map {
                     it.first + Model.START_PITCH
                 }
 

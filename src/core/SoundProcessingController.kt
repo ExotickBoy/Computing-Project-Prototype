@@ -54,7 +54,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                         )
 
                         previousStep = newStep
-                        timeStepQueue.add(newStep)
+                        synchronized(timeStepQueue) { timeStepQueue }.add(newStep)
                         processingCursor += SAMPLES_BETWEEN_FRAMES
                     } else {
                         onSpinWait()
@@ -146,7 +146,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                             accumulated -= period
 
-                            if (!queue.isEmpty()) {
+                            if (!synchronized(queue) { queue }.isEmpty()) {
                                 synchronized(session.recording) {
                                     section.addTimeStep(queue.removeFirst())
                                     session.onEdited()

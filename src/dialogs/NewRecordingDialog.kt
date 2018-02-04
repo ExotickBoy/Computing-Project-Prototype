@@ -23,11 +23,11 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         val constraint = GridBagConstraints()
 
         val nameField = JTextField()
-        val tunings = Tuning.defaultTunings.map { it.name }.toMutableList()
+        val tunings = Tuning.DEFAULT_TUNINGS.map { it.name }.toMutableList()
         tunings.add("Custom Tuning")
         tuningComboBox = JComboBox(tunings.toTypedArray())
         tuningComboBox.addActionListener {
-            if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size) {
+            if (tuningComboBox.selectedIndex == Tuning.DEFAULT_TUNINGS.size) {
                 tuningComboBox.transferFocus()
                 TuningMakerDialog(this@NewRecordingDialog, customTuning)
             }
@@ -50,10 +50,10 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                         .max()
                 val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
 
-                val tuning = if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size)
-                    customTuning ?: Tuning.defaultTunings[0] // this null case shouldn't happen
+                val tuning = if (tuningComboBox.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
+                    customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
                 else
-                    Tuning.defaultTunings[tuningComboBox.selectedIndex]
+                    Tuning.DEFAULT_TUNINGS[tuningComboBox.selectedIndex]
 
                 val recording = Recording(tuning, newName)
                 val reader = SoundFileReader(recording, fileChooser.selectedFile)
@@ -76,7 +76,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
 
                 } catch (e: Exception) {
                     JOptionPane.showMessageDialog(this@NewRecordingDialog,
-                            "Loading ${fileChooser.selectedFile} failed\n${
+                            "Loading ${fileChooser.selectedFile.name} failed\n${
                             when (e) {
                                 is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
                                 is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
@@ -103,10 +103,10 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                     .max()
             val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
 
-            val tuning = if (tuningComboBox.selectedIndex == Tuning.defaultTunings.size)
-                customTuning ?: Tuning.defaultTunings[0] // this null case shouldn't happen
+            val tuning = if (tuningComboBox.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
+                customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
             else
-                Tuning.defaultTunings[tuningComboBox.selectedIndex]
+                Tuning.DEFAULT_TUNINGS[tuningComboBox.selectedIndex]
 
             val session = Session(Recording(tuning, newName))
             AppInstance.push(RecordingEditPane(session))

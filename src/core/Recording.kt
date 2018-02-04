@@ -191,7 +191,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     fun save() {
 
+        val start = System.currentTimeMillis()
         serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
+        println("saving -> ${System.currentTimeMillis() - start}ms")
 
     }
 

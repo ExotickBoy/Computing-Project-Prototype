@@ -121,7 +121,9 @@ class RecordingsListPane : ApplicationPane() {
 
             LoadingDialog(AppInstance, "Loading from file", "Loading") {
                 val possibleRecording = recordings[recordingList.selectedIndex]
+                val start = System.currentTimeMillis()
                 val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
+                println("loading -> ${System.currentTimeMillis() - start}ms")
                 AppInstance.push(RecordingEditPane(session))
             }
 

@@ -6,7 +6,6 @@ import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
-import javax.imageio.ImageIO
 import kotlin.math.max
 import kotlin.math.min
 
@@ -52,7 +51,6 @@ class TimeStep private constructor(val section: Section, private val sampleStart
                 return section.samples.subList(sampleStart, sampleStart + SoundProcessingController.FRAME_SIZE).toFloatArray()
             }
         }
-
 
     val notes: List<Note>
 
@@ -101,12 +99,12 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     private fun writeObject(output: ObjectOutputStream) {
         output.defaultWriteObject()
 
-        val resultImage = BufferedImage(1, melImage.height + noteImage.height, BufferedImage.TYPE_INT_RGB)
-        val g = resultImage.graphics
-        g.drawImage(melImage, 0, 0, null)
-        g.drawImage(noteImage, 0, melImage.height, null)
-
-        ImageIO.write(resultImage, "png", output) // this object isn't serializable
+//        val resultImage = BufferedImage(1, melImage.height + noteImage.height, BufferedImage.TYPE_INT_RGB)
+//        val g = resultImage.graphics
+//        g.drawImage(melImage, 0, 0, null)
+//        g.drawImage(noteImage, 0, melImage.height, null)
+//
+//        ImageIO.write(resultImage, "png", output) // this object isn't serializable
 
 
 //        val images = mutableListOf(melImage, noteImage)
@@ -134,10 +132,10 @@ class TimeStep private constructor(val section: Section, private val sampleStart
 //        melImage = images[0]
 //        noteImage = images[0]
 
-        val resultImage = ImageIO.read(input)
-
-        melImage = resultImage.getSubimage(0, 0, 1, Model.MEL_BINS_AMOUNT)
-        noteImage = resultImage.getSubimage(0, Model.MEL_BINS_AMOUNT, 1, resultImage.height - Model.MEL_BINS_AMOUNT)
+//        val resultImage = ImageIO.read(input)
+//
+//        melImage = resultImage.getSubimage(0, 0, 1, Model.MEL_BINS_AMOUNT)
+//        noteImage = resultImage.getSubimage(0, Model.MEL_BINS_AMOUNT, 1, resultImage.height - Model.MEL_BINS_AMOUNT)
 
     }
 

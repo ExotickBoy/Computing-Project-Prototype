@@ -20,7 +20,7 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
     private val phaserPane = DePhaserPane(session)
     private val networkOutputPane = NetworkOutputPane(session)
     private val noteOutputPane = NoteOutputPane(session)
-    private val controlPane = ControlPane(this, session)
+    private val controlPane = ControlPane(session)
 
     override fun onCreate() {
 

@@ -19,9 +19,7 @@ import kotlin.math.min
  */
 class Session(val recording: Recording) {
 
-    private val onStepChange: MutableList<() -> Unit> = mutableListOf()
     private val onUpdated: MutableList<() -> Unit> = mutableListOf()
-    private val onStateChange: MutableList<() -> Unit> = mutableListOf()
     private val onEdit: MutableList<() -> Unit> = mutableListOf()
 
     private var stepCursorField: Int? = 0
