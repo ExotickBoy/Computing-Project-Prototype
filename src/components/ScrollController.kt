@@ -1,11 +1,12 @@
 package components
 
 import core.Session
-import java.awt.Component
-import java.awt.event.MouseEvent
-import java.awt.event.MouseListener
-import java.awt.event.MouseMotionListener
+import javafx.animation.PauseTransition
+import javafx.scene.canvas.Canvas
+import javafx.scene.input.MouseEvent
+import javafx.util.Duration
 import kotlin.math.*
+
 
 /**
  * This class is the mouse listener that is reused int he various output panes.
@@ -13,80 +14,78 @@ import kotlin.math.*
  * @property isNote If the scrolling should wrap to the closest note
  * @property session The session that this controller is responsible for
  */
-internal class ScrollController(private val isNote: Boolean, private val component: Component, private val session: Session) : MouseMotionListener, MouseListener {
+internal class ScrollController(private val isNote: Boolean, private val owner: Canvas, private val session: Session) {
 
-    private var longPressTimer: LongPressThread? = null
     private var draggingThread: DraggingThread? = null
 
-    override fun mouseMoved(e: MouseEvent) {
-        longPressTimer?.interrupt()
-    }
+    init {
 
-    override fun mouseDragged(e: MouseEvent) {
-        longPressTimer?.interrupt()
+        owner.setOnMouseDragged {
 
-        val dx = e.x - session.lastX
+            val dx = it.x - session.lastX
 
-        synchronized(session.recording) {
-
-            if (session.state == Session.SessionState.EDIT_SAFE && dx != 0 && draggingThread?.isAlive != true) {
-                // im using != true, because it cold be null
-
-                if (!isNote) {
-
-                    session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength), 0)
-
-                } else {
-                    session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
-                }
-
-            }
-            session.lastX = e.x
-            session.lastY = e.y / component.height.toDouble()
-        }
-
-        e.consume()
-
-    }
-
-    override fun mousePressed(e: MouseEvent) {
-
-        session.lastX = e.x
-        session.lastY = e.y / component.height.toDouble()
-
-        longPressTimer?.interrupt()
-        longPressTimer = LongPressThread(this)
-    }
-
-    override fun mouseReleased(e: MouseEvent) {
-        longPressTimer?.interrupt()
-        draggingThread?.interrupt()
-    }
-
-    override fun mouseEntered(e: MouseEvent) {}
-    override fun mouseExited(e: MouseEvent) {}
-
-    override fun mouseClicked(e: MouseEvent) {
-
-        if (!isNote) {
-            session.stepCursor = session.stepFrom + e.x
-            e.consume()
-        }
-    }
-
-    private fun mouseLongPressed() {
-
-        if (session.state == Session.SessionState.EDIT_SAFE && !isNote) {
             synchronized(session.recording) {
 
-                session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor
-                        - session.onScreenStepCursor
-                )
-                session.updateSwapWith()
-                draggingThread = DraggingThread(this)
+                if (session.state == Session.SessionState.EDIT_SAFE && dx != 0.0) {
+                    // im using != true, because it cold be null
 
+                    if (!isNote) {
+
+                        session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength.toDouble()), 0.0).roundToInt()
+
+                    } else {
+                        session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
+                    }
+
+                }
+                session.lastX = it.x.roundToInt()
+                session.lastY = it.y / owner.height
+            }
+
+            it.consume()
+
+        }
+
+        owner.setOnMousePressed {
+
+            session.lastX = it.x.roundToInt()
+            session.lastY = it.y / owner.height
+
+        }
+
+        owner.setOnMouseReleased {
+            draggingThread?.interrupt()
+        }
+
+        owner.setOnMouseClicked {
+
+            if (!isNote) {
+                session.stepCursor = (session.stepFrom + it.x).roundToInt()
+                it.consume()
+            }
+
+        }
+
+        val holdTimer = PauseTransition(Duration(holdTime))
+        holdTimer.setOnFinished {
+            if (session.state == Session.SessionState.EDIT_SAFE && !isNote) {
+                synchronized(session.recording) {
+
+                    session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor
+                            - session.onScreenStepCursor
+                    )
+                    session.updateSwapWith()
+                    draggingThread = DraggingThread(this)
+
+                }
             }
         }
+
+        owner.addEventHandler(MouseEvent.MOUSE_PRESSED, {
+            holdTimer.playFromStart()
+        })
+        owner.addEventHandler(MouseEvent.MOUSE_RELEASED) { holdTimer.stop() }
+        owner.addEventHandler(MouseEvent.DRAG_DETECTED) { holdTimer.stop() }
 
     }
 
@@ -98,7 +97,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
     companion object {
 
-        const val holdTime: Int = (.3 * 1000).toInt()
+        const val holdTime: Double = .3 * 1000
 
     }
 
@@ -132,29 +131,6 @@ internal class ScrollController(private val isNote: Boolean, private val compone
             }
 
             controller.session.executeSwap()
-
-        }
-
-    }
-
-    private class LongPressThread(private val controller: ScrollController) : Thread() {
-
-        private val endAt = System.currentTimeMillis() + holdTime
-
-        init {
-
-            name = "Timer Thread"
-            start()
-
-        }
-
-        override fun run() {
-
-            while (System.currentTimeMillis() < endAt) {
-                onSpinWait()
-            }
-            if (!isInterrupted)
-                controller.mouseLongPressed()
 
         }
 

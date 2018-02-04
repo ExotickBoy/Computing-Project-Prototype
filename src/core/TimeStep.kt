@@ -159,13 +159,6 @@ class TimeStep private constructor(val section: Section, private val sampleStart
                 Color(248, 230, 33)
         )
 
-        private val infernoColourMap = arrayOf(
-                Color(0.001462f, 0.000466f, 0.013866f),
-                Color(0.335217f, 0.060060f, 0.428524f),
-                Color(0.729909f, 0.212759f, 0.333861f),
-                Color(0.975677f, 0.543798f, 0.043618f),
-                Color(0.988362f, 0.998364f, 0.644924f)
-        )
 
         /**
          * Makes a value between 0 and 1 to a colour for the heat map

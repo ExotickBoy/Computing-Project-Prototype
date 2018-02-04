@@ -15,9 +15,7 @@ internal class NetworkOutputPane(private val session: Session) : JPanel() {
 
         preferredSize = Dimension(500, Model.PITCH_RANGE)
 
-        val scrollController = ScrollController(false, this, session)
-        addMouseMotionListener(scrollController)
-        addMouseListener(scrollController)
+//        ScrollController(false, this, session)
 
         session.addOnUpdate { repaint() }
         session.addOnEdited { repaint() }

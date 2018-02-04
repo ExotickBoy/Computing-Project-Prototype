@@ -1,13 +1,10 @@
 package components
 
-import core.AppInstance
 import core.Session
-import dialogs.LoadingDialog
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import javax.swing.BorderFactory
 import javax.swing.JButton
-import javax.swing.JOptionPane
 import javax.swing.JPanel
 
 internal class ControlPane(private val session: Session) : JPanel() {
@@ -109,31 +106,31 @@ internal class ControlPane(private val session: Session) : JPanel() {
         exitButton.setMnemonic(EXIT_MNEMONIC)
         exitButton.isEnabled = false
         exitButton.addActionListener {
-            if (session.isEdited) {
-
-                val options = arrayOf("Save", "Don't save", "Cancel")
-
-                val choice = JOptionPane.showOptionDialog(AppInstance,
-                        "Do you want to save your changes?",
-                        "Save and Return?",
-                        JOptionPane.YES_NO_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        options,
-                        options[2])
-
-                when (choice) {
-                    0 -> {
-                        LoadingDialog(AppInstance, "Saving to file", "Saving") {
-
-                            session.recording.save()
-
-                        }
-                        AppInstance.pop()
-                    }
-                    1 -> AppInstance.pop()
-                }
-            } else AppInstance.pop()
+            //            if (session.isEdited) {
+//
+//                val options = arrayOf("Save", "Don't save", "Cancel")
+//
+//                val choice = JOptionPane.showOptionDialog(MainApplication,
+//                        "Do you want to save your changes?",
+//                        "Save and Return?",
+//                        JOptionPane.YES_NO_CANCEL_OPTION,
+//                        JOptionPane.QUESTION_MESSAGE,
+//                        null,
+//                        options,
+//                        options[2])
+//
+//                when (choice) {
+//                    0 -> {
+//                        LoadingDialog(MainApplication, "Saving to file", "Saving") {
+//
+//                            session.recording.save()
+//
+//                        }
+//                        MainApplication.pop()
+//                    }
+//                    1 -> MainApplication.pop()
+//                }
+//            } else MainApplication.pop()
 
         }
 

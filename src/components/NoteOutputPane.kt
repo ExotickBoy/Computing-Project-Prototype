@@ -45,10 +45,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
         }.map { fontMetrics.stringWidth(it) }.max() ?: 0
         padding = 5
 
-        val scrollController = ScrollController(true, this, session)
-        addMouseMotionListener(scrollController)
-        addMouseListener(scrollController)
-        addComponentListener(this)
+//        ScrollController(false, this, session)
 
         session.addOnUpdate { repaint() }
         session.addOnEdited { repaint() }

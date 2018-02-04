@@ -1,7 +1,9 @@
 package dialogs
 
-import components.RecordingEditPane
-import core.*
+import core.Recording
+import core.Session
+import core.SoundFileReader
+import core.Tuning
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets
@@ -12,7 +14,7 @@ import javax.swing.filechooser.FileNameExtensionFilter
 
 
 class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
-    : JDialog(AppInstance, "New Recording", ModalityType.APPLICATION_MODAL) {
+    : JDialog(null, "New Recording", ModalityType.APPLICATION_MODAL) {
 
     private var customTuning: Tuning? = null
     private var tuningComboBox: JComboBox<String>
@@ -61,17 +63,17 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                 try {
 
                     reader.open()
-                    LoadingDialog(this@NewRecordingDialog, "Reading ${fileChooser.selectedFile.name}", "Reading from file", {
-
-                        reader.start()
-                        reader.join()
-
-                    })
+//                    LoadingDialog("Reading ${fileChooser.selectedFile.name}", "Reading from file", {
+//
+//                        reader.start()
+//                        reader.join()
+//
+//                    })
 
                     val session = Session(recording)
                     session.stepCursor = null
                     session.onEdited()
-                    AppInstance.push(RecordingEditPane(session))
+//                    MainApplication.push(RecordingEditPane(session))
                     dispose()
 
                 } catch (e: Exception) {
@@ -109,7 +111,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                 Tuning.DEFAULT_TUNINGS[tuningComboBox.selectedIndex]
 
             val session = Session(Recording(tuning, newName))
-            AppInstance.push(RecordingEditPane(session))
+//            MainApplication.push(RecordingEditPane(session))
             dispose()
 
         }
@@ -163,7 +165,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         add(buttons, constraint)
 
         pack()
-        setLocationRelativeTo(AppInstance)
+//        setLocationRelativeTo(MainApplication)
         isVisible = true
     }
 
@@ -183,7 +185,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
 
         }
         pack()
-        setLocationRelativeTo(AppInstance)
+//        setLocationRelativeTo(MainApplication)
 
     }
 

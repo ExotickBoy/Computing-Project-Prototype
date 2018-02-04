@@ -243,7 +243,7 @@ class Session(val recording: Recording) {
                         microphoneController.begin()
                     } catch (e: Exception) {
 
-                        JOptionPane.showMessageDialog(AppInstance,
+                        JOptionPane.showMessageDialog(null,
                                 "Failed to open microphone\n" + when (e) {
                                     is LineUnavailableException -> "Couldn't find a valid microphone"
                                     is IllegalArgumentException -> "Couldn't find a valid microphone"
