@@ -280,7 +280,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
          *
          */
         fun Node.setFocusMnemonic(key: String, scene: Scene) {
-            scene.addMnemonic(Mnemonic(this, KeyCodeCombination(KeyCode.valueOf(key), KeyCombination.ALT_ANY)))
+            scene.addMnemonic(Mnemonic(this, KeyCodeCombination(KeyCode.valueOf(key), KeyCombination.ALT_DOWN)))
         }
 
     }

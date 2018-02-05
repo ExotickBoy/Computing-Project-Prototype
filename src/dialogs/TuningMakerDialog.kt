@@ -50,7 +50,9 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
     private val removeButton: Button
     private val upButton: Button
     private val downButton: Button
+
     private val createButton: Button
+    private val cancelButton: Button
 
     /**
      * This function reads the contents of the new string field and then either adds a new string or gives the user
@@ -75,6 +77,8 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
                 newStringField.text = ""
                 newStringField.style = ""
+                stringList.style = ""
+
             }
             fieldAsString != null && fieldAsString in Model.POSSIBLE_PITCHES -> {
 
@@ -83,9 +87,11 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
                 newStringField.text = ""
                 newStringField.style = ""
+                stringList.style = ""
+
             }
             else -> {
-                newStringField.style = "-fx-focus-color:red;"
+                newStringField.style = RED_GLOW_STYLE
                 // this gives the field a red glow when it is selected
             }
         }
@@ -201,7 +207,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
         addButton = Button(ADD_BUTTON_LABEL)
         addButton.maxWidth = Double.MAX_VALUE
-        addButton.setFocusMnemonic(ADD_BUTTON_MENMONIC, scene)
+        addButton.setFocusMnemonic(ADD_BUTTON_MNEMONIC, scene)
         addButton.setOnAction { addString() }
 
         removeButton = Button(REMOVE_BUTTON_TEXT)
@@ -212,19 +218,36 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
                 strings.removeAt(it)
                 stringList.items.removeAt(it)
             }
+            stringList.selectionModel.clearSelection()
         }
 
         createButton = Button(CREATE_BUTTON_TEXT)
         createButton.maxWidth = Double.MAX_VALUE
         createButton.setFocusMnemonic(CREATE_BUTTON_MNEMONIC, scene)
         createButton.setOnAction {
-            // closes the dialog
-            val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
-                    strings,
-                    capoSpinner.value as Int,
-                    maxFretSpinner.value as Int)
 
-            previous.refresh(if (strings.isEmpty()) null else newTuning)
+            if (strings.size == 0) {
+                stringList.requestFocus()
+                stringList.style = RED_GLOW_STYLE
+            } else { // closes the dialog
+
+                val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
+                        strings,
+                        capoSpinner.value as Int,
+                        maxFretSpinner.value as Int)
+
+                previous.refresh(if (strings.isEmpty()) null else newTuning)
+                stage.close()
+
+            }
+
+        }
+
+        cancelButton = Button(CANCEL_BUTTON_TEXT)
+        cancelButton.maxWidth = Double.MAX_VALUE
+        cancelButton.setFocusMnemonic(CANCEL_BUTTON_MNEMONIC, scene)
+        cancelButton.setOnAction {
+            previous.refresh(null) // pass an empty tuning back
             stage.close()
         }
 
@@ -288,6 +311,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         buttonPanel.add(upButton, 2, 1)
         buttonPanel.add(downButton, 3, 1)
         buttonPanel.add(createButton, 0, 2, 4, 1)
+        buttonPanel.add(cancelButton, 0, 3, 4, 1)
         // column index, rowIndex, column span, row span
 
         root.add(detailPanel, 0, 0)
@@ -309,6 +333,8 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
     companion object {
 
+        private const val RED_GLOW_STYLE = "-fx-focus-color:red;"
+
         private const val STRING_LABEL_TEXT = "Strings"
 
         private const val CAPO_LABEL_TEXT = "Capo:"
@@ -321,8 +347,9 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         private const val DOWN_BUTTON_TEXT = "Down"
         private const val NEW_STRING_FIELD_PROMPT = "New Note (Enter to Add)"
         private const val NO_TUNING_PROMPT_TEXT = "Tuning Name"
-        private const val ADD_BUTTON_MENMONIC = "A"
+        private const val CANCEL_BUTTON_TEXT = "Cancel"
 
+        private const val ADD_BUTTON_MNEMONIC = "A"
         private const val UP_BUTTON_MNEMONIC = "U"
         private const val DOWN_BUTTON_MNEMONIC = "D"
         private const val NEW_STRING_FIELD_MNEMONIC = "O"
@@ -332,6 +359,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         private const val MAX_FRET_SPINNER_MNEMONIC = "M"
         private const val NEW_FIELD_MNEMONIC = "N"
         private const val STRING_LIST_MNEMONIC = "S"
+        private const val CANCEL_BUTTON_MNEMONIC = "E"
 
         private const val NO_STRING_PLACEHOLDER = "Type a new note (e.g. G#3)\n&\nPress '$ADD_BUTTON_LABEL' to add a string"
         private const val DIALOG_TITLE = "New Tuning"
