@@ -179,43 +179,52 @@ fun main(args: Array<String>) {
         // this shouldn't really be called in any case except in the
         // case of the code just below (load and temp files)
 
-        Platform.runLater {
+        exception.printStackTrace()
+        // this is just for debugging
 
-            val alert = Alert(Alert.AlertType.ERROR)
-            if (MainApplication.icon != null)
-                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
-
-            alert.title = ERROR_DIALOG_TITLE
-            alert.headerText = ERROR_DIALOG_HEADER
-            alert.contentText = exception.message
-
-            alert.showAndWait()
-
-            System.exit(1)
-
+        if (Platform.isFxApplicationThread()) {
+            showErrorDialog(thread, exception)
+        } else {
+            Platform.runLater {
+                showErrorDialog(thread, exception)
+            }
         }
-
     }
 
     try {
-
-
         System.load(copyFilesToTemp(Model.TENSOR_FLOW_NATIVES))
         // this unwraps the native files from the jar and then loads them
         // this is because the natives can't be read from inside the jar
         Model.MODEL_FILES.forEach { copyFilesToTemp(it) }
-        // this is for the model files, similarly TensorFlow doesn't allow for reading from inside the jar
-
+        // this is for the model files, similarly TensorFlow doesn't allow for reading from inside the jar#
         Model.load(getTempDir(Model.MODEL_DIR))
-
     } catch (e: Exception) {
-
+        // this can fail in several ways which shouldn't ever happen.
+        // I rethrow this generic error which will act as an error message
         throw Exception(FAILED_TO_LOAD_MESSAGE)
-
     }
 
     launch(MainApplication::class.java, *args)
     // launches the javafx window
+
+}
+
+/**
+ * This function displays an error dialog based on a thread and an exception
+ */
+private fun showErrorDialog(thread: Thread, exception: Throwable) {
+
+    val alert = Alert(Alert.AlertType.ERROR)
+    if (MainApplication.icon != null)
+        (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+
+    alert.title = ERROR_DIALOG_TITLE
+    alert.headerText = ERROR_DIALOG_HEADER
+    alert.contentText = exception.message
+
+    alert.showAndWait()
+
+    System.exit(1)
 
 }
 

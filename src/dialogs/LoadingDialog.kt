@@ -9,6 +9,7 @@ import javafx.scene.control.ProgressBar
 import javafx.scene.layout.BorderPane
 import javafx.stage.Modality
 import javafx.stage.Stage
+import javafx.stage.StageStyle
 
 /**
  * This class is for making a small temporary dialog that shows an indeterminate progress bar.
@@ -28,6 +29,7 @@ class LoadingDialog(labelText: String, title: String) {
 
         stage.isResizable = false
         stage.initModality(Modality.APPLICATION_MODAL)
+        stage.initStyle(StageStyle.UTILITY) // only show the close button
         stage.title = title
         if (MainApplication.icon != null)
             stage.icons.add(MainApplication.icon)

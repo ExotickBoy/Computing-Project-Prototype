@@ -18,6 +18,7 @@ from tensorflow.contrib.rnn import MultiRNNCell, GRUCell, DropoutWrapper, LSTMCe
 
 
 def generate_mel_transform(start_mel_frequency, end_mel_frequency, mel_filters, frame_length):
+    """Generates the matrix for the linear transformation that converts the frequency spectrum to a logarithmic scale"""
     mel_points = np.linspace(start_mel_frequency, end_mel_frequency,
                              mel_filters + 2)  # Equally spaced in Mel scale
     hz_points = (700 * (10 ** (mel_points / 2595) - 1))  # Convert Mel to Hz
@@ -39,6 +40,9 @@ def generate_mel_transform(start_mel_frequency, end_mel_frequency, mel_filters, 
 
 
 class DataGenerator:
+    """
+    This is the class that is entirely responsible for generating new training data batches.
+    """
     data_mean = -10.5589236
     data_var = 8.025949716970832656 ** .5
 
@@ -78,13 +82,15 @@ class DataGenerator:
     chord_delay_sd = .0002
     chord_delay_factor = .002
 
-    roll = 3  #
+    roll = 3  # the max 'out of tune'ness
 
     def __init__(self):
 
         self.guitars = self.load_sound_from(DataGenerator.guitars_folder)
         self.noise = self.load_sound_from(DataGenerator.noise_folder)
-        self.instruments = self.load_sound_from(DataGenerator.instruments_folder)
+        self.instruments = self.load_sound_from(DataGenerator.instruments_folder)  # this isn't implemented
+        # The idea is that adding other instruments will make it so that the neural network can distinguish guitar
+        # better
 
         self.chords = DataGenerator.load_chords()
 
@@ -94,12 +100,14 @@ class DataGenerator:
 
     @property
     def generate_batch(self):
+        """Generates a new batch"""
 
         num_frames = int(np.ceil(float(np.abs(Trainer.example_length - Model.frame_length)) / Model.frame_step))
 
         data_in = np.zeros((Trainer.batch_size, num_frames, Model.mel_filters), np.float32)
         data_out = np.zeros((Trainer.batch_size, num_frames, Model.end_pitch - Model.start_pitch, 2), np.float32)
         data_out[:, :, :] = [1, 0]
+        # Init the tensors
 
         for example in range(0, Trainer.batch_size):
 
@@ -109,6 +117,7 @@ class DataGenerator:
             notes = []
             noises = []
 
+            # add noise
             for noise_type in sample(self.noise, DataGenerator.layers_of_noise):
                 current_volume = DataGenerator.noise_volume * (10 ** gauss(0, DataGenerator.noise_volume_sd)) / np.sqrt(
                     DataGenerator.layers_of_noise)
@@ -116,17 +125,17 @@ class DataGenerator:
 
                 noises.append(Noise(start_offset, noise_type, current_volume))
 
-            # out = open("D:/test.csv", "a")
-
             current_time = DataGenerator.sample_frequency * DataGenerator.initial_pause
             last = []
 
+            # adds features forwards through time until the end is reached
+            # hopefully these features are comparable to real music
             while current_time < Trainer.example_length - Model.frame_step:
 
                 action = DataGenerator.weighted_choice(
                     {"note": 8, "chord": 6, "repeat": 0 if len(last) == 0 else 1, "guitar_swap": 1, "pause": 4})
 
-                if action == "note":  # note
+                if action == "note":  # add a note
 
                     for note in last:
                         note.duration = int(
@@ -149,7 +158,7 @@ class DataGenerator:
 
                     current_time += duration * uniform(.4, .6)
 
-                elif action == "chord":  # chord
+                elif action == "chord":  # add a chord
 
                     for note in last:
                         note.duration = int(
@@ -180,7 +189,7 @@ class DataGenerator:
 
                     current_time += duration * uniform(.4, .9)
 
-                elif action == "repeat":  # repeat
+                elif action == "repeat":  # repeat the last thing that was played
 
                     for note in last:
                         note.duration = int(
@@ -203,10 +212,13 @@ class DataGenerator:
                 elif action == "guitar_swap":  # switch guitar
                     guitar = choice(self.guitars)
 
-                elif action == "pause":  # skip
+                elif action == "pause":  # add a pause
                     current_time += DataGenerator.sample_frequency * DataGenerator.pause_duration * uniform(1, 1.5)
 
+            # finished adding features
+
             signal = np.zeros([Trainer.example_length])
+            # next, all those features are added to the signal
 
             for noise in noises:
                 signal += noise.volume * np.roll(
@@ -236,9 +248,10 @@ class DataGenerator:
                 data_out[example, start_frame + 1:end_frame, note.pitch - Model.start_pitch] = [0, 1]
                 data_out[example, start_frame, note.pitch - Model.start_pitch] = [1, 0]
 
-            signal *= volume
+            signal *= volume  # apply the volume
 
             emphasized_signal = np.append(signal[0], signal[1:] - Model.pre_emphasis * signal[:-1])
+            # this is a simple noise filter
 
             pad_signal_length = num_frames * Model.frame_step + Model.frame_length
             z = np.zeros((pad_signal_length - Model.frame_length))
@@ -247,22 +260,23 @@ class DataGenerator:
             indices = np.tile(np.arange(0, Model.frame_length), (num_frames, 1)) + np.tile(
                 np.arange(0, num_frames * Model.frame_step, Model.frame_step), (Model.frame_length, 1)).T
             frames = pad_signal[indices.astype(np.int32, copy=False)]
+            # this splits the signal into frames
 
             frames *= np.hamming(Model.frame_length)
+            # applys the hamming window
 
             mag_frames = np.absolute(np.fft.rfft(frames, Model.frame_length))  # Magnitude of the FFT
             pow_frames = (mag_frames ** 2) / Model.frame_length  # Power Spectrum
 
             filter_banks = np.dot(pow_frames, Model.f_bank)
             filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)
+            # doesn't allow for 0 to increase stability. i.e. no dividing by zero
             filter_banks = np.log(filter_banks)
+            # puts the magnitudes onto a logarithmic scale
 
             data_in[example] = filter_banks
 
-            # out.write(str(np.mean(filter_banks)) + "," + str(np.std(filter_banks)) + "\n")
-            # out.flush()
-
-            if example < 10 and False:
+            if example < 10 and False:  # this is just for debugging
                 print(example)
                 scipy.io.wavfile.write("trash/test" + str(example)
                                        + ".wav", 44100, signal)
@@ -289,6 +303,11 @@ class DataGenerator:
 
     @staticmethod
     def make_resonances(note):
+        """
+        This method is for making resonances of a note.
+        When a note is played it isn't just one frequency.  To compensate for the lacking training data, I play notes at
+        common ratios, which this function generates.
+        """
         notes = []
         for i in range(DataGenerator.resonance_amount):
             new = Note(note.start_time,
@@ -307,16 +326,19 @@ class DataGenerator:
         return []
 
     def get_batch(self):
+        """Fetches a batch from the queue or waits for one to be available"""
         while self.queue.empty():
             time.sleep(.1)
         return self.queue.get()
 
     def __del__(self):
+        """When the object is unloaded"""
         self.thread.stop()
         self.thread.join()
 
     @staticmethod
     def load_sound_from(folder):
+        """This loads all of the sounds in a given directory and creates SoundData objects out of them"""
         sounds = tuple(
             (SoundData(folder + "/" + file_name) for file_name in os.listdir(folder) if file_name.endswith(".wav")))
 
@@ -329,6 +351,11 @@ class DataGenerator:
 
     @staticmethod
     def weighted_choice(choices):
+        """
+        This makes a weighted random choice
+        e.g. red with 2/5 chance and green with 3/5 chance would be,
+        weighted_choice( {"red": 2, "green": 3} )
+        """
         weight_sum = sum(w for c, w in choices.items())
 
         value = uniform(0, weight_sum)
@@ -341,20 +368,23 @@ class DataGenerator:
 
     @staticmethod
     def hz_to_mel(freq):
+        """Converts from Hz to Mel"""
         return 2595 * math.log10(1 + freq / 700)
 
     @staticmethod
     def mel_to_hz(mel):
+        """Converts from Mel to Hz"""
         return 700 * (10 ** (mel / 2595) - 1)
 
     @staticmethod
     def pitch_to_frequency(pitch):
+        """Finds the frequency of the integer that I use to represent that pitch"""
         return 27.5 * (20 ** (1 / 12)) ** (pitch - 9)
 
     @staticmethod
     def load_chords():
+        """Loads all the possible chords"""
 
-        # triad chords
         chord_types = [["maj", [0, 4, 7], 30],
                        ["min", [0, 3, 7], 30],
                        ["dim", [0, 3, 6], 5],
@@ -373,7 +403,8 @@ class DataGenerator:
                     notes = list(map(lambda x: x + root + octave * 12, chord_type[1]))
                     chords.append(Chord(root_letters[i] + chord_type[0] + str(octave), notes, chord_type[2]))
 
-        # guitar chords
+        # this section loads the chords that are actually played on a guitar, since unlike the ones above, guitar chords
+        # usually consist of more than 3 notes
         raw_chord_data = urllib.request.urlopen("http://www.chordie.com/chords.php").read()
         chord_matches = re.findall(r'title="[^".]*"', str(raw_chord_data))
         chord_data = map(lambda raw_chord: raw_chord[7:-1].split("="), chord_matches)
@@ -392,6 +423,15 @@ class DataGenerator:
 
 
 class GeneratorThread(threading.Thread):
+    """
+    The point of this thread is to optimise the training time
+
+    When TensorFlow is using a training batch(on the GPU), this thread uses the processor for generating the next batch.
+    This means that the there is much less time between one epoch of learning and another.  When this thread is used the
+    only delay between training batches is the time it takes to move the new batch into memory. In effect this makes a
+    large impact especially on large batch sizes.
+    """
+
     def __init__(self, data):
         super(GeneratorThread, self).__init__(name="Generator")
         self.data = data
@@ -408,6 +448,8 @@ class GeneratorThread(threading.Thread):
 
 
 class SoundData:
+    """This class os for storing the sound data related to guitars and instruments"""
+
     def __init__(self, file_path):
         self.file_path = file_path
         _, self.data = scipy.io.wavfile.read(file_path)  # sample frequency is disregarded since it will be constant
@@ -436,6 +478,8 @@ class SoundData:
 
 
 class Chord:
+    """This class stores a possible chord"""
+
     def __init__(self, name, notes, weight):
         self.name = name
         self.notes = notes
@@ -450,6 +494,8 @@ class Chord:
 
 
 class Note:
+    """This class stores the instance of a played note that exists within one generated example"""
+
     def __init__(self, start_time, duration, pitch, roll, guitar, volume, output_delay, origin, outs=True):
         self.start_time = int(start_time)
         self.duration = int(duration)
@@ -474,6 +520,8 @@ class Note:
 
 
 class Noise:
+    """This class is for storing the different types of noise that exist"""
+
     def __init__(self, start_offset, noise_data, volume):
         self.start_offset = start_offset
         self.noise_data = noise_data
@@ -487,20 +535,23 @@ class Noise:
 
 
 class Trainer:
+    """
+    This class is responsible for training the model
+    """
     keep_prob = .95
     example_length = 20 * DataGenerator.sample_frequency
-    batch_size = 10  # 10
+    batch_size = 6  # 10
     learning_rate = 0.000005
 
     def __init__(self, data_generator, model):
         self.data_generator = data_generator
-        self.model = model
         self.model = model
 
         self.epochs = 50000
         self.iterations = 70
 
     def train(self, session, continue_training, log_file=""):
+        """This function trains the model"""
         print("Starting Training")
 
         console_form = "Epoch: {0:" + str(len(str(self.epochs))) + "d}/" + str(self.epochs) + " Iteration: {1:" + str(
@@ -544,11 +595,12 @@ class Trainer:
 
 
 class Model:
+    """This is the object for the machine learning model itself"""
     pre_emphasis = .95
     start_mel_frequency = DataGenerator.hz_to_mel(60)
-    end_mel_frequency = DataGenerator.hz_to_mel(1500)
+    end_mel_frequency = DataGenerator.hz_to_mel(3000)
 
-    mel_filters = 124
+    mel_filters = 248
 
     end_pitch = 60
     start_pitch = 24
@@ -579,12 +631,17 @@ class Model:
         self.define()
 
     def define(self):
+        """This creates the machine learning model in TensorFlow"""
 
         batch_size = 1 if self.is_export_version else Trainer.batch_size
         example_length = 9 if self.is_export_version else int(
             np.ceil(float(np.abs(Trainer.example_length - Model.frame_length)) / Model.frame_step))
 
         if self.is_export_version:
+            # all of this processes the signal that is input
+            # this is because when training the signal would already have been processed by the batch generator
+            # most of this code does the exact same thing as the one in the generator, but is instead made to use
+            # TensorFlow
             x = tf.placeholder(tf.float32, [Model.frame_length], "inputs")
 
             x = tf.concat([[x[0]], x[1:] - Model.pre_emphasis * x[:-1]], 0)
@@ -612,6 +669,7 @@ class Model:
             input_queue = tf.FIFOQueue(1, tf.float32, shapes=[example_length - 1, Model.mel_filters, 1])
             input_queue.enqueue(tf.tile(x_current, [example_length - 1, 1, 1]), "enqueue_start_inputs")
             input_queue.dequeue_up_to(1, "deque_inputs")
+            # this queue stores the last few frames as described in my design
 
             x_previous = input_queue.dequeue()
 
@@ -638,21 +696,21 @@ class Model:
         x_normal = (x - DataGenerator.data_mean) / DataGenerator.data_var
 
         layers = [
-            ("valid", 5, 48, 1, 2),
-            # ("same", 5, 48, 1, 2),
+            ("valid", 3, 7, 48, 1, 2),
+            ("valid", 3, 5, 48, 1, 2),
             # ("same", 5, 48, 1, 2),
             # ("same", 5, 48, 1, 1),
-            ("valid", 5, 48, 1, 1)
+            ("valid", 5, 5, 48, 1, 1)
         ]
 
         last_layer = x_normal
 
-        for padding, kernel_size, filters, pool_size, strides in layers:
+        for padding, kernel_width, kernel_height, filters, pool_size, strides in layers:  # stacks convolution layers
 
             conv = tf.layers.conv2d(
                 inputs=last_layer,
                 filters=filters,
-                kernel_size=[kernel_size, kernel_size],
+                kernel_size=[kernel_width, kernel_height],
                 padding=padding,
                 activation=tf.nn.relu)
 
@@ -664,6 +722,8 @@ class Model:
         conv_out = tf.reshape(last_layer, [batch_size, example_length - 8, -1])
 
         dense_size = 192
+
+        # two dense layers and then an activation
 
         output_w1 = tf.Variable(
             tf.random_normal([conv_out.get_shape()[-1].value, dense_size]),
@@ -702,9 +762,11 @@ class Model:
         return tf.nn.l2_normalize(tensor, [1])
 
     def init(self, session):
+        """Inits the TensorFlow session"""
         session.run(tf.global_variables_initializer())
 
     def load_from_save(self, session):
+        """Loads the state of the TensorFlow session from file"""
         print("Loading save from " + Model.save_path)
 
         saver = tf.train.Saver()
@@ -712,6 +774,7 @@ class Model:
         del saver
 
     def save(self, session):
+        """Save sthe state of the TensorFlow session from file"""
         print("Saving to " + Model.save_path)
 
         saver = tf.train.Saver()
@@ -719,6 +782,7 @@ class Model:
         del saver
 
     def export(self, session, name):
+        """Exports state to file that can then be read in Kotlin"""
         print("Exporting model to " + Model.export_path + " as " + name)
 
         builder = tf.saved_model.builder.SavedModelBuilder(Model.export_path + name)
@@ -728,6 +792,8 @@ class Model:
 
 
 def main():
+    """The entry point"""
+
     selected = input("Train/Export the model ? (ENTER for train otherwise save name)")
 
     if len(selected) == 0:  # train

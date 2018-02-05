@@ -16,7 +16,7 @@ import java.util.*
 internal object Model {
 
     const val TENSOR_FLOW_NATIVES = "/tensorflow_jni.dll"
-    val MODEL_DIR: String = "/model/"
+    const val MODEL_DIR: String = "/model/"
     val MODEL_FILES = listOf(
             MODEL_DIR + "saved_model.pbtxt",
             MODEL_DIR + "variables/variables.data-00000-of-00001",

@@ -262,7 +262,18 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     fun save() {
 
 //        val start = System.currentTimeMillis()
-        serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
+        val saveDir = File(DEFAULT_SAVE_PATH).absoluteFile
+        if (!saveDir.exists())
+            saveDir.mkdirs()
+
+        try {
+
+            serialize(FileOutputStream(File(DEFAULT_SAVE_PATH + "/" + name + FILE_EXTENSION)))
+
+        } catch (e: Exception) {
+            throw Exception(SAVE_FAIL_MESSAGE)
+        }
+
 //        println("${System.currentTimeMillis() - start}ms elapsed saving")
 
     }
@@ -308,8 +319,9 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         private const val serialVersionUID = 354634135413L // this is used in serializing to make sure class versions match
         private const val FILE_EXTENSION = ".rec"
         const val DEFAULT_NAME = "Recording"
-        const val DEFAULT_PATH = "recordings/"
+        const val DEFAULT_SAVE_PATH = "recordings/"
         const val USE_COMPRESSION = false
+        const val SAVE_FAIL_MESSAGE = "Failed to save to file"
 
         /**
          * A convenience extension method that extracts a section of image

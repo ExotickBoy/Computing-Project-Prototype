@@ -198,7 +198,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         recordingList.selectionModel.clearSelection()
         recordingList.items.clear()
 
-        recordings.addAll(Recording.findPossibleRecordings(File(Recording.DEFAULT_PATH)))
+        recordings.addAll(Recording.findPossibleRecordings(File(Recording.DEFAULT_SAVE_PATH)))
         recordings.sortByDescending { it.metaData.lastEdited }
         recordings.forEach { recordingList.items.add(it) }
 

@@ -104,6 +104,7 @@ internal class SoundProcessingController(val session: Session) : Thread(SOUND_PR
         const val FRAME_SIZE = 1 shl 12
         const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
         const val SAMPLE_PADDING = (FRAME_SIZE - SAMPLES_BETWEEN_FRAMES) / 2
+        const val MAX_QUEUED_LENGTH = 7 // this is 7/30 of a second
 
         /**
          * This function takes a list of images and makes them into a list with a
@@ -226,7 +227,8 @@ internal class SoundProcessingController(val session: Session) : Thread(SOUND_PR
                         current = System.currentTimeMillis()
                         accumulated += current - last
 
-                        if (willFastProcess || accumulated > period) {
+                        // the max queue length is so that the output doesn't ever get too far behind the microphone on slow hardware
+                        if (willFastProcess || accumulated > period || synchronized(queue) { queue.size } > MAX_QUEUED_LENGTH) {
 
                             accumulated -= period
 
