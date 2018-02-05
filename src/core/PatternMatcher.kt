@@ -83,7 +83,9 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
                 val previousPaths = paths[time - 1]
                 // the best paths to each of the previous placements
 
+
                 (0 until nextPlacements.size).map { nextPlacementIndex ->
+
                     // index of the placement to be evaluated
                     (0 until previousPlacements.size).map { previousPlacementIndex ->
                         // for each possible pair of the placements in the last time and the current one
@@ -103,10 +105,11 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
                         }.sum()
 
                         Path(previousPaths[previousPlacementIndex].route + nextPlacementIndex,
-                                distance
+                                previousPaths[previousPlacementIndex].distance + distance
                         )
 
                     }.minBy { it.distance }!! // find the shortest path to current from any past, this should never be null
+
                 }
 
             }

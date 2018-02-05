@@ -247,7 +247,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         cancelButton.maxWidth = Double.MAX_VALUE
         cancelButton.setFocusMnemonic(CANCEL_BUTTON_MNEMONIC, scene)
         cancelButton.setOnAction {
-            previous.refresh(null) // pass an empty tuning back
+            previous.refresh(tuning) // pass an empty tuning back
             stage.close()
         }
 
@@ -323,7 +323,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         stage.scene = scene
         stage.setOnCloseRequest {
             it.consume()
-            previous.refresh(null) // pass an empty tuning back
+            previous.refresh(tuning) // pass an empty tuning back
             stage.close()
         }
         stage.showAndWait()

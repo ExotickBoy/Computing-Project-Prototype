@@ -218,6 +218,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
      */
     private class RepaintThread(val root: VBox) : Thread(REPAINT_THREAD_TITLE) {
 
+
         init {
             start()
         }
@@ -233,10 +234,14 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
                     }
                 else {
                     root.layout()
-                    sleep(100)
+                    sleep((1000.0 / REFRESH_RATE).toLong())
                 }
             }
 
+        }
+
+        companion object {
+            const val REFRESH_RATE = 10 // 10 Hz
         }
 
     }

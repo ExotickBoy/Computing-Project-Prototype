@@ -78,7 +78,7 @@ class Session(val recording: Recording) {
         set(value) { /* This setter updates the step cursor which changes independently */
             synchronized(recording) {
 
-                val toBecome = if (value == null || value - 0.5 >= recording.clusterLength) null else max(value, 0.0)
+                val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0.0)
                 if (toBecome != clusterCursorField) {
                     clusterCursorField = toBecome
 
@@ -90,10 +90,10 @@ class Session(val recording: Recording) {
 
                     stepCursorField = (when {
                         toBecome == null -> null
-                        toBecome > clusters.size + 0.5 -> null
+                        toBecome > clusters.size -> null // out of bounds
                         clusters.isEmpty() -> recording.timeStepLength * toBecome
-                        toBecome < 0.5 -> toBecome * 2 * clusters[0].recordingStart
-                        toBecome > clusters.size - 0.5 ->
+                        toBecome < 0.5 -> toBecome * 2 * clusters[0].recordingStart // beginning
+                        toBecome > clusters.size - 0.5 -> // end
                             clusters[clusters.size - 1].recordingStart + (0.5 + toBecome - clusters.size) * 2 * +(recording.timeStepLength - clusters[clusters.size - 1].recordingStart)
                         else -> {
                             val before = (toBecome - 0.5).toInt()

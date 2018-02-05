@@ -243,18 +243,35 @@ class NewRecordingDialog(private val application: MainApplication, private val r
      * It allows for handling the creation of a new tuning
      */
     fun refresh(newTuning: Tuning?) {
-        if (newTuning != null) {
 
-            if (customTuning == null) { // there isn't already a custom tuning
+        if (newTuning == customTuning) {
 
+            tuningComboBox.selectionModel.select(tuningComboBox.items.lastIndex - 1)
+
+        } else if (customTuning == null) { // there isn't already a custom tuning
+
+            if (newTuning == null) { // if a new tuning was created
+
+                tuningComboBox.selectionModel.select(0)
+
+            } else { // added
 
                 tuningComboBox.items[tuningComboBox.items.lastIndex] = newTuning.name
                 tuningComboBox.items.add(EDIT_CUSTOM_TUNING_PREFIX + newTuning.name)
 
                 // the new one will already be selected
+            }
 
-            } else {
-                // changed
+        } else {
+
+            if (newTuning == null) {
+
+                tuningComboBox.selectionModel.select(0)
+                tuningComboBox.items.removeAt(tuningComboBox.items.lastIndex)
+                tuningComboBox.items[tuningComboBox.items.lastIndex] = MAKE_TUNING_TEXT
+
+
+            } else { // changed
 
                 tuningComboBox.items[tuningComboBox.items.lastIndex - 1] = newTuning.name
                 tuningComboBox.items[tuningComboBox.items.lastIndex] = EDIT_CUSTOM_TUNING_PREFIX + newTuning.name

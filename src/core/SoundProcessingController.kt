@@ -231,35 +231,35 @@ internal class SoundProcessingController(val session: Session) : Thread(SOUND_PR
                         if (willFastProcess || accumulated > period || synchronized(queue) { queue.size } > MAX_QUEUED_LENGTH) {
 
                             accumulated -= period
+                            synchronized(queue) {
+                                if (!queue.isEmpty()) {
+                                    synchronized(session.recording) {
 
-                            if (!synchronized(queue) { queue.isEmpty() }) {
-                                synchronized(session.recording) {
+                                        val newStep: TimeStep = queue.removeFirst() // new step to be served
 
-                                    val newStep: TimeStep = queue.removeFirst() // new step to be served
+                                        patternMatcher.feed(newStep.notes)
+                                        section.dePhased.add(newStep.dePhased)
+                                        section.dePhasedPower.add(newStep.dePhasedPower)
 
-                                    patternMatcher.feed(newStep.notes)
-                                    section.dePhased.add(newStep.dePhased)
-                                    section.dePhasedPower.add(newStep.dePhasedPower)
+                                        section.melImages.add(newStep.melImage)
+                                        section.noteImages.add(newStep.noteImage)
+                                        combineImages(section.melImages)
+                                        combineImages(section.noteImages)
 
-                                    section.melImages.add(newStep.melImage)
-                                    section.noteImages.add(newStep.noteImage)
-                                    combineImages(section.melImages)
-                                    combineImages(section.noteImages)
-
-                                    session.onEdited()
-                                    session.onUpdated()
-                                    // add time step to recording where further processing happens
+                                        session.onEdited()
+                                        session.onUpdated()
+                                        // add time step to recording where further processing happens
+                                    }
+                                } else if (section.isPreProcessed) { // finished
+                                    synchronized(session.recording) {
+                                        collectImages(section.melImages) // collect images
+                                        collectImages(section.noteImages)
+                                        section.isProcessed = true
+                                    }
+                                } else {
+                                    onSpinWait()
                                 }
-                            } else if (section.isPreProcessed) { // finished
-                                synchronized(session.recording) {
-                                    collectImages(section.melImages) // collect images
-                                    collectImages(section.noteImages)
-                                    section.isProcessed = true
-                                }
-                            } else {
-                                onSpinWait()
                             }
-
                         }
 
                     }
