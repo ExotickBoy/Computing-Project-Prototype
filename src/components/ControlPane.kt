@@ -54,7 +54,6 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
                 onStateUpdate(Session.SessionState.PLAYING_BACK)
             } else if (session.state == Session.SessionState.PLAYING_BACK && session.pausePlayback()) {
                 onStateUpdate(Session.SessionState.EDIT_SAFE)
-
             }
 
         }
@@ -87,23 +86,29 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
         exitButton.isDisable = true
         exitButton.isFocusTraversable = false
         exitButton.setOnAction {
-            if (session.state == Session.SessionState.EDIT_SAFE && session.isEdited) {
 
-                val result = RecordingEditPane.showSaveDialog()
+            when {
+                session.state == Session.SessionState.EDIT_SAFE && session.isEdited -> {
 
-                if (result.get().buttonData == ButtonBar.ButtonData.YES) {
+                    val result = RecordingEditPane.showSaveDialog()
 
-                    val dialog = LoadingDialog("Saving to file", "Saving")
-                    // show a saving to file progress bar (indefinite)
-                    Platform.runLater {
-                        session.recording.save()
-                        dialog.dispose()
-                        application.pop()
-                    }
+                    if (result.get().buttonData == ButtonBar.ButtonData.YES) {
 
-                } else if (result.get().buttonData == ButtonBar.ButtonData.NO) application.pop()
+                        val dialog = LoadingDialog("Saving to file", "Saving")
+                        // show a saving to file progress bar (indefinite)
+                        Platform.runLater {
+                            session.recording.save()
+                            dialog.dispose()
+                            application.pop()
+                        }
 
-            } else application.pop()
+                    } else if (result.get().buttonData == ButtonBar.ButtonData.NO) application.pop()
+
+                }
+                session.state == Session.SessionState.GATHERING -> session.pauseRecording()
+                session.state == Session.SessionState.PLAYING_BACK -> session.pausePlayback()
+                else -> application.pop()
+            }
 
         }
 

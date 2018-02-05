@@ -289,6 +289,7 @@ class Session(val recording: Recording) {
     fun pauseRecording(): Boolean {
         return if (!microphoneController.isPaused) {
             microphoneController.isPaused = true
+            onUpdated()
             true
         } else false
     }
@@ -338,6 +339,7 @@ class Session(val recording: Recording) {
     fun pausePlayback(): Boolean {
         return if (!playbackController.isPaused) {
             playbackController.isPaused = true
+            onUpdated()
             true
         } else {
             false

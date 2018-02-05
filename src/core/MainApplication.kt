@@ -3,9 +3,14 @@ package core
 import components.RecordingsListPane
 import javafx.application.Application
 import javafx.application.Application.launch
+import javafx.application.Platform
 import javafx.scene.Scene
+import javafx.scene.control.Alert
 import javafx.scene.image.Image
 import javafx.stage.Stage
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.*
 import kotlin.system.exitProcess
 
@@ -159,13 +164,92 @@ class MainApplication : Application() {
 
 }
 
+private const val TEMP_DIRECTORY_PREFIX = "NOTE_WIZE"
+private const val FAILED_TO_LOAD_MESSAGE = "Failed to load"
+private const val ERROR_DIALOG_HEADER = "A fatal error has occurred"
+private const val ERROR_DIALOG_TITLE = "Error"
+
 /**
  * The entry point
  */
 fun main(args: Array<String>) {
 
-    NativeUtils.loadLibraryFromJar(Model.TENSOR_FLOW_NATIVES) // <- I didn't write this code
-    // this loads the native files stored inside the jar
+    Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
+        // this will handel any error that is thrown and not handed
+        // this shouldn't really be called in any case except in the
+        // case of the code just below (load and temp files)
+
+        Platform.runLater {
+
+            val alert = Alert(Alert.AlertType.ERROR)
+            if (MainApplication.icon != null)
+                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+
+            alert.title = ERROR_DIALOG_TITLE
+            alert.headerText = ERROR_DIALOG_HEADER
+            alert.contentText = exception.message
+
+            alert.showAndWait()
+
+            System.exit(1)
+
+        }
+
+    }
+
+    try {
+
+
+        System.load(copyFilesToTemp(Model.TENSOR_FLOW_NATIVES))
+        // this unwraps the native files from the jar and then loads them
+        // this is because the natives can't be read from inside the jar
+        Model.MODEL_FILES.forEach { copyFilesToTemp(it) }
+        // this is for the model files, similarly TensorFlow doesn't allow for reading from inside the jar
+
+        Model.load(getTempDir(Model.MODEL_DIR))
+
+    } catch (e: Exception) {
+
+        throw Exception(FAILED_TO_LOAD_MESSAGE)
+
+    }
 
     launch(MainApplication::class.java, *args)
+    // launches the javafx window
+
+}
+
+/**
+ * This function moves a file from inside of the jar file into the temporary directory
+ */
+fun copyFilesToTemp(file: String): String {
+
+    val sections = file.split("/")
+    val path = sections.subList(0, sections.size - 1).reduce { a, b -> "$a/$b" }
+    val fileName = sections.last()
+
+    val tempDir = getTempDir(path)
+
+    val temp = File(tempDir, fileName).absoluteFile
+
+    if (!temp.exists())
+        MainApplication::class.java.getResourceAsStream(file).use { Files.copy(it, temp.toPath(), StandardCopyOption.REPLACE_EXISTING) }
+
+    return temp.toPath().toString()
+
+}
+
+/**
+ * This creates a directory in the temporary folder
+ * @param path the relative path inside the temp folder
+ * @return the file that points to the newly created folder
+ */
+private fun getTempDir(path: String): File {
+
+    val tempDir = File(System.getProperty("java.io.tmpdir") + "/" + TEMP_DIRECTORY_PREFIX + path)
+    // the temporary folder that will store the natives
+    tempDir.mkdirs()
+
+    return tempDir
+
 }

@@ -1,14 +1,11 @@
 package core
 
-import javafx.scene.control.Alert
-import javafx.stage.Stage
 import org.tensorflow.SavedModelBundle
 import org.tensorflow.Session
 import org.tensorflow.Tensor
 import java.io.File
 import java.nio.FloatBuffer
 import java.util.*
-import kotlin.system.exitProcess
 
 /**
  * The object that interfaces with the model created in TensorFlow
@@ -19,40 +16,24 @@ import kotlin.system.exitProcess
 internal object Model {
 
     const val TENSOR_FLOW_NATIVES = "/tensorflow_jni.dll"
-    private val tensorFlowSession: Session
+    val MODEL_DIR: String = "/model/"
+    val MODEL_FILES = listOf(
+            MODEL_DIR + "saved_model.pbtxt",
+            MODEL_DIR + "variables/variables.data-00000-of-00001",
+            MODEL_DIR + "variables/variables.index"
+    )
 
-    private const val MODEL_LOCATION = "model/" // the location of the model
-
-    init {
-
-        tensorFlowSession = try {
-            SavedModelBundle.load(File(MODEL_LOCATION).absolutePath, "serve").session()
-        } catch (e: Exception) {
-            onNoModel()
-        }
-
-    }
+    private lateinit var tensorFlowSession: Session
 
     /**
-     * This method is called when a model can't be loaded
+     *  This just loads the TensorFlow model form disc
+     *  @param modelDir the file which points to the folder that stores the model files
      */
-    private fun onNoModel(): Nothing {
+    fun load(modelDir: File) {
 
-        val alert = Alert(Alert.AlertType.ERROR)
-        if (MainApplication.icon != null)
-            (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
-
-        alert.title = NO_MODEL_ERROR_TITLE
-        alert.headerText = NO_MODEL_ERROR_MESSAGE
-
-        alert.showAndWait()
-
-        exitProcess(0)
+        tensorFlowSession = SavedModelBundle.load(modelDir.absolutePath, "serve").session()
 
     }
-
-    private const val NO_MODEL_ERROR_TITLE = "Fatal Error"
-    private const val NO_MODEL_ERROR_MESSAGE = "The model is missing, make sure model/ is in the same directory as the .jar"
 
     const val FFT_SIZE: Int = 4096 // the size of the fft used, equivalent to the input size
     const val START_PITCH: Int = 24 // the lowest pitch the model outputs

@@ -141,6 +141,9 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
         // attempt to save changes when the user requests to close
 
+        session.pausePlayback()
+        session.pauseRecording()
+
         when {
             session.state == Session.SessionState.EDIT_SAFE && session.isEdited -> {
 
@@ -158,6 +161,8 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
                 } else if (choice.get().buttonData == ButtonBar.ButtonData.NO) application.popAll()
 
             }
+            session.state == Session.SessionState.GATHERING -> session.pauseRecording()
+            session.state == Session.SessionState.PLAYING_BACK -> session.pausePlayback()
             session.state == Session.SessionState.EDIT_SAFE -> application.popAll()
         }
 
