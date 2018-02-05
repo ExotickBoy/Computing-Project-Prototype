@@ -5,6 +5,7 @@ import core.Recording
 import core.Session
 import dialogs.LoadingDialog
 import dialogs.NewRecordingDialog
+import javafx.application.Platform
 import javafx.geometry.Insets
 import javafx.scene.Node
 import javafx.scene.Scene
@@ -20,6 +21,7 @@ import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.scene.text.Font
 import javafx.scene.text.Text
+import javafx.scene.text.TextAlignment
 import java.io.File
 import java.io.FileInputStream
 import kotlin.math.roundToInt
@@ -49,7 +51,11 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         deleteButton.setFocusMnemonic("D", scene)
         deleteButton.isDisable = true
 
+        val placeholderLabel = Label("Press 'New Recording'\n to make a new recording")
+        placeholderLabel.textAlignment = TextAlignment.CENTER
+
         recordingList = ListView()
+        recordingList.placeholder = placeholderLabel
         recordingList.selectionModel.selectionMode = SelectionMode.MULTIPLE
         recordingList.setCellFactory {
             ListItem()
@@ -138,18 +144,21 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
     private fun edit() {
         if (recordingList.selectionModel.selectedIndex != -1) {
 
-//            val start = System.currentTimeMillis()
+            val start = System.currentTimeMillis()
 
             val possibleRecording = recordings[recordingList.selectionModel.selectedIndex]
             val dialog = LoadingDialog("Loading ${possibleRecording.metaData.name}", "Loading")
-            val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
-            dialog.dispose()
+            Platform.runLater {
+                val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
+                dialog.dispose()
+                application.push(RecordingEditPane(session, application))
 
-            application.push(RecordingEditPane(session, application))
+                println("loading -> ${System.currentTimeMillis() - start}ms")
 
-//            println("loading -> ${System.currentTimeMillis() - start}ms")
+            }
 
         }
+
     }
 
     override fun onPause() {
@@ -160,10 +169,14 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         repaintThread.isPaused = false
 
         recordings.clear()
+        recordingList.selectionModel.clearSelection()
+        recordingList.items.clear()
+
         recordings.addAll(Recording.findPossibleRecordings(File(Recording.DEFAULT_PATH)))
         recordings.sortByDescending { it.metaData.lastEdited }
-
         recordings.forEach { recordingList.items.add(it) }
+
+        recordingList.refresh()
 
     }
 
@@ -208,13 +221,14 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
     }
 
-    internal class ListItem : ListCell<Recording.PossibleRecording>() {
+    private class ListItem : ListCell<Recording.PossibleRecording>() {
 
         public override fun updateItem(item: Recording.PossibleRecording?, empty: Boolean) {
 
             super.updateItem(item, empty)
 
-            if (item != null) {
+            graphic = if (item != null) {
+
                 val timeLabel = Text(item.metaData.created.toRelativeTime())
                 val lengthLabel = Text(item.metaData.length.toLength())
                 val nameLabel = Text(item.metaData.name)
@@ -226,8 +240,10 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
                 root.right = propertyVBox
                 root.left = nameLabel
 
-                graphic = root
-            }
+                root
+
+            } else null
+
 
         }
 

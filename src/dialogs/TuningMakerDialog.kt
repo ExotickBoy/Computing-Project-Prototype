@@ -12,6 +12,7 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.VBox
+import javafx.scene.text.TextAlignment
 import javafx.stage.Modality
 import javafx.stage.Stage
 
@@ -87,7 +88,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
         val capoSpinnerValueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(
                 0,
-                Tuning.MAX_MAX_FRET,
+                (tuning?.maxFret ?: (Tuning.MAX_MAX_FRET + 1)) - 1,
                 tuning?.capo ?: Tuning.DEFAULT_CAPO,
                 1
         )
@@ -96,7 +97,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         capoSpinner.setFocusMnemonic("A", scene)
 
         val maxFretSpinnerValueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(
-                0,
+                (tuning?.capo ?: -1) + 1,
                 Tuning.MAX_MAX_FRET,
                 tuning?.maxFret ?: Tuning.DEFAULT_MAX_FRET,
                 1
@@ -130,7 +131,10 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         downButton.maxWidth = Double.MAX_VALUE
         downButton.isDisable = true
 
+        val placeholderLabel = Label("Type a new note (e.g. G#3)\n&\nPress 'Add' to add a string")
+        placeholderLabel.textAlignment = TextAlignment.CENTER
         stringList = ListView()
+        stringList.placeholder = placeholderLabel
         stringList.setFocusMnemonic("S", scene)
         stringList.prefHeight = 150.0
         stringList.selectionModel.selectionMode = SelectionMode.MULTIPLE

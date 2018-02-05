@@ -1,5 +1,7 @@
 package core
 
+import javafx.embed.swing.SwingFXUtils
+import javafx.scene.image.WritableImage
 import java.awt.image.BufferedImage
 import java.io.IOException
 import java.io.ObjectInputStream
@@ -17,8 +19,8 @@ class Section(
         var isProcessed: Boolean = false,
         @Transient var samples: MutableList<Float> = mutableListOf(),
         @Transient var clusters: MutableList<NoteCluster> = mutableListOf(),
-        @Transient var melImages: MutableList<BufferedImage> = mutableListOf(),
-        @Transient var noteImages: MutableList<BufferedImage> = mutableListOf(),
+        @Transient var melImages: MutableList<WritableImage> = mutableListOf(),
+        @Transient var noteImages: MutableList<WritableImage> = mutableListOf(),
         @Transient var dePhased: MutableList<FloatArray> = mutableListOf(),
         @Transient var dePhasedPower: MutableList<Float> = mutableListOf()
 ) : Serializable {
@@ -26,7 +28,7 @@ class Section(
     constructor(previous: Section) : this(previous.recording, previous.sampleEnd, previous.timeStepEnd, previous.clusterEnd)
 
     val timeStepLength
-        get() = melImages.map { it.width }.sum()
+        get() = melImages.map { it.width }.sum().toInt()
 
     val timeStepEnd
         get() = timeStepStart + timeStepLength
@@ -36,9 +38,6 @@ class Section(
 
     val clusterEnd
         get() = clusterStart + clusters.size
-
-    val timeStepRange
-        get() = timeStepStart until timeStepEnd
 
     val clusterRange
         get() = clusterStart until clusterEnd
@@ -51,11 +50,29 @@ class Section(
         output.writeObject(samples.toFloatArray())
         output.writeObject(clusters.toTypedArray())
 
-        ImageIO.write(melImages[0], "png", output)
-        ImageIO.write(noteImages[0], "png", output)
-
         output.writeObject(dePhased.toTypedArray())
         output.writeObject(dePhasedPower.toTypedArray())
+
+        // due to complication I couldn't find an explanation to, I cannot write melImages and noteImages separably,
+        // as doing so will result in an exception whenever the second one is read
+        // because of this I combine them, this is decremental to save times, but is the best solution I found
+
+        val combined = BufferedImage(
+                melImages[0].width.toInt(),
+                (Model.MEL_BINS_AMOUNT + Model.PITCH_RANGE).toInt(),
+                BufferedImage.TYPE_INT_RGB
+        )
+        combined.graphics.drawImage(
+                SwingFXUtils.fromFXImage(melImages[0], null),
+                0, 0,
+                null
+        )
+        combined.graphics.drawImage(
+                SwingFXUtils.fromFXImage(noteImages[0], null),
+                0, Model.MEL_BINS_AMOUNT,
+                null
+        )
+        ImageIO.write(combined, "PNG", output)
 
     }
 
@@ -68,11 +85,22 @@ class Section(
         samples = (input.readObject() as FloatArray).toMutableList()
         clusters = (input.readObject() as? Array<NoteCluster>)?.toMutableList() ?: mutableListOf()
 
-        melImages.add(ImageIO.read(input))
-        noteImages.add(ImageIO.read(input))
-
         dePhased = (input.readObject() as Array<FloatArray>).toMutableList()
         dePhasedPower = (input.readObject() as Array<Float>).toMutableList()
+
+        val combined = ImageIO.read(input)
+        melImages = mutableListOf(SwingFXUtils.toFXImage(combined.getSubimage(
+                0,
+                0,
+                combined.width,
+                Model.MEL_BINS_AMOUNT
+        ), null))
+        noteImages = mutableListOf(SwingFXUtils.toFXImage(combined.getSubimage(
+                0,
+                Model.MEL_BINS_AMOUNT,
+                combined.width,
+                Model.PITCH_RANGE
+        ), null))
 
     }
 

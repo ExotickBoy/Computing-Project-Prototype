@@ -49,7 +49,7 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
         }.map { stringWidth(it, graphicsContext2D) }.max() ?: 0.0
         padding = 5.0
 
-        ScrollController(true, this, session)
+        ScrollController(true, true, this, session)
 
         session.addOnUpdate { redraw() }
         session.addOnEdited { redraw() }
@@ -198,7 +198,7 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
         private val STRIPE_LIGHT = color(232, 232, 232)
         private val STRIPE_DARK = color(245, 245, 245)
 
-        private fun color(r: Int, g: Int, b: Int): Color = Color.color(r / 255.0, g / 255.0, b / 255.0)
+        fun color(r: Int, g: Int, b: Int): Color = Color.color(r / 255.0, g / 255.0, b / 255.0)
 
 
     }

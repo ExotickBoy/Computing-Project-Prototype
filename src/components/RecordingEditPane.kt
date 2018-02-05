@@ -25,26 +25,31 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     private val root = VBox()
     private val scene = Scene(root)
 
-    private val melOutputView = HistoryView(session, 300) { it.melImages }
     private val dePhaserView = DePhaserView(application, session)
-    private val networkOutputView = HistoryView(session, Model.PITCH_RANGE) { it.noteImages }
+    private val melOutputView = HistoryView(session, 300.0, true) { it.melImages }
+    private val networkOutputView = HistoryView(session, Model.PITCH_RANGE.toDouble(), false) { it.noteImages }
     private val noteOutputView = NoteOutputView(session)
     private val controlPane = ControlPane(application, scene, session)
+
+    private val dePhaserViewLabel = Label("Visualisation")
+    private val melOutputViewLabel = Label("Frequency Analysis")
+    private val netWorkOutputViewLabel = Label("Raw Network Output")
 
     override fun onCreate(): Scene {
 
         session.addOnEdited {
             setTitle()
         }
+
         root.children.addAll(
-                Label("Visualisation"),
+                dePhaserViewLabel,
                 dePhaserView,
-                Label("Frequency Analysis"),
+                melOutputViewLabel,
                 melOutputView)
 
         if (SHOW_NETWORK_OUTPUT)
             root.children.addAll(
-                    Label("Raw Network Output"),
+                    netWorkOutputViewLabel,
                     networkOutputView)
 
         root.children.addAll(
@@ -89,9 +94,11 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     }
 
     private fun addKeyListener(keyCombination: KeyCombination, runnable: Runnable) {
-        synchronized(session.recording) {
-            if (session.state == Session.SessionState.EDIT_SAFE) {
-                scene.accelerators[keyCombination] = runnable
+        scene.accelerators[keyCombination] = Runnable {
+            synchronized(session.recording) {
+                if (session.state == Session.SessionState.EDIT_SAFE) {
+                    runnable.run()
+                }
             }
         }
     }
@@ -126,29 +133,30 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
     override fun onClose() {
 
-        val back = if (session.isEdited) {
+        when {
+            session.state == Session.SessionState.EDIT_SAFE && session.isEdited -> {
 
-            val choice = RecordingEditPane.showSaveDialog()
+                val choice = RecordingEditPane.showSaveDialog()
 
-            when (choice.get().buttonData) {
-                ButtonBar.ButtonData.YES -> {
+                if (choice.get().buttonData == ButtonBar.ButtonData.YES) {
+
                     val dialog = LoadingDialog("Saving to file", "Saving")
-                    session.recording.save()
-                    dialog.dispose()
-                    true
-                }
-                ButtonBar.ButtonData.NO -> true
-                else -> false
-            }
-        } else true
+                    Platform.runLater {
+                        session.recording.save()
+                        dialog.dispose()
+                        application.popAll()
+                    }
 
-        if (back) application.popAll()
+                } else if (choice.get().buttonData == ButtonBar.ButtonData.NO) application.popAll()
+
+            }
+            session.state == Session.SessionState.EDIT_SAFE -> application.popAll()
+        }
+
 
     }
 
     companion object {
-
-        infix fun IntRange.overlap(other: IntRange): IntRange = max(this.start, other.start)..min(this.endInclusive, other.endInclusive)
 
         infix fun ClosedFloatingPointRange<Double>.overlap(other: ClosedFloatingPointRange<Double>) = max(this.start, other.start)..min(this.endInclusive, other.endInclusive)
         // These need to be two separate methods because the superclass both these types of range share, only store comparators

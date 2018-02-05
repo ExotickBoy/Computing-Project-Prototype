@@ -13,11 +13,10 @@ import javafx.stage.Stage
 
 class LoadingDialog(labelText: String, title: String) {
 
-    private val stage: Stage
+    private val stage: Stage = Stage()
 
     init {
 
-        stage = Stage()
         stage.isResizable = false
         stage.initModality(Modality.APPLICATION_MODAL)
         stage.title = title

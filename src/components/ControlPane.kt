@@ -90,9 +90,11 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
                 if (result.get().buttonData == ButtonBar.ButtonData.YES) {
 
                     val dialog = LoadingDialog("Saving to file", "Saving")
-                    session.recording.save()
-                    dialog.dispose()
-                    application.pop()
+                    Platform.runLater {
+                        session.recording.save()
+                        dialog.dispose()
+                        application.pop()
+                    }
 
                 } else if (result.get().buttonData == ButtonBar.ButtonData.NO) application.pop()
 

@@ -1,26 +1,32 @@
 package components
 
-import components.RecordingEditPane.Companion.overlap
+import core.Section
 import core.Session
 import core.Session.Companion.DELETE_DISTANCE
 import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
+import javafx.scene.image.WritableImage
 import javafx.scene.paint.Color
 import javafx.scene.transform.Transform
 import kotlin.math.max
 import kotlin.math.sign
 
 
-internal class HistoryView internal constructor(private val session: Session) : Canvas() {
+internal class HistoryView(
+        private val session: Session,
+        preferredHeight: Double,
+        private val willSwap: Boolean,
+        private val images: (Section) -> (List<WritableImage>)
+) : Canvas() {
 
     init {
 
         width = 500.0
-        height = 300.0
+        height = preferredHeight
         isFocusTraversable = true
 
-        ScrollController(false, this, session)
+        ScrollController(false, willSwap, this, session)
         session.addOnUpdate {
             redraw()
         }
@@ -48,23 +54,35 @@ internal class HistoryView internal constructor(private val session: Session) : 
             g.stroke = Color.MAGENTA
 
             session.recording.sections.filterIndexed { index, _ ->
-                index != session.swap
-            }.forEachIndexed { index, it ->
+                !willSwap || index != session.swap
+            }.forEach { section ->
 
-                        val overlap = it.timeStepRange overlap session.visibleStepRange
+                        // I have found that trying to draw an image off screen has a negligible effect on performance
+                        // which is why I don't check if all of these need to be drawn
+                        images.invoke(section).fold(0.0) { acc, image ->
 
-                        for (x in overlap) {
                             g.drawImage(
-                                    it.timeSteps[x - it.timeStepStart].melImage,
-                                    x.toDouble() - session.stepFrom,
+                                    image,
+                                    acc + section.timeStepStart - session.stepFrom.toDouble(),
                                     0.0,
-                                    1.0,
+                                    image.width,
                                     height
                             )
-                        }
 
-                        if (index != 0)
-                            g.strokeLine(it.timeStepStart - session.stepFrom + 0.5, 0.0, it.timeStepStart - session.stepFrom + 0.5, height)
+                            acc + image.width
+
+                        }
+                        /*
+                            for (i in 0..10000)
+                                g.drawImage(image, -1000, 0, image.width, height, null)
+
+                            This is the aforementioned test, I didn't measure how much longer this takes, but after
+                            running this code it was apparent that there was no performance decrease even in this
+                            extreme case
+                         */
+                        if (section.clusterStart != 0)
+                            g.strokeLine(section.timeStepStart - session.stepFrom + 0.5, 0.0, section.timeStepStart - session.stepFrom + 0.5, height)
+
                     }
 
             g.lineWidth = 2.0
@@ -75,7 +93,7 @@ internal class HistoryView internal constructor(private val session: Session) : 
             val swapWith = session.swapWith
             // I am making these local variables because making them final means that they are automatically cast as none null
 
-            if (swap != null) {
+            if (willSwap && swap != null) {
 
                 when {
                     session.swapWithSection == true -> {
@@ -84,7 +102,7 @@ internal class HistoryView internal constructor(private val session: Session) : 
                         val from = sectionTo.timeStepStart - session.stepFrom.toDouble()
 
                         g.fill = Color(0.0, 1.0, 0.0, .5)
-                        g.fillRect(from, 0.0, sectionTo.timeSteps.size.toDouble(), height)
+                        g.fillRect(from, 0.0, sectionTo.timeStepLength.toDouble(), height)
 
                     }
                     session.swapWithSection == false -> {
@@ -113,9 +131,16 @@ internal class HistoryView internal constructor(private val session: Session) : 
                 val transformBefore = g.transform
                 val y = height * (max(-session.lastY / (2 * DELETE_DISTANCE) + 0.5, 0.0) * sign(session.lastY - 0.5) + 0.1)
                 g.transform(Transform.affine(1.0, 0.0, 0.0, 0.8, 0.0, y))
-                for (x in 0 until section.timeSteps.size) {
-                    g.drawImage(section.timeSteps[x].melImage, session.lastX + x.toDouble(), 0.0, 1.0, height)
-                }
+
+                val image = images.invoke(section)[0]
+
+                g.drawImage(
+                        image,
+                        session.lastX.toDouble(),
+                        0.0,
+                        image.width,
+                        height
+                )
 
                 g.transform = transformBefore
 

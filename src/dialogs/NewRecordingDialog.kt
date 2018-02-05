@@ -4,6 +4,7 @@ import components.RecordingEditPane
 import components.RecordingsListPane.Companion.makeInsets
 import components.RecordingsListPane.Companion.setFocusMnemonic
 import core.*
+import javafx.application.Platform
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Scene
@@ -120,7 +121,7 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
         if (result != null) {
 
-            val name = if (nameField.text.isEmpty()) result.name.substring(0, result.name.length - 4)  else nameField.text
+            val name = if (nameField.text.isEmpty()) result.name.substring(0, result.name.length - 4) else nameField.text
             val regex = "$name(\\d| )*".toRegex()
             val sameNames = recordings.map { it.metaData.name }
                     .filter { regex.matches(it) }
@@ -141,16 +142,25 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
                 reader.open()
                 val dialog = LoadingDialog("Reading ${result.name}", "Reading from file")
-                reader.start()
-                reader.join()
-                dialog.dispose()
+                Platform.runLater {
+                    // this doesn't cause a delay.  The idea of running this later is that otherwise the loading dialog
+                    // won't ever repaint.  This is because the process of repainting the dialog is enqueued to happen
+                    // after handling this button press is over.  Because of this it means that it won't repaint until
+                    // after it has already been disposed off. This doesn't cause a crash but means that the dialog
+                    // is empty during the time it us visible.
+                    // The solution to this is to enqueue the rest of this handling to happen after repainting
 
-                val session = Session(recording)
-                session.stepCursor = null
-                session.onEdited()
-                stage.close()
-                application.push(RecordingEditPane(session, application))
+                    reader.start()
+                    reader.join()
+                    dialog.dispose()
 
+                    val session = Session(recording)
+                    session.stepCursor = null
+                    session.onEdited()
+                    stage.close()
+                    application.push(RecordingEditPane(session, application))
+
+                }
             } catch (e: Exception) {
 
                 val alert = Alert(Alert.AlertType.ERROR)
@@ -173,7 +183,8 @@ class NewRecordingDialog(private val application: MainApplication, private val r
     }
 
     private fun record(nameField: TextField, recordings: MutableList<Recording.PossibleRecording>) {
-        val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
+
+        val name = if (nameField.text.isEmpty()) Recording.DEFAULT_NAME else nameField.text
         val regex = "$name(\\d| )*".toRegex()
         val sameNames = recordings.map { it.metaData.name }
                 .filter { regex.matches(it) }

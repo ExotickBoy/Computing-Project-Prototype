@@ -13,7 +13,7 @@ import kotlin.math.*
  * @property isNote If the scrolling should wrap to the closest note
  * @property session The session that this controller is responsible for
  */
-internal class ScrollController(private val isNote: Boolean, private val owner: Canvas, private val session: Session) {
+internal class ScrollController(private val isNote: Boolean, private val willSwap: Boolean, private val owner: Canvas, private val session: Session) {
 
     private var draggingThread: DraggingThread? = null
 
@@ -37,7 +37,7 @@ internal class ScrollController(private val isNote: Boolean, private val owner: 
 
                 }
                 session.lastX = it.x.roundToInt()
-                session.lastY = it.y / owner.height
+                session.lastY = min(max(it.y / owner.height, 0.0), 1.0)
             }
 
 
@@ -56,7 +56,7 @@ internal class ScrollController(private val isNote: Boolean, private val owner: 
 
         owner.setOnMouseClicked {
 
-            if (!isNote && it.isPrimaryButtonDown && it.isStillSincePress&& session.state == Session.SessionState.EDIT_SAFE) {
+            if (!isNote && it.isPrimaryButtonDown && it.isStillSincePress && session.state == Session.SessionState.EDIT_SAFE) {
                 session.stepCursor = (session.stepFrom + it.x).roundToInt()
                 it.consume()
             }
@@ -65,7 +65,7 @@ internal class ScrollController(private val isNote: Boolean, private val owner: 
 
         val holdTimer = PauseTransition(Duration(holdTime))
         holdTimer.setOnFinished {
-            if (session.state == Session.SessionState.EDIT_SAFE && !isNote) {
+            if (session.state == Session.SessionState.EDIT_SAFE && !isNote && willSwap) {
                 synchronized(session.recording) {
 
                     session.swap = session.recording.sectionAt(session.lastX + session.correctedStepCursor

@@ -73,7 +73,7 @@ class Session(val recording: Recording) {
         set(value) {
             synchronized(recording) {
 
-                val toBecome = if (value == null || value >= recording.clusterLength) null else max(value, 0.0)
+                val toBecome = if (value == null || value - 0.5 >= recording.clusterLength) null else max(value, 0.0)
                 if (toBecome != clusterCursorField) {
                     clusterCursorField = toBecome
 
@@ -294,12 +294,19 @@ class Session(val recording: Recording) {
                 try {
                     playbackController.begin()
                 } catch (e: Exception) {
-                    JOptionPane.showMessageDialog(AppInstance,
-                            "Failed to open playback device\n" + when (e) {
-                                is LineUnavailableException -> "Couldn't find an output device"
-                                is IllegalArgumentException -> "Couldn't find an output device"
-                                else -> "Unknown error occurred"
-                            }, "Error", JOptionPane.ERROR_MESSAGE)
+
+                    val alert = Alert(AlertType.ERROR)
+                    (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                    alert.title = "Error"
+                    alert.headerText = "An error occurred"
+                    alert.contentText = "Failed to open playback device\n" + when (e) {
+                        is LineUnavailableException -> "Couldn't find an output device"
+                        is IllegalArgumentException -> "Couldn't find an output device"
+                        else -> "Unknown error occurred"
+                    }
+
+                    alert.showAndWait()
+
                     return false
 
                 }
@@ -327,22 +334,30 @@ class Session(val recording: Recording) {
     }
 
     fun addOnUpdate(callback: () -> Unit) {
-        onUpdated.add(callback)
+        synchronized(onUpdated) {
+            onUpdated.add(callback)
+        }
     }
 
     fun addOnEdited(callback: () -> Unit) {
-        onEdit.add(callback)
+        synchronized(onEdit) {
+            onEdit.add(callback)
+        }
     }
 
     internal fun onUpdated() {
-        onUpdated.forEach { it.invoke() }
+        synchronized(onUpdated) {
+            onUpdated.forEach { it.invoke() }
+        }
     }
 
     internal fun onEdited() {
 
         updateLocations()
         isEdited = true
-        onEdit.forEach { it.invoke() }
+        synchronized(onEdit) {
+            onEdit.forEach { it.invoke() }
+        }
     }
 
     /**

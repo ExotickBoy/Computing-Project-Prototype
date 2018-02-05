@@ -4,6 +4,7 @@ import core.Section.Companion.MIN_STEP_LENGTH
 import core.SoundProcessingController.Companion.SAMPLES_BETWEEN_FRAMES
 import core.SoundProcessingController.Companion.SAMPLE_PADDING
 import core.SoundProcessingController.Companion.SAMPLE_RATE
+import javafx.scene.image.WritableImage
 import java.io.*
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
@@ -65,17 +66,17 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                         true, true, true,
                         cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING),
                         cutSection.clusters.subList(0, clusterCut).toMutableList(),
-                        mutableListOf(cutSection.melImages[0].getSubimage(
+                        mutableListOf(cutSection.melImages[0].getSubImage(
                                 0,
                                 0,
                                 time - cutSection.timeStepStart,
-                                cutSection.melImages[0].height
+                                cutSection.melImages[0].height.toInt()
                         )),
-                        mutableListOf(cutSection.noteImages[0].getSubimage(
+                        mutableListOf(cutSection.noteImages[0].getSubImage(
                                 0,
                                 0,
                                 time - cutSection.timeStepStart,
-                                cutSection.noteImages[0].height
+                                cutSection.noteImages[0].height.toInt()
                         )),
                         cutSection.dePhased.subList(0, time - cutSection.timeStepStart).toMutableList(),
                         cutSection.dePhasedPower.subList(0, time - cutSection.timeStepStart).toMutableList()
@@ -91,17 +92,17 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                         cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
                             it.copy(relTimeStepStart = it.relTimeStepStart - left.timeStepLength)
                         }.toMutableList(),
-                        mutableListOf(cutSection.melImages[0].getSubimage(
+                        mutableListOf(cutSection.melImages[0].getSubImage(
                                 time - cutSection.timeStepStart,
                                 0,
                                 cutSection.timeStepLength - (time - cutSection.timeStepStart),
-                                cutSection.melImages[0].height
+                                cutSection.melImages[0].height.toInt()
                         )),
-                        mutableListOf(cutSection.noteImages[0].getSubimage(
+                        mutableListOf(cutSection.noteImages[0].getSubImage(
                                 time - cutSection.timeStepStart,
                                 0,
                                 cutSection.timeStepLength - (time - cutSection.timeStepStart),
-                                cutSection.noteImages[0].height
+                                cutSection.noteImages[0].height.toInt()
                         )),
                         cutSection.dePhased.subList(time - cutSection.timeStepStart, cutSection.timeStepLength).toMutableList(),
                         cutSection.dePhasedPower.subList(time - cutSection.timeStepStart, cutSection.timeStepLength).toMutableList()
@@ -251,6 +252,20 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         const val DEFAULT_NAME = "Recording"
         const val DEFAULT_PATH = "recordings/"
         const val USE_COMPRESSION = false
+
+        private fun WritableImage.getSubImage(locX: Int, locY: Int, width: Int, height: Int): WritableImage {
+
+            val result = WritableImage(width, height)
+
+            (0 until width).forEach { x ->
+                (0 until height).forEach { y ->
+                    result.pixelWriter.setColor(x, y, this.pixelReader.getColor(locX + x, locY + y))
+                }
+            }
+
+            return result
+
+        }
 
     }
 

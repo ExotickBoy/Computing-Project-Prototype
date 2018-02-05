@@ -1,6 +1,6 @@
 package core
 
-import java.awt.image.BufferedImage
+import javafx.scene.image.WritableImage
 import java.util.*
 
 /**
@@ -93,16 +93,15 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
         const val SAMPLE_PADDING = (FRAME_SIZE - SAMPLES_BETWEEN_FRAMES) / 2
 
-        private fun collectImages(images: MutableList<BufferedImage>) {
+        private fun collectImages(images: MutableList<WritableImage>) {
 
             if (images.size > 1) {
 
-                val length = images.sumBy { it.width }
-                val result = BufferedImage(length, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
-                val graphics = result.graphics
+                val length = images.map { it.width }.sum().toInt()
+                val result = WritableImage(length, images[0].height.toInt())
 
-                images.fold(0) { acc: Int, new: BufferedImage ->
-                    graphics.drawImage(new, acc, 0, new.width, Model.MEL_BINS_AMOUNT, null)
+                images.fold(0.0) { acc, new ->
+                    drawImage(new, acc.toInt(), 0, result)
                     acc + new.width
                 }
 
@@ -113,20 +112,32 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
         }
 
-        private fun combineImages(images: MutableList<BufferedImage>) {
+        private fun combineImages(images: MutableList<WritableImage>) {
 
             while (images.size > 1 && images[images.lastIndex - 1].width == images[images.lastIndex].width) {
 
                 val a = images.removeAt(images.lastIndex - 1)
                 val b = images.removeAt(images.lastIndex)
 
-                val new = BufferedImage(a.width * 2, a.height, BufferedImage.TYPE_INT_RGB)
-                val graphics = new.graphics
-                graphics.drawImage(a, 0, 0, null)
-                graphics.drawImage(b, a.width, 0, null)
+                val new = WritableImage(a.width.toInt() * 2, a.height.toInt())
+
+                drawImage(a, 0, 0, new)
+                drawImage(b, a.width.toInt(), 0, new)
 
                 images.add(new)
 
+            }
+
+        }
+
+        private fun drawImage(new: WritableImage, locX: Int, locY: Int, target: WritableImage) {
+
+            (0 until new.width.toInt()).forEach { x ->
+                (0 until new.height.toInt()).forEach { y ->
+
+                    target.pixelWriter.setColor(x + locX, y + locY, new.pixelReader.getColor(x, y))
+
+                }
             }
 
         }
