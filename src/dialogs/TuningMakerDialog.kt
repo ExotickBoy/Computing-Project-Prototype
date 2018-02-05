@@ -234,7 +234,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
                 val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
                         strings,
                         capoSpinner.value as Int,
-                        maxFretSpinner.value as Int)
+                        maxFretSpinner.value as Int + capoSpinner.value as Int)
 
                 previous.refresh(if (strings.isEmpty()) null else newTuning)
                 stage.close()

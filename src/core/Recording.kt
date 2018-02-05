@@ -62,7 +62,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
             val cutSection = sections[cutIndex]
 
             if (time - cutSection.timeStepStart > MIN_STEP_LENGTH && cutSection.timeStepLength - (time - cutSection.timeStepStart) > MIN_STEP_LENGTH) {
-                // if each, the left and righ, are long enough
+                // if each, the left and right, are long enough
 
                 val clusterCut = cutSection.clusters.indexOfFirst { cutSection.timeStepStart + it.relTimeStepStart > time }.let {
                     if (it == -1) cutSection.clusters.size else it
