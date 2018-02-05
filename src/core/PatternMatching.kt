@@ -1,6 +1,7 @@
 package core
 
 import java.io.Serializable
+import kotlin.math.max
 
 // not serializable
 class PatternMatcher(private val tuning: Tuning, private val clusters: MutableList<NoteCluster>) {
@@ -10,7 +11,7 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
     private val chosenMatches: MutableList<PossibleMatch> = mutableListOf()
     private val paths: MutableList<List<Path>> = mutableListOf()
 
-    internal fun feedNotes(newNotes: List<Note>) {
+    internal fun feed(newNotes: List<Note>) {
 
         newNotes.filter { it.pitch in tuning } // the pitch must be within the playable range of the guitar
                 .filter { it !in notes.takeLastWhile { it.start <= it.start } } // if this note hasn't been added yet
@@ -68,22 +69,23 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
                     (0 until previousPlacements.size).map { previousPlacementIndex ->
                         // for each possible pair of the placements in the last time and the current one
 
+                        val currentRoot = previousPaths[previousPlacementIndex].route
+
+                        val distance = (max(0, time - 3)..(time - 1)).map { otherIndex ->
+
+                            Placement.physicalDistance(
+                                    chosenMatches[otherIndex].possiblePlacement[currentRoot[otherIndex]].map { tuning.placements[it] },
+                                    nextPlacements[nextPlacementIndex].map { tuning.placements[it] }
+                            ) * Placement.timeDistance(
+                                    chosenMatches[time].stepStart,
+                                    chosenMatches[otherIndex].stepStart
+                            )
+
+                        }.sum()
+
                         Path(previousPaths[previousPlacementIndex].route + nextPlacementIndex,
-                                Placement.physicalDistance(previousPlacements[previousPlacementIndex].map { tuning.placements[it] },
-                                        nextPlacements[nextPlacementIndex].map { tuning.placements[it] }))
-
-                        // TODO lake last 3
-
-//                        Path(previousPaths[previousMatchIndex].route + nextMatchIndex,
-//                                previousPaths[previousMatchIndex].route.takeLast(3).mapIndexed { index, place ->
-//
-//                                    println(index)
-//
-//                                    val physicalDistance = Placement.physicalDistance(currentPlacements[place], currentMatch[nextMatchIndex])
-//                                    val timeMultiplier = Placement.timeDistance(chosenMatches[time].stepStart - chosenMatches[time - 1].stepStart)
-//                                    return@mapIndexed physicalDistance * timeMultiplier
-//
-//                                }.sum())
+                                distance
+                        )
 
                     }.minBy { it.distance }!! // find the shortest path to current from any past, this should never be null
                 }
@@ -156,9 +158,9 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
     private data class PossibleMatch constructor(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) : Serializable {
 
         val isValid: Boolean
-            get() = (pattern?.notes?.size ?: 1 >= tuning.size) && validRoots.isNotEmpty()
+            get() = (pattern?.notes?.size ?: 1 <= tuning.size) && validRoots.isNotEmpty()
         val isPossible: Boolean
-            get() = (pattern?.notes?.size ?: 1 >= tuning.size) && possibleRoots.isNotEmpty()
+            get() = (pattern?.notes?.size ?: 1 <= tuning.size) && possibleRoots.isNotEmpty()
 
         private var placementCombinations: List<List<Int>> = listOf()
         private val possibleRoots: MutableList<Note> = mutableListOf()
@@ -198,10 +200,15 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
                 }
             }
 
+//            if (notes.size == 2 && notes.distinctBy { it.pitch }.size == notes.size && pattern == ChordPattern.SIMPLE_POWER_CHORD) {
+//                println("bam, this is the hot case")
+//            } TODO get rid of this after debugging is over
+
             possibleRoots.add(newNote)
             possibleRoots.removeIf { !possibleWithRoot(it) }
             validRoots.clear()
             validRoots.addAll(possibleRoots.filter { validWithRoot(it) })
+
         }
 
         private fun possibleWithRoot(root: Note): Boolean {
@@ -211,8 +218,9 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
         }
 
         private fun validWithRoot(root: Note): Boolean {
+            val pitches = notes.map { it.pitch - root.pitch }
             return placementCombinations.isNotEmpty() && (pattern == null || pattern.notes.none {
-                (it + root.pitch) !in notes.map { it.pitch }
+                it !in pitches
             })
         }
 

@@ -1,23 +1,28 @@
 package components
 
 import components.RecordingEditPane.Companion.line
-import components.RecordingEditPane.Companion.overlap
+import core.Section
 import core.Session
 import core.Session.Companion.DELETE_DISTANCE
 import java.awt.*
 import java.awt.geom.AffineTransform
 import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
 import javax.swing.JPanel
 import kotlin.math.max
 import kotlin.math.sign
 
-internal class HistoryPane internal constructor(private val session: Session) : JPanel() {
+internal class HistoryPane(
+        private val session: Session,
+        preferredHeight: Int,
+        private val images: (Section) -> (List<BufferedImage>)
+) : JPanel() {
 
     private val scrollController: ScrollController
 
     init {
 
-        preferredSize = Dimension(500, 300)
+        preferredSize = Dimension(500, preferredHeight)
 
         scrollController = ScrollController(false, this, session)
         addMouseMotionListener(scrollController)
@@ -43,20 +48,29 @@ internal class HistoryPane internal constructor(private val session: Session) : 
             g.color = Color.MAGENTA
             session.recording.sections.filterIndexed { index, _ ->
                 index != session.swap
-            }.forEachIndexed { index, it ->
+            }.forEach { section ->
 
-                val overlap = it.timeStepRange overlap session.visibleStepRange
+                        // I have found that trying to draw an image off screen has a negligible effect on performance
+                        // which is why I don't check if all of these need to be drawn
+                        images.invoke(section).fold(0) { acc, image ->
 
-                for (x in overlap) {
+                            g.drawImage(image, acc + section.timeStepStart - session.stepFrom, 0, image.width, height, null)
 
-                    g.drawImage(it.timeSteps[x - it.timeStepStart].melImage, x - session.stepFrom, 0, 1, height, null)
+                            acc + image.width
 
-                }
+                        }
+                        /*
+                            for (i in 0..10000)
+                                g.drawImage(image, -1000, 0, image.width, height, null)
 
-                if (index != 0)
-                    g.draw(line(it.timeStepStart - session.stepFrom + 0.5, 0, it.timeStepStart - session.stepFrom + 0.5, height))
+                            This is the aforementioned test, I didn't measure how much longer this takes, but after
+                            running this code it was apparent that there was no performance decrease even in this
+                            extreme case
+                         */
+                        if (section.clusterStart != 0)
+                            g.draw(line(section.timeStepStart - session.stepFrom + 0.5, 0, section.timeStepStart - session.stepFrom + 0.5, height))
 
-            }
+                    }
 
             g.stroke = BasicStroke(2f)
             g.color = Color.RED
@@ -75,7 +89,7 @@ internal class HistoryPane internal constructor(private val session: Session) : 
                         val from = sectionTo.timeStepStart - session.stepFrom.toDouble()
 
                         g.color = Color(0f, 1f, 0f, .5f)
-                        g.fill(Rectangle2D.Double(from, 0.0, sectionTo.timeSteps.size.toDouble(), height.toDouble()))
+                        g.fill(Rectangle2D.Double(from, 0.0, sectionTo.timeStepLength.toDouble(), height.toDouble()))
 
                     }
                     session.swapWithSection == false -> {
@@ -104,11 +118,9 @@ internal class HistoryPane internal constructor(private val session: Session) : 
                 val transformBefore = g.transform
                 val y = height * (max(-session.lastY / (2 * DELETE_DISTANCE) + 0.5, 0.0) * sign(session.lastY - 0.5) + 0.1)
                 g.transform(AffineTransform(1.0, 0.0, 0.0, 0.8, 0.0, y))
-                for (x in 0 until section.timeSteps.size) {
 
-                    g.drawImage(section.timeSteps[x].melImage, session.lastX + x, 0, 1, height, null)
-
-                }
+                g.drawImage(images.invoke(section)[0], session.lastX + x, 0, images.invoke(section)[0].width, height, null)
+                // melImages should only consist of one image at this stage since it must be processed for a step to be allowed
 
                 g.transform = transformBefore
 

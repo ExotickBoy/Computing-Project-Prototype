@@ -5,6 +5,8 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 
 /**
@@ -50,12 +52,12 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
         fun isPossible(placements: List<Placement>, pattern: ChordPattern?): Boolean {
 
             val strings = placements.map { it.string }
-            val stringSep = strings.range()
-            val fretSep = placements.map { it.fret }.range()
+            val stringSpan = strings.range() + 1
+            val fretSpan = placements.map { it.fret }.range() + 1
             return when {
                 strings.distinct().size != strings.size -> false
-                pattern?.maxStringSep != null && stringSep > pattern.maxStringSep -> false
-                fretSep > MAX_FRET_SEPARATION -> false
+                pattern?.maxStringSpan != null && stringSpan > pattern.maxStringSpan -> false
+                fretSpan > MAX_FRET_SEPARATION -> false
                 else -> true
             }
 
@@ -98,7 +100,9 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
          * @param time the time between the steps
          * @return a function representing the significance of this time
          */
-        fun timeDistance(time: Int): Double = TIME_FACTOR_BASE.pow(-time)
+        private fun timeDistance(time: Int): Double = TIME_FACTOR_BASE.pow(-time)
+
+        fun timeDistance(a: Int, b: Int): Double = timeDistance(max(a, b) - min(a, b))
 
         /**
          * The Euclidean normal returns the physicalDistance in euclidean space given the difference in each dimension.

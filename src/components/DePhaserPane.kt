@@ -48,32 +48,31 @@ internal class DePhaserPane internal constructor(private val session: Session) :
 
         synchronized(session.recording) {
 
-            val currentStep = if (session.stepCursor == null) {
-                session.recording.sections.findLast { it.timeSteps.isNotEmpty() }?.timeSteps?.last()
+            val current = if (session.stepCursor == null) {
+                session.recording.sections.findLast { it.timeStepLength != 0 }?.dePhased?.last()
             } else {
                 val sectionIndex = session.recording.sectionAt(session.correctedStepCursor)
                 if (sectionIndex != null) {
                     val section = session.recording.sections[sectionIndex]
-
-                    section.timeSteps[session.correctedStepCursor - section.timeStepStart]
+                    section.dePhased[session.correctedStepCursor - section.timeStepStart]
                 } else {
                     null
                 }
             }
 
-            if (currentStep != null) {
+            if (current != null) {
 
                 val graph = Path2D.Double()
 
                 val multiplier = MULTIPLIER * height * min(1f, scale) * (2 - min(1f, scale))
 
-                for (i in 0 until currentStep.dePhased.size step RESOLUTION) {
+                for (i in 0 until current.size step RESOLUTION) {
 
-                    val x = size.getWidth() * i / currentStep.dePhased.size
+                    val x = size.getWidth() * i / current.size
                     if (i == 0) {
-                        graph.moveTo(x, size.height / 2 + currentStep.dePhased[i] * multiplier)
+                        graph.moveTo(x, size.height / 2 + current[i] * multiplier)
                     } else {
-                        graph.lineTo(x, size.height / 2 + currentStep.dePhased[i] * multiplier)
+                        graph.lineTo(x, size.height / 2 + current[i] * multiplier)
                     }
 
                 }

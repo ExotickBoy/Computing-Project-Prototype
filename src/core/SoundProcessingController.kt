@@ -1,5 +1,6 @@
 package core
 
+import java.awt.image.BufferedImage
 import java.util.*
 
 /**
@@ -19,7 +20,7 @@ import java.util.*
  */
 internal class SoundProcessingController(val session: Session) : Thread("Sound Processing Thread") {
 
-    private val timeStepQueue: LinkedList<IntRange> = LinkedList()
+    private val timeStepQueue: LinkedList<TimeStep> = LinkedList()
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
 
     fun begin() {
@@ -41,15 +42,21 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
             }
             if (section != null) {
                 var processingCursor = 0
+                var previousStep: TimeStep? = null
 
                 while (!section.isGathered || processingCursor + FRAME_SIZE < section.samples.size) {
 
                     if (processingCursor + FRAME_SIZE < section.samples.size) {
 
-                        val newStep = processingCursor..(processingCursor + FRAME_SIZE)
+                        val newStep = TimeStep(
+                                section,
+                                processingCursor,
+                                if (previousStep?.section != section) null else previousStep
+                        )
+                        previousStep = newStep
                         synchronized(timeStepQueue) { timeStepQueue }.add(newStep)
-                        section.preProcessTimeStep(newStep)
                         processingCursor += SAMPLES_BETWEEN_FRAMES
+
                     } else {
                         onSpinWait()
                     }
@@ -86,6 +93,44 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
         const val SAMPLE_PADDING = (FRAME_SIZE - SAMPLES_BETWEEN_FRAMES) / 2
 
+        private fun collectImages(images: MutableList<BufferedImage>) {
+
+            if (images.size > 1) {
+
+                val length = images.sumBy { it.width }
+                val result = BufferedImage(length, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
+                val graphics = result.graphics
+
+                images.fold(0) { acc: Int, new: BufferedImage ->
+                    graphics.drawImage(new, acc, 0, new.width, Model.MEL_BINS_AMOUNT, null)
+                    acc + new.width
+                }
+
+                images.clear()
+                images.add(result)
+
+            }
+
+        }
+
+        private fun combineImages(images: MutableList<BufferedImage>) {
+
+            while (images.size > 1 && images[images.lastIndex - 1].width == images[images.lastIndex].width) {
+
+                val a = images.removeAt(images.lastIndex - 1)
+                val b = images.removeAt(images.lastIndex)
+
+                val new = BufferedImage(a.width * 2, a.height, BufferedImage.TYPE_INT_RGB)
+                val graphics = new.graphics
+                graphics.drawImage(a, 0, 0, null)
+                graphics.drawImage(b, a.width, 0, null)
+
+                images.add(new)
+
+            }
+
+        }
+
     }
 
     /**
@@ -100,7 +145,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
      * @property session The session the timeStep is to be added to
      * @property queue The mutable queue of TimeSteps which is served from
      */
-    private class TimeStepBufferThread(val session: Session, val queue: LinkedList<IntRange>)
+    private class TimeStepBufferThread(val session: Session, val queue: LinkedList<TimeStep>)
         : Thread("TimeStepBufferThread") {
 
         private var fastProcess: MutableList<Section> = mutableListOf()
@@ -130,6 +175,8 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                     var current = last
                     var accumulated = 0.0
 
+                    val patternMatcher = PatternMatcher(section.recording.tuning, section.clusters)
+
                     while (!section.isProcessed) {
 
                         last = current
@@ -142,13 +189,26 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                             if (!synchronized(queue) { queue }.isEmpty()) {
                                 synchronized(session.recording) {
-                                    section.presentTimeStep(queue.removeFirst())
+
+                                    val newStep: TimeStep = queue.removeFirst()
+
+                                    patternMatcher.feed(newStep.notes)
+                                    section.dePhased.add(newStep.dePhased)
+                                    section.dePhasedPower.add(newStep.dePhasedPower)
+
+                                    section.melImages.add(newStep.melImage)
+                                    section.noteImages.add(newStep.noteImage)
+                                    combineImages(section.melImages)
+                                    combineImages(section.noteImages)
+
                                     session.onEdited()
                                     session.onUpdated()
                                     // add time step to recording where further processing happens
                                 }
                             } else if (section.isPreProcessed) {
                                 synchronized(session.recording) {
+                                    collectImages(section.melImages)
+                                    collectImages(section.noteImages)
                                     section.isProcessed = true
                                 }
                             } else {

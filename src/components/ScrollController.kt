@@ -68,7 +68,7 @@ internal class ScrollController(private val isNote: Boolean, private val compone
 
     override fun mouseClicked(e: MouseEvent) {
 
-        if (!isNote) {
+        if (!isNote && session.state == Session.SessionState.EDIT_SAFE) {
             session.stepCursor = session.stepFrom + e.x
             e.consume()
         }

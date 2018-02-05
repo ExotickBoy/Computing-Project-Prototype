@@ -5,27 +5,25 @@ import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
-import java.util.*
+import javax.imageio.ImageIO
 
 class Section(
-        val recording: Recording,
-        val sampleStart: Int,
-        val timeStepStart: Int,
-        val clusterStart: Int,
+        var recording: Recording,
+        var sampleStart: Int,
+        var timeStepStart: Int,
+        var clusterStart: Int,
         var isGathered: Boolean = false,
         var isPreProcessed: Boolean = false,
         var isProcessed: Boolean = false,
         @Transient var samples: MutableList<Float> = mutableListOf(),
         @Transient var clusters: MutableList<NoteCluster> = mutableListOf(),
-        var melImages: MutableList<BufferedImage> = mutableListOf(),
-        var noteImages: MutableList<BufferedImage> = mutableListOf()
+        @Transient var melImages: MutableList<BufferedImage> = mutableListOf(),
+        @Transient var noteImages: MutableList<BufferedImage> = mutableListOf(),
+        @Transient var dePhased: MutableList<FloatArray> = mutableListOf(),
+        @Transient var dePhasedPower: MutableList<Float> = mutableListOf()
 ) : Serializable {
 
-    @Transient
-    val notes: MutableList<Note> = mutableListOf()
-    @Transient
-    val timeStepQueue: LinkedList<IntRange> = LinkedList()
-
+    constructor(previous: Section) : this(previous.recording, previous.sampleEnd, previous.timeStepEnd, previous.clusterEnd)
 
     val timeStepLength
         get() = melImages.map { it.width }.sum()
@@ -45,29 +43,19 @@ class Section(
     val clusterRange
         get() = clusterStart until clusterEnd
 
-    // the transient keyword means that the serialiser will not serialise it when it is being written to file
-    // I can discard all of the pattern matching once if's finished processing
-    @Transient
-    private val patternMatcher: PatternMatcher? = PatternMatcher(recording.tuning, clusters)
-
     @Throws(IOException::class)
     private fun writeObject(output: ObjectOutputStream) {
 
         output.defaultWriteObject()
-        val a = System.currentTimeMillis()
 
         output.writeObject(samples.toFloatArray())
-
-        val b = System.currentTimeMillis()
-        output.writeObject(timeSteps.toTypedArray())
-        val c = System.currentTimeMillis()
         output.writeObject(clusters.toTypedArray())
 
-        val end = System.currentTimeMillis()
+        ImageIO.write(melImages[0], "png", output)
+        ImageIO.write(noteImages[0], "png", output)
 
-        println("samples -> ${b - a}")
-        println("timeSteps -> ${c - b}")
-        println("clusters -> ${end - c}")
+        output.writeObject(dePhased.toTypedArray())
+        output.writeObject(dePhasedPower.toTypedArray())
 
     }
 
@@ -78,12 +66,13 @@ class Section(
         input.defaultReadObject()
 
         samples = (input.readObject() as FloatArray).toMutableList()
-        timeSteps = (input.readObject() as? Array<TimeStep>)?.toMutableList() ?: mutableListOf()
         clusters = (input.readObject() as? Array<NoteCluster>)?.toMutableList() ?: mutableListOf()
 
-        isGathered = true
-        isPreProcessed = true
-        isProcessed = true
+        melImages.add(ImageIO.read(input))
+        noteImages.add(ImageIO.read(input))
+
+        dePhased = (input.readObject() as Array<FloatArray>).toMutableList()
+        dePhasedPower = (input.readObject() as Array<Float>).toMutableList()
 
     }
 
@@ -91,36 +80,6 @@ class Section(
         synchronized(recording) {
             samples.addAll(newSamples.toTypedArray())
         }
-    }
-
-    fun preProcessTimeStep(newStep: IntRange) {
-
-        // create images and stuff
-
-        timeStepQueue.add(newStep)
-
-    }
-
-    fun presentTimeStep(newStep: IntRange?) {
-
-        timeStepQueue.remove(newStep)
-
-        val newNotes =
-
-                patternMatcher?.feedNotes(notes)
-
-    }
-
-    private fun getSamples(range: IntRange): FloatArray {
-        synchronized(recording) {
-            return samples.subList(sampleStart, sampleStart + SoundProcessingController.FRAME_SIZE).toFloatArray()
-        }
-    }
-
-    private fun addImages(newMelImage: BufferedImage, newNoteImage: BufferedImage) {
-
-        // recombination
-
     }
 
     companion object {

@@ -1,11 +1,14 @@
 package core
 
+import core.Section.Companion.MIN_STEP_LENGTH
 import core.SoundProcessingController.Companion.SAMPLES_BETWEEN_FRAMES
 import core.SoundProcessingController.Companion.SAMPLE_PADDING
 import core.SoundProcessingController.Companion.SAMPLE_RATE
 import java.io.*
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
+import kotlin.math.max
+import kotlin.math.min
 
 
 /**
@@ -39,12 +42,6 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
     val isPreProcessed: Boolean
         get() = sections.lastOrNull()?.isPreProcessed ?: true
 
-    /**
-     * Makes a cut in the recording by finding the section at the cursors position and splitting it into two sections.
-     * It may do nothing if one of the created sections is less than the minimum section length
-     * @param time The time to cut the recording at in timesteps
-     * TODO
-     */
     internal fun cut(time: Int): Boolean {
 
         val cutIndex = sectionAt(time)
@@ -53,46 +50,77 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
             val cutSection = sections[cutIndex]
 
-            val clusterCut = cutSection.clusters.indexOfFirst { cutSection.timeStepStart + it.relTimeStepStart > time }.let {
-                if (it == -1) cutSection.clusters.size else it
-            }
+            if (time - cutSection.timeStepStart > MIN_STEP_LENGTH && cutSection.timeStepLength - (time - cutSection.timeStepStart) > MIN_STEP_LENGTH) {
 
-            val left = Section(
-                    this,
-                    cutSection.sampleStart,
-                    cutSection.timeStepStart,
-                    cutSection.clusterStart,
-                    cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING).toMutableList(),
-                    cutSection.timeSteps.subList(0, time - cutSection.timeStepStart).toMutableList(),
-                    cutSection.clusters.subList(0, clusterCut).toMutableList(),
-                    true, true, true
-            )
+                val clusterCut = cutSection.clusters.indexOfFirst { cutSection.timeStepStart + it.relTimeStepStart > time }.let {
+                    if (it == -1) cutSection.clusters.size else it
+                }
 
-            val right = Section(
-                    this,
-                    left.sampleEnd,
-                    left.timeStepEnd,
-                    left.clusterEnd,
-                    cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size).toMutableList(),
-                    cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeStepLength).toMutableList(),
-                    cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
-                        it.copy(relTimeStepStart = it.relTimeStepStart - left.timeSteps.size)
-//                        NoteCluster(it.relTimeStepStart - left.timeSteps.size, it.placements, it.heading, it.boldHeading)
-                    }.toMutableList(),
-                    true, true, true
-            )
+                // this is splitting all the different properties of the section into the left and right one
+                val left = Section(
+                        this,
+                        cutSection.sampleStart,
+                        cutSection.timeStepStart,
+                        cutSection.clusterStart,
+                        true, true, true,
+                        cutSection.samples.subList(0, (time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING),
+                        cutSection.clusters.subList(0, clusterCut).toMutableList(),
+                        mutableListOf(cutSection.melImages[0].getSubimage(
+                                0,
+                                0,
+                                time - cutSection.timeStepStart,
+                                cutSection.melImages[0].height
+                        )),
+                        mutableListOf(cutSection.noteImages[0].getSubimage(
+                                0,
+                                0,
+                                time - cutSection.timeStepStart,
+                                cutSection.noteImages[0].height
+                        )),
+                        cutSection.dePhased.subList(0, time - cutSection.timeStepStart).toMutableList(),
+                        cutSection.dePhasedPower.subList(0, time - cutSection.timeStepStart).toMutableList()
+                )
 
-            if (left.timeSteps.size >= Section.MIN_STEP_LENGTH && right.timeSteps.size >= Section.MIN_STEP_LENGTH) {
+                val right = Section(
+                        this,
+                        left.sampleEnd,
+                        left.timeStepEnd,
+                        left.clusterEnd,
+                        true, true, true,
+                        cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size).toMutableList(),
+                        cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
+                            it.copy(relTimeStepStart = it.relTimeStepStart - left.timeStepLength)
+                        }.toMutableList(),
+                        mutableListOf(cutSection.melImages[0].getSubimage(
+                                time - cutSection.timeStepStart,
+                                0,
+                                cutSection.timeStepLength - (time - cutSection.timeStepStart),
+                                cutSection.melImages[0].height
+                        )),
+                        mutableListOf(cutSection.noteImages[0].getSubimage(
+                                time - cutSection.timeStepStart,
+                                0,
+                                cutSection.timeStepLength - (time - cutSection.timeStepStart),
+                                cutSection.noteImages[0].height
+                        )),
+                        cutSection.dePhased.subList(time - cutSection.timeStepStart, cutSection.timeStepLength).toMutableList(),
+                        cutSection.dePhasedPower.subList(time - cutSection.timeStepStart, cutSection.timeStepLength).toMutableList()
+                )
 
-                sections.removeAt(cutIndex)
-                sections.add(cutIndex, right)
-                sections.add(cutIndex, left)
+                synchronized(this) {
+
+                    sections.removeAt(cutIndex)
+                    sections.add(cutIndex, right)
+                    sections.add(cutIndex, left)
+
+                }
 
                 true
 
             } else false
 
         } else false
+
     }
 
     internal fun gatherSection(): Section {
@@ -124,16 +152,16 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
     /**
      * Swaps two sections of the recording by their incises
-     * @param a The index of the first section
-     * @param b The index of the second section
+     * @param from The index of the first section
+     * @param to The index of the second section
      */
-    internal fun swapSections(a: Int, b: Int) {
+    internal fun swapSections(from: Int, to: Int) {
 
-        val temp = sections[a]
-        sections[a] = sections[b]
-        sections[b] = temp
+        val temp = sections[from]
+        sections[from] = sections[to]
+        sections[to] = temp
 
-        relabelStarts()
+        relabelStarts(from = min(from, to), to = max(from, to))
 
     }
 
@@ -143,29 +171,29 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         sections.removeAt(from)
         sections.add(corrected, it)
 
-        relabelStarts() //TODO
-
+        relabelStarts(from = min(from, to), to = max(from, to))
     }
 
-    internal fun removeSection(section: Int) {
-        sections.removeAt(section)
-
-        if (sections.isNotEmpty()) {
-
-            relabelStarts() //TODO
-
+    internal fun removeSection(sectionIndex: Int) {
+        sections.removeAt(sectionIndex)
+        if (sections.isNotEmpty() && sections.size != sectionIndex) {
+            relabelStarts(from = sectionIndex)
         }
     }
 
-    private fun relabelStarts(from: Int = 0){
+    private fun relabelStarts(from: Int = 0, to: Int = sections.size - 1) {
 
-        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
-        for (i in 1 until sections.size) {
-            sections[i] = sections[i].copy(
-                    sampleStart = sections[i - 1].sampleEnd,
-                    timeStepStart = sections[i - 1].timeStepEnd,
-                    clusterStart = sections[i - 1].clusterEnd
-            )
+
+        sections[from].sampleStart = if (from == 0) 0 else sections[from - 1].sampleEnd
+        sections[from].timeStepStart = if (from == 0) 0 else sections[from - 1].timeStepEnd
+        sections[from].clusterStart = if (from == 0) 0 else sections[from - 1].clusterEnd
+
+        (from + 1..min(to, sections.size - 1)).forEach { i ->
+
+            sections[i].sampleStart = sections[i - 1].sampleEnd
+            sections[i].timeStepStart = sections[i - 1].timeStepEnd
+            sections[i].clusterStart = sections[i - 1].clusterEnd
+
         }
 
     }
@@ -185,7 +213,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         val start = System.currentTimeMillis()
         serialize(FileOutputStream(File(DEFAULT_PATH + "/" + name + FILE_EXTENSION)))
-        println("saving -> ${System.currentTimeMillis() - start}ms")
+        println("${System.currentTimeMillis() - start}ms elapsed saving")
 
     }
 
@@ -218,7 +246,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         }
 
-        private const val serialVersionUID = 354634135413L; // this is used in serializing to make sure class versions match
+        private const val serialVersionUID = 354634135413L // this is used in serializing to make sure class versions match
         private const val FILE_EXTENSION = ".rec"
         const val DEFAULT_PATH = "recordings/"
         const val USE_COMPRESSION = false

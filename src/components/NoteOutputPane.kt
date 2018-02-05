@@ -121,7 +121,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                     }
                 }
 
-                if (it.timeSteps.size != 0 && it.timeStepStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
+                if (it.timeStepLength != 0 && it.timeStepStart != 0) { // doesn't draw a separation at the beginning of if there are no notes
 
                     g.color = Color.MAGENTA
                     g.draw(line(

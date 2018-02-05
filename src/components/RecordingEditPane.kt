@@ -1,6 +1,7 @@
 package components
 
 import core.AppInstance
+import core.Model
 import core.Session
 import dialogs.LoadingDialog
 import java.awt.BorderLayout
@@ -16,9 +17,9 @@ import kotlin.math.min
 
 class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
-    private val historyPane = HistoryPane(session)
+    private val melOutputPane = HistoryPane(session, 300) { it.melImages }
     private val phaserPane = DePhaserPane(session)
-    private val networkOutputPane = NetworkOutputPane(session)
+    private val networkOutputPane = HistoryPane(session, Model.PITCH_RANGE) { it.noteImages }
     private val noteOutputPane = NoteOutputPane(session)
     private val controlPane = ControlPane(session)
 
@@ -28,7 +29,7 @@ class RecordingEditPane(val session: Session) : AppInstance.ApplicationPane() {
 
         val historyPanel = JPanel(GridLayout())
         historyPanel.border = BorderFactory.createEtchedBorder()
-        historyPanel.add(historyPane)
+        historyPanel.add(melOutputPane)
 
         val phaserPanel = JPanel(GridLayout())
         phaserPanel.border = BorderFactory.createEtchedBorder()
