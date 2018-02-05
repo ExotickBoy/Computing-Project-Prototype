@@ -250,7 +250,6 @@ class Session(val recording: Recording) {
                                     else -> "Unknown error occurred"
                                 }, "Error", JOptionPane.ERROR_MESSAGE)
                         return false
-
                     }
 
                 stepCursor = null
@@ -284,7 +283,19 @@ class Session(val recording: Recording) {
     fun playback(): Boolean {
         return if (state == SessionState.EDIT_SAFE && stepCursor != null) {
             if (!playbackController.isOpen)
-                if (!playbackController.begin()) return false
+                try {
+                    playbackController.begin()
+                } catch (e: Exception) {
+                    JOptionPane.showMessageDialog(AppInstance,
+                            "Failed to open playback device\n" + when (e) {
+                                is LineUnavailableException -> "Couldn't find an output device"
+                                is IllegalArgumentException -> "Couldn't find an output device"
+                                else -> "Unknown error occurred"
+                            }, "Error", JOptionPane.ERROR_MESSAGE)
+                    return false
+
+                }
+
             // if it couldn't begin the playback controller
             playbackController.isPaused = false
             onUpdated()
