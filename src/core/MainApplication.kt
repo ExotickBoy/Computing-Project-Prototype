@@ -6,8 +6,8 @@ import javafx.application.Application.launch
 import javafx.scene.Scene
 import javafx.scene.image.Image
 import javafx.stage.Stage
-
 import java.util.*
+import kotlin.system.exitProcess
 
 /**
  * This is the class that represents the instance of the running program
@@ -76,7 +76,7 @@ class MainApplication : Application() {
         if (activityStack.isEmpty()) {
 
             stage.close()
-            System.exit(0)
+            exitProcess(0)
 
         } else {
 
@@ -151,11 +151,10 @@ class MainApplication : Application() {
 
         const val TITLE: String = "NoteWize"
         val icon = try {
-            Image("res/icon.png")
+            Image(MainApplication::class.java.getResourceAsStream("/icon.png"))
         } catch (e: Exception) {
             null
         }
-
     }
 
 }
@@ -164,5 +163,9 @@ class MainApplication : Application() {
  * The entry point
  */
 fun main(args: Array<String>) {
+
+    NativeUtils.loadLibraryFromJar(Model.TENSOR_FLOW_NATIVES) // <- I didn't write this code
+    // this loads the native files stored inside the jar
+
     launch(MainApplication::class.java, *args)
 }

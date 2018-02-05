@@ -1,9 +1,14 @@
 package core
 
+import javafx.scene.control.Alert
+import javafx.stage.Stage
 import org.tensorflow.SavedModelBundle
+import org.tensorflow.Session
 import org.tensorflow.Tensor
+import java.io.File
 import java.nio.FloatBuffer
 import java.util.*
+import kotlin.system.exitProcess
 
 /**
  * The object that interfaces with the model created in TensorFlow
@@ -13,14 +18,50 @@ import java.util.*
  */
 internal object Model {
 
-    const val FFT_SIZE: Int = 4096 // the size of the fft used, equivalent to the input size
+    const val TENSOR_FLOW_NATIVES = "/tensorflow_jni.dll"
+    private val tensorFlowSession: Session
 
+    private const val MODEL_LOCATION = "model/" // the location of the model
+
+    init {
+
+        tensorFlowSession = try {
+            SavedModelBundle.load(File(MODEL_LOCATION).absolutePath, "serve").session()
+        } catch (e: Exception) {
+            onNoModel()
+        }
+
+    }
+
+    /**
+     * This method is called when a model can't be loaded
+     */
+    private fun onNoModel(): Nothing {
+
+        val alert = Alert(Alert.AlertType.ERROR)
+        if (MainApplication.icon != null)
+            (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+
+        alert.title = NO_MODEL_ERROR_TITLE
+        alert.headerText = NO_MODEL_ERROR_MESSAGE
+
+        alert.showAndWait()
+
+        exitProcess(0)
+
+    }
+
+    private const val NO_MODEL_ERROR_TITLE = "Fatal Error"
+    private const val NO_MODEL_ERROR_MESSAGE = "The model is missing, make sure model/ is in the same directory as the .jar"
+
+    const val FFT_SIZE: Int = 4096 // the size of the fft used, equivalent to the input size
     const val START_PITCH: Int = 24 // the lowest pitch the model outputs
+
     const val END_PITCH: Int = 60
     const val PITCH_RANGE: Int = END_PITCH - START_PITCH
     val POSSIBLE_PITCHES = START_PITCH..END_PITCH
-
     const val CONFIDENCE_CUT_OFF = .5 // the confidence below which predictions will be discarded
+
     const val MEL_BINS_AMOUNT: Int = 124 // the size of the output spectrum
 
     // The names of tensors in the model
@@ -33,9 +74,6 @@ internal object Model {
     private const val DEPHASED_SAMPLES: String = "de_phased_reconstruction"
     private const val DE_PHASED_POWER: String = "de_phased_rms"
 
-    private const val MODEL_LOCATION = "res/model82" // the location of the model (82)
-
-    private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
 
     private val samplesInputBuffer: FloatBuffer // The FloatBuffer used for writing the samples and feeding them into the Model

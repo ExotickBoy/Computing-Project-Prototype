@@ -48,7 +48,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
         playbackButton.minWidth = BUTTON_WIDTH
         playbackButton.isFocusTraversable = false
         playbackButton.setOnAction {
-            if (session.state == Session.SessionState.EDIT_SAFE && session.playback()) {
+            if (session.state == Session.SessionState.EDIT_SAFE && session.recording.length != 0.0 && session.playback()) {
                 // session.playback doesn't get called unless the state is safe
                 // under the condition that it is safe the rest of the else if fails
                 onStateUpdate(Session.SessionState.PLAYING_BACK)
