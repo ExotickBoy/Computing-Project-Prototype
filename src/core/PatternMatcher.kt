@@ -122,11 +122,11 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
         (clusters.size until chosenMatches.size).forEach { time ->
             // replaces all the placements in the current placement with the best ones
 
-            val leadNote = chosenMatches[time].notes.minBy { it.start }
+            val leadNote = chosenMatches[time].validRoots.minBy { it.start }
 
             val newCluster = NoteCluster(
                     leadNote?.pitch ?: 0,
-                    leadNote?.start ?: 0,
+                    chosenMatches[time].notes.minBy { it.start }?.start ?: 0,
                     chosenMatches[time].possiblePlacement[bestPath[time]],
                     chosenMatches[time].pattern
             )
