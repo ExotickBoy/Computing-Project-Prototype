@@ -33,10 +33,14 @@ data class Section(
     val clusterRange
         get() = clusterStart until clusterEnd
 
+    @Transient
     private val notes: MutableList<Note> = mutableListOf()
+
     private val liveStates: MutableList<PatternMatchingState> = mutableListOf()
+    @Transient
     private val chosenMatches: MutableList<PossibleMatch> = mutableListOf()
 
+    @Transient
     private val paths: MutableList<List<Path>> = mutableListOf()
 
     fun addSamples(newSamples: FloatArray) {
@@ -105,20 +109,10 @@ data class Section(
                         // for each possible pair of the placements in the last time and the current one
 
                         Path(previousPaths[previousPlacementIndex].route + nextPlacementIndex,
-                                Placement.physicalDistance(previousPlacements[previousPlacementIndex], nextPlacements[nextPlacementIndex]))
+                                Placement.physicalDistance(previousPlacements[previousPlacementIndex], nextPlacements[nextPlacementIndex])
+                                        * Placement.timeDistance(chosenMatches[time].stepStart - chosenMatches[time - 1].stepStart))
 
-                        // TODO lake last 3
-
-//                        Path(previousPaths[previousMatchIndex].route + nextMatchIndex,
-//                                previousPaths[previousMatchIndex].route.takeLast(3).mapIndexed { index, place ->
-//
-//                                    println(index)
-//
-//                                    val physicalDistance = Placement.physicalDistance(currentPlacements[place], currentMatch[nextMatchIndex])
-//                                    val timeMultiplier = Placement.timeDistance(chosenMatches[time].stepStart - chosenMatches[time - 1].stepStart)
-//                                    return@mapIndexed physicalDistance * timeMultiplier
-//
-//                                }.sum())
+                        // TODO take into consideration the last few
 
                     }.minBy { it.distance }!! // find the shortest path to current from any past, this should never be null
                 }

@@ -24,7 +24,8 @@ class MainApplication : Application() {
             activityStack.peek().onClose()
             it.consume()
         }
-        stage.icons.add(icon)
+        if (icon != null)
+            stage.icons.add(icon)
         push(RecordingsListPane(this))
 
         stage.show()
@@ -96,7 +97,11 @@ class MainApplication : Application() {
     companion object {
 
         const val TITLE: String = "NoteWize"
-        val icon = Image("res/icon.png")
+        val icon = try {
+            Image("res/icon.png")
+        } catch (e: Exception) {
+            null
+        }
 
     }
 

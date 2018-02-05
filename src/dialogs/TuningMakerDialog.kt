@@ -12,7 +12,7 @@ import java.awt.event.WindowListener
 import javax.swing.*
 
 class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning?)
-    : JDialog(previous, "Tuning Editor", ModalityType.APPLICATION_MODAL), WindowListener {
+    : JDialog(null, "Tuning Editor", ModalityType.APPLICATION_MODAL), WindowListener {
 
     private val strings = mutableListOf<Int>()
 
@@ -313,7 +313,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         add(bottomPanel, constraint)
 
         pack()
-        setLocationRelativeTo(previous)
+//        setLocationRelativeTo(previous)
         defaultCloseOperation = JDialog.DISPOSE_ON_CLOSE
         isVisible = true
 

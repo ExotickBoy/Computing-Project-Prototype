@@ -199,7 +199,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
     companion object {
         fun makeInsets(top: Number = 0, right: Number = 0, bottom: Number = 0, left: Number = 0): Insets = Insets(top.toDouble(), right.toDouble(), bottom.toDouble(), left.toDouble())
 
-        private fun Node.setFocusMnemonic(key: String, scene: Scene) {
+        fun Node.setFocusMnemonic(key: String, scene: Scene) {
             scene.addMnemonic(Mnemonic(this, KeyCodeCombination(KeyCode.valueOf(key), KeyCombination.ALT_ANY)))
         }
 
