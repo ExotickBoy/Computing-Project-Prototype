@@ -4,7 +4,7 @@ import javafx.scene.image.WritableImage
 import java.util.*
 
 /**
- * This is the thread that is responsible for samples that have already been gathered during the current session
+ * This is the thread that is responsible for processing the samples that have already been gathered during the current session
  * Most of the processing occurs inside external functions such as the constructor for timeStep or addTimeStep
  *
  * @author Kacper Lubisz
@@ -14,15 +14,17 @@ import java.util.*
  *
  * @property session The session that this processing controller is for
  * @property timeStepQueue This is the queue of timeSteps that have been preprocessed (fed through spectral analysis
- * and machine learning), these will be served to the session at a constant rate
+ * and machine learning), these will be served at a constant rate
  * @property bufferThread The private thread responsible for serving the session with the time steps at a constant rate
- * @property isProcessing This shows if the controller is currently processing some sound
  */
 internal class SoundProcessingController(val session: Session) : Thread("Sound Processing Thread") {
 
     private val timeStepQueue: LinkedList<TimeStep> = LinkedList()
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
 
+    /**
+     * Starts the processing
+     */
     fun begin() {
 
         bufferThread.start()
@@ -73,11 +75,19 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
     }
 
+    /**
+     * Makes the thread and the buffer thread stop
+     */
     fun end() {
         bufferThread.interrupt()
         interrupt()
     }
 
+    /**
+     * Adds a section to the fast precess list which means that it won't be served at a
+     * constant rate but instead at max speed
+     * @param section the section to be fast processed
+     */
     fun fastProcess(section: Section) {
 
         if (!section.isPreProcessed || !section.isProcessed)
@@ -93,6 +103,11 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
         const val SAMPLES_BETWEEN_FRAMES = SAMPLE_RATE / FRAME_RATE
         const val SAMPLE_PADDING = (FRAME_SIZE - SAMPLES_BETWEEN_FRAMES) / 2
 
+        /**
+         * This function takes a list of images and makes them into a list with a
+         * single image with all of the images concatenated
+         * @param images the list in question
+         */
         private fun collectImages(images: MutableList<WritableImage>) {
 
             if (images.size > 1) {
@@ -112,6 +127,13 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
         }
 
+        /**
+         * This combines images at the end of the list in a way similar to binary counting.
+         * I do this because it will reduce the amount of times large images need to be combined.
+         * For example, when a recording gets long there would otherwise be a situation where at each time step the
+         * large image needs to be combined with one that's one wide.
+         * @param images the list in question
+         */
         private fun combineImages(images: MutableList<WritableImage>) {
 
             while (images.size > 1 && images[images.lastIndex - 1].width == images[images.lastIndex].width) {
@@ -130,6 +152,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
         }
 
+        /**
+         * This is a convenience function that copies the contents of one Writable image into another
+         */
         private fun drawImage(new: WritableImage, locX: Int, locY: Int, target: WritableImage) {
 
             (0 until new.width.toInt()).forEach { x ->
@@ -155,12 +180,16 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
      *
      * @property session The session the timeStep is to be added to
      * @property queue The mutable queue of TimeSteps which is served from
+     * @property fastProcess This list stores all the sections that should be processed at max speed
      */
     private class TimeStepBufferThread(val session: Session, val queue: LinkedList<TimeStep>)
         : Thread("TimeStepBufferThread") {
 
         private var fastProcess: MutableList<Section> = mutableListOf()
 
+        /**
+         * Adds a section to the fast processing list
+         */
         fun addToFastProcessing(section: Section) {
             synchronized(fastProcess) {
                 fastProcess.add(section)
@@ -175,9 +204,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
             while (!(isInterrupted && queue.isEmpty())) { // it must output the data is is given before it stops
 
                 val section = synchronized(session.recording) {
-                    session.recording.processSection()
+                    session.recording.processSection() // finds a section to process
                 }
-                if (section != null) {
+                if (section != null) { // waits until there is a section to process
                     val willFastProcess = synchronized(fastProcess) {
                         section in fastProcess
                     }
@@ -187,6 +216,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                     var accumulated = 0.0
 
                     val patternMatcher = PatternMatcher(section.recording.tuning, section.clusters)
+                    // the pattern matcher for finding chords in the current section
 
                     while (!section.isProcessed) {
 
@@ -201,7 +231,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                             if (!synchronized(queue) { queue.isEmpty() }) {
                                 synchronized(session.recording) {
 
-                                    val newStep: TimeStep = queue.removeFirst()
+                                    val newStep: TimeStep = queue.removeFirst() // new step to be served
 
                                     patternMatcher.feed(newStep.notes)
                                     section.dePhased.add(newStep.dePhased)
@@ -216,9 +246,9 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
                                     session.onUpdated()
                                     // add time step to recording where further processing happens
                                 }
-                            } else if (section.isPreProcessed) {
+                            } else if (section.isPreProcessed) { // finished
                                 synchronized(session.recording) {
-                                    collectImages(section.melImages)
+                                    collectImages(section.melImages) // collect images
                                     collectImages(section.noteImages)
                                     section.isProcessed = true
                                 }

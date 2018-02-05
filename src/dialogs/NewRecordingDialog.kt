@@ -18,15 +18,31 @@ import javafx.stage.Stage
 import java.io.File
 import java.io.IOException
 
+/**
+ * This class creates the dialog that allows the user to create a new recording.
+ * This dialog consists of: name field, tuning combo box, load from file button and record button
+ *
+ * @author Kacper Lubisz
+ *
+ * @property application  The instance of MainApplication that is required to allow this dialog to add put activities onto the activity stack
+ * @property recordings The metadata of all the possible recordings the app can read from, this is used to make sure that a name isn't used twice
+ *
+ * @see MainApplication
+ * @see Recording.PossibleRecording
+ *
+ */
 class NewRecordingDialog(private val application: MainApplication, private val recordings: MutableList<Recording.PossibleRecording>) {
 
-    private var customTuning: Tuning? = null
+    // The window
     private val stage: Stage = Stage()
+
+    // the custom tuning that could potentially be used
+    private var customTuning: Tuning? = null
 
     private val nameLabel: Label
     private val nameField: TextField
     private val tuningLabel: Label
-    private var tuningComboBox: ComboBox<String>
+    private val tuningComboBox: ComboBox<String>
 
     private val recordButton: Button
     private val loadButton: Button
@@ -55,13 +71,9 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                 TuningMakerDialog(this@NewRecordingDialog, customTuning)
             }
         }
-        tuningComboBox.setOnAction {
-            if (tuningComboBox.selectionModel.selectedIndex == tuningComboBox.items.lastIndex) {
-//                tuningComboBox.transferFocus() TODO
-//                TuningMakerDialog(this@NewRecordingDialog, customTuning)
-            }
-        }
         tuningComboBox.setFocusMnemonic("T", scene)
+        // the last value of the combo box will be create/edit custom recording.
+        // If a custom tuning exists the second to bottom will be that recording
 
         loadButton = Button("Load File")
         loadButton.setFocusMnemonic("L", scene)
@@ -72,10 +84,10 @@ class NewRecordingDialog(private val application: MainApplication, private val r
         recordButton = Button("Record")
         recordButton.setFocusMnemonic("R", scene)
         recordButton.setOnAction {
-            record(nameField, recordings)
+            record()
         }
         nameField.setOnAction {
-            record(nameField, recordings)
+            record()
         }
 
         nameLabel = Label("Name:")
@@ -83,6 +95,8 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
         tuningLabel = Label("Tuning:")
         tuningLabel.labelFor = tuningComboBox
+
+        // layout
 
         val grid = GridPane()
 
@@ -110,10 +124,14 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
     }
 
+    /**
+     * This method is the routine for loading a recording from a file
+     */
     private fun load() {
 
+        // the file chooser allows the user to choose a file on their computer
         val fileChooser = FileChooser()
-        fileChooser.title = "Open Resource File"
+        fileChooser.title = "Open"
         fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("WAV(16 bit PMC)", "*.wav"))
         fileChooser.initialDirectory = File("").absoluteFile
         // this makes the directory start in the same folder as the location of the executable
@@ -121,13 +139,9 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
         if (result != null) {
 
+            // if no name is specified it will use the name of the file read from
             val name = if (nameField.text.isEmpty()) result.name.substring(0, result.name.length - 4) else nameField.text
-            val regex = "$name(\\d| )*".toRegex()
-            val sameNames = recordings.map { it.metaData.name }
-                    .filter { regex.matches(it) }
-                    .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
-                    .max()
-            val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
+            val newName = getName(name)
 
             val tuning = if (tuningComboBox.selectionModel.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
                 customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
@@ -139,7 +153,6 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
             try {
 
-
                 reader.open()
                 val dialog = LoadingDialog("Reading ${result.name}", "Reading from file")
                 Platform.runLater {
@@ -150,7 +163,7 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                     // is empty during the time it us visible.
                     // The solution to this is to enqueue the rest of this handling to happen after repainting
 
-                    reader.start()
+                    reader.start() // reads the file
                     reader.join()
                     dialog.dispose()
 
@@ -159,12 +172,14 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                     session.onEdited()
                     stage.close()
                     application.push(RecordingEditPane(session, application))
+                    // changes the content of the main stage
 
                 }
-            } catch (e: Exception) {
+            } catch (e: Exception) { // when loading fails
 
                 val alert = Alert(Alert.AlertType.ERROR)
-                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                if (MainApplication.icon != null)
+                    (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
                 alert.title = "Error"
                 alert.headerText = "An error occurred"
                 alert.contentText = when (e) {
@@ -182,15 +197,13 @@ class NewRecordingDialog(private val application: MainApplication, private val r
         }
     }
 
-    private fun record(nameField: TextField, recordings: MutableList<Recording.PossibleRecording>) {
+    /**
+     * This method is the routine for creating a new recording
+     */
+    private fun record() {
 
         val name = if (nameField.text.isEmpty()) Recording.DEFAULT_NAME else nameField.text
-        val regex = "$name(\\d| )*".toRegex()
-        val sameNames = recordings.map { it.metaData.name }
-                .filter { regex.matches(it) }
-                .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
-                .max()
-        val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
+        val newName = getName(name)
 
         val tuning = if (tuningComboBox.selectionModel.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
             customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
@@ -203,10 +216,31 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
     }
 
+    /**
+     * This method uses regex to find all (if any) the recordings with the same name as the one specified.
+     * It either leaves the name unchanged or adds a suffix number to it to make the name unique
+     */
+    private fun getName(name: String): String {
+
+        val regex = "$name(\\d| )*".toRegex()
+        val sameNames = recordings.map { it.metaData.name }
+                .filter { regex.matches(it) }
+                .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
+                .max()
+
+        return name + if (sameNames == null) "" else " ${sameNames + 1}"
+
+    }
+
+    /**
+     * This method is for being called by the tuning editor dialog.
+     * It allows for handling the creation of a new tuning
+     */
     fun refresh(newTuning: Tuning?) {
 
-        if (customTuning == null) {
-            if (newTuning == null) {
+        if (customTuning == null) { // there isn't already a custom tuning
+
+            if (newTuning == null) { // if a new tuning was created
 
                 tuningComboBox.selectionModel.select(0)
 
@@ -216,9 +250,10 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                 tuningComboBox.items.add("Edit ${newTuning.name}")
 
                 // the new one will already be selected
-
             }
+
         } else {
+
             if (newTuning == null) {
 
                 tuningComboBox.selectionModel.select(0)

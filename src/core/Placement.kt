@@ -1,8 +1,5 @@
 package core
 
-import java.io.IOException
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
 import java.io.Serializable
 import kotlin.math.abs
 import kotlin.math.max
@@ -11,7 +8,9 @@ import kotlin.math.pow
 
 /**
  * This class is for storing one permutation of how a pitch can be played on a tuning
+ *
  * @author Kacper Lubisz
+ *
  * @property fret the fret that the note is played on
  * @property string the string that the note is played on
  */
@@ -23,16 +22,6 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
     internal fun startDistance(): Double {
         return fret * FRET_SCALING_FACTOR
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
-    }
-
-    @Throws(IOException::class)
-    private fun writeObject(output: ObjectOutputStream) {
-        output.defaultWriteObject()
-    }
-
-    @Throws(ClassNotFoundException::class, IOException::class)
-    private fun readObject(input: ObjectInputStream) {
-        input.defaultReadObject()
     }
 
     companion object {
@@ -49,6 +38,12 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
          */
         private const val TIME_FACTOR_BASE = 1.04
 
+        /**
+         * Finds if a list of placements together are possible under a certain pattern
+         * @param placements the placements that will be tested
+         * @param pattern the pattern the placements will be tested against
+         * @return if it is possible
+         */
         fun isPossible(placements: List<Placement>, pattern: ChordPattern?): Boolean {
 
             val strings = placements.map { it.string }
@@ -63,6 +58,12 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
 
         }
 
+        /**
+         * The heuristic cost function of a placement.
+         * This function means that chords which has placements close together are more likely to be chosen
+         * @param placements the placements in question
+         * @return the cost of those placements
+         */
         fun internalDistance(placements: List<Placement>): Double {
 
             return INTERNAL_SCALING_FACTOR * (placements.map { it.startDistance() }.average() +
@@ -70,8 +71,15 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
                             placements.map { it.fret }.range(),
                             placements.map { it.string }.range()
                     ) * placements.size)
+
         }
 
+        /**
+         * The physical distance heuristic between two groups of placements
+         * @param firsts the first group of placements
+         * @param firsts the first group of placements
+         * @return the cost of the distance between the groups
+         */
         fun physicalDistance(firsts: List<Placement>, seconds: List<Placement>): Double {
 
             return firsts.flatMap { first ->
@@ -82,15 +90,21 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
 
         }
 
+        /**
+         * The function of heuristic distance between two singular placements (not groups)
+         * @param a the first placement
+         * @param b the second placement
+         * @return the distance between the two placements
+         */
         private fun physicalDistance(a: Placement, b: Placement): Double {
 
+            // this is because a placement on the 0th fret is the open string, which can be played from anywhere
             return if ((a.string - b.string) in -1..1 && (a.fret == 0 || b.fret == 0)) 0.0
             else {
                 val fretRange = abs(a.fret - b.fret) * FRET_SCALING_FACTOR
                 val stringRange = abs(a.fret - b.fret)
                 euclideanNorm(fretRange, stringRange)
             }
-            // this is because a placement on the 0th fret is the open string, which can be played from anywhere
 
         }
 
@@ -102,6 +116,9 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
          */
         private fun timeDistance(time: Int): Double = TIME_FACTOR_BASE.pow(-time)
 
+        /**
+         * The heuristic modifier for physical distance based on time distance
+         */
         fun timeDistance(a: Int, b: Int): Double = timeDistance(max(a, b) - min(a, b))
 
         /**
@@ -112,6 +129,9 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
          */
         private fun euclideanNorm(vararg dims: Number): Double = Math.sqrt(dims.map { it.toDouble() }.map { it.pow(2) }.sum())
 
+        /**
+         * This extension function finds that range of a list of integers
+         */
         private fun List<kotlin.Int>.range(): kotlin.Int {
             val from = this.min()
             val to = this.max()

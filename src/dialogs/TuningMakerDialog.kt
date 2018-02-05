@@ -16,10 +16,27 @@ import javafx.scene.text.TextAlignment
 import javafx.stage.Modality
 import javafx.stage.Stage
 
+/**
+ * This class encapsulates creates and encapsulates the behaviours of the dialog which is used to create tunings.
+ * The dialog consists of : a name field, capo spinner, max fret spinner, string list, new string field, add button,
+ * remove button, move up, move down and create button.
+ *
+ * @author Kacper Lubisz
+ *
+ * @property previous The NewRecordingDialog that created the tuning, this is for passing the created tuning back
+ *
+ * @param tuning the tuning to be edited, null if new tuning is to be created
+ *
+ * @see Tuning
+ * @see NewRecordingDialog
+ *
+ */
 class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning?) {
 
+    // the window
     private val stage: Stage = Stage()
 
+    // GUI elements
     private val strings = mutableListOf<Int>()
 
     private val nameField: TextField
@@ -35,6 +52,15 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
     private val downButton: Button
     private val createButton: Button
 
+    /**
+     * This function reads the contents of the new string field and then either adds a new string or gives the user
+     * feedback that their input is invalid.
+     *
+     * One valid format for input is the text version of the note, for example G#3.
+     * Another valid input is just the number of the corresponding note, since this is something only really
+     *      relevant to this software I don't really expect users to use this
+     *
+     */
     private fun addString() {
 
         val field = newStringField.text
@@ -60,11 +86,17 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
             }
             else -> {
                 newStringField.style = "-fx-focus-color:red;"
+                // this gives the field a red glow when it is selected
             }
         }
 
     }
 
+    /**
+     *This function is simply for swapping the place of two strings
+     * @param a the index of the first one to be swapped
+     * @param b the index of the second one to be swapped
+     */
     private fun swapIndices(a: Int, b: Int) {
 
         val temp = strings[a]
@@ -78,6 +110,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
     init {
 
+        // you can't return to the window below the dialog until the dialog is closed
         stage.initModality(Modality.APPLICATION_MODAL)
         stage.title = "New Tuning"
         if (MainApplication.icon != null)
@@ -86,6 +119,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         val root = GridPane()
         val scene = Scene(root)
 
+        // the constraints to what values the capo spinner can take
         val capoSpinnerValueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(
                 0,
                 (tuning?.maxFret ?: (Tuning.MAX_MAX_FRET + 1)) - 1,
@@ -141,7 +175,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         tuning?.strings?.forEach {
             stringList.items.add(it.noteStringShort)
             strings.add(it)
-        }
+        } // add the strings of the already existing tuning to the list
         stringList.selectionModel.selectedIndexProperty().addListener { _ ->
 
             upButton.isDisable = stringList.selectionModel.selectedIndices.min() == 0
@@ -177,6 +211,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         createButton.maxWidth = Double.MAX_VALUE
         createButton.setFocusMnemonic("C", scene)
         createButton.setOnAction {
+            // closes the dialog
             val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
                     strings,
                     capoSpinner.value as Int,
@@ -188,6 +223,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
         upButton.setFocusMnemonic("U", scene)
         upButton.setOnAction {
+            // move all the selected strings up by one
             if (stringList.selectionModel.selectedIndices.min() != 0) {
                 val indices = stringList.selectionModel.selectedIndices.sorted().toList()
                 indices.forEach {
@@ -215,6 +251,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
             }
         }
 
+        // laying out
 
         val detailPanel = GridPane()
         detailPanel.hgap = 5.0
@@ -228,7 +265,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         detailPanel.maxWidth = Double.MAX_VALUE
         detailPanel.alignment = Pos.CENTER
 
-        val listPanel = VBox()
+        val listPanel = VBox() // vertical flow
         listPanel.children.addAll(stringsLabel, stringList)
         listPanel.maxWidth = Double.MAX_VALUE
 
@@ -243,6 +280,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         buttonPanel.add(upButton, 2, 1)
         buttonPanel.add(downButton, 3, 1)
         buttonPanel.add(createButton, 0, 2, 4, 1)
+        // column index, rowIndex, column span, row span
 
         root.add(detailPanel, 0, 0)
         root.add(listPanel, 0, 1)
@@ -253,16 +291,11 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         stage.scene = scene
         stage.setOnCloseRequest {
             it.consume()
-            previous.refresh(null)
+            previous.refresh(null) // pass an empty tuning back
             stage.close()
         }
         stage.showAndWait()
-
-    }
-
-    companion object {
-
-        const val INTERNAL_SPACING = 2
+        // this will hold the thread here until the stage is closed
 
     }
 

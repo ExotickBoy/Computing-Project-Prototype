@@ -12,7 +12,14 @@ import javafx.scene.transform.Transform
 import kotlin.math.max
 import kotlin.math.sign
 
-
+/**
+ * This view shows the history of the image visualisations
+ *
+ * @author Kacper Lubisz
+ * @param preferredHeight The preferred height for this component
+ * @param willSwap if the scroll controller can start a swap on this view
+ * @property images the lambda that fetches the images from the section
+ */
 internal class HistoryView(
         private val session: Session,
         preferredHeight: Double,
@@ -36,6 +43,9 @@ internal class HistoryView(
 
     }
 
+    /**
+     * Repaints the canvas
+     */
     private fun redraw() {
         Platform.runLater {
             // this is because drawing can only be done from the JavaFx thread, and this may be done from an external one
@@ -44,6 +54,10 @@ internal class HistoryView(
         }
     }
 
+    /**
+     * Draws the components on the canvas
+     * @param g the graphics context
+     */
     private fun draw(g: GraphicsContext = graphicsContext2D) {
 
         g.clearRect(0.0, 0.0, width, height)
@@ -93,7 +107,7 @@ internal class HistoryView(
             val swapWith = session.swapWith
             // I am making these local variables because making them final means that they are automatically cast as none null
 
-            if (willSwap && swap != null) {
+            if (willSwap && swap != null) { // draw the floating swap
 
                 when {
                     session.swapWithSection == true -> {
@@ -130,7 +144,9 @@ internal class HistoryView(
 
                 val transformBefore = g.transform
                 val y = height * (max(-session.lastY / (2 * DELETE_DISTANCE) + 0.5, 0.0) * sign(session.lastY - 0.5) + 0.1)
+                // this function determines its vertical location
                 g.transform(Transform.affine(1.0, 0.0, 0.0, 0.8, 0.0, y))
+                // rescale and move it
 
                 val image = images.invoke(section)[0]
 

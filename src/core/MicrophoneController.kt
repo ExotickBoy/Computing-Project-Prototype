@@ -7,6 +7,10 @@ import javax.sound.sampled.*
  * It reads the samples from the source and then passes them to the session to deal with
  *
  * @author Kacper Lubisz
+ *
+ * @property session The session that the controller is for
+ * @property targetLine The microphone input line
+ * @property isPaused Whether the microphone is currently recording ir not
  */
 internal class MicrophoneController(val session: Session) : Thread("Microphone Thread") {
 
@@ -23,8 +27,6 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
 
     /**
      * This opens the microphone line if one is being used and starts the thread
-     *
-     * @throws
      */
     fun begin() {
 

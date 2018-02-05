@@ -26,7 +26,13 @@ import java.io.File
 import java.io.FileInputStream
 import kotlin.math.roundToInt
 
-
+/**
+ * This is the activity that the user starts on.  It consists of a list of recent recordings, and controls to make new
+ * ones or to edit the existing ones
+ *
+ * @author Kacper Lubisz
+ *
+ */
 class RecordingsListPane(application: MainApplication) : MainApplication.Activity(application) {
 
     private val recordings: MutableList<Recording.PossibleRecording> = mutableListOf()
@@ -114,6 +120,8 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         recordingLabel.setFocusMnemonic("R", scene)
         recordingLabel.labelFor = recordingList
 
+        // layout
+
         val buttonPanel = HBox()
         buttonPanel.spacing = 5.0
         buttonPanel.isCenterShape = true
@@ -133,6 +141,9 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
     }
 
+    /**
+     * This deletes the selected activities
+     */
     private fun delete() {
         recordingList.selectionModel.selectedIndices.sortedDescending().forEach {
             recordings[it].file.delete()
@@ -141,10 +152,13 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         }
     }
 
+    /**
+     * This method starts a new activity that allows the usre to edit their activity
+     */
     private fun edit() {
         if (recordingList.selectionModel.selectedIndex != -1) {
 
-            val start = System.currentTimeMillis()
+//            val start = System.currentTimeMillis()
 
             val possibleRecording = recordings[recordingList.selectionModel.selectedIndex]
             val dialog = LoadingDialog("Loading ${possibleRecording.metaData.name}", "Loading")
@@ -153,7 +167,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
                 dialog.dispose()
                 application.push(RecordingEditPane(session, application))
 
-                println("loading -> ${System.currentTimeMillis() - start}ms")
+//                println("loading -> ${System.currentTimeMillis() - start}ms")
 
             }
 
@@ -166,6 +180,9 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
     }
 
     override fun onResume() {
+
+        // loads the recordings each time it is resumed
+
         repaintThread.isPaused = false
 
         recordings.clear()
@@ -180,13 +197,16 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
     }
 
-    override fun onDestroy() {
-    }
+    override fun onDestroy() {}
 
     override fun onClose() {
         application.popAll()
     }
 
+    /**
+     * This thread is responsible for repainting the scene roughly 10 times per second.
+     * This is so that the relative time labels stay consistent
+     */
     private class RepaintThread(val root: VBox) : Thread("Repaint Thread") {
 
         init {
@@ -213,16 +233,32 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
     }
 
     companion object {
+        /**
+         * Convenience function for creating insets which are used when adding paddign
+         */
         fun makeInsets(top: Number = 0, right: Number = 0, bottom: Number = 0, left: Number = 0): Insets = Insets(top.toDouble(), right.toDouble(), bottom.toDouble(), left.toDouble())
 
+        /**
+         * This adds a mnemonic to a node(component). This means that when the key is pressed the node will become focused
+         * @param key the string representing the key
+         * @param scene the scene that the hot key will be added to
+         *
+         */
         fun Node.setFocusMnemonic(key: String, scene: Scene) {
             scene.addMnemonic(Mnemonic(this, KeyCodeCombination(KeyCode.valueOf(key), KeyCombination.ALT_ANY)))
         }
 
     }
 
+    /**
+     * This object will create the cells in the recording list view
+     */
     private class ListItem : ListCell<Recording.PossibleRecording>() {
 
+        /**
+         * This is called to update or create the cells of the list.
+         * The ListItem consists of the name on the left side and the length and relative time on the right
+         */
         public override fun updateItem(item: Recording.PossibleRecording?, empty: Boolean) {
 
             super.updateItem(item, empty)
@@ -247,6 +283,10 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
         }
 
+        /**
+         * Creates a string that describes how long a recording is
+         * @return the string
+         */
         private fun Double.toLength(): String {
             val minutes = this / 60
             return when {
@@ -258,6 +298,10 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
             }
         }
 
+        /**
+         * Creates a string that describes how long in the past a time stamp is
+         * @return the description
+         */
         private fun Long.toRelativeTime(): String {
             val now = System.currentTimeMillis()
             val millis = now - this

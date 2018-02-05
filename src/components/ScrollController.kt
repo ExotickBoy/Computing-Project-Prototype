@@ -8,9 +8,13 @@ import javafx.util.Duration
 import kotlin.math.*
 
 /**
- * This class is the mouse listener that is reused int he various output panes.
- * It controls scrolling of the cursor and swapping of sections
+ * This class packages the mouse listeners used for scrolling and can be added to different canvases
+ *
+ * @author Kacper Lubisz
+ *
  * @property isNote If the scrolling should wrap to the closest note
+ * @property willSwap If this owner will be able to start a swap
+ * @property owner the canvas that will revieve the listeners
  * @property session The session that this controller is responsible for
  */
 internal class ScrollController(private val isNote: Boolean, private val willSwap: Boolean, private val owner: Canvas, private val session: Session) {
@@ -84,6 +88,14 @@ internal class ScrollController(private val isNote: Boolean, private val willSwa
 
     }
 
+    /**
+     * This function us used to find how to move move the cursor based on where the mouse is.
+     *
+     * When the user is holding a section to swap it they should be able to place the cursor on the sides of the
+     * window and have the cursor move in the direction in which they have moved their cursor
+     * @param x the x coordinate of the cursor
+     * @return the rate of change of cursor
+     */
     private fun movementDirection(x: Int): Int {
 
         return ((1.025.pow(max(abs(x - session.width / 2.0) - session.width / 5.0, 0.0)) - 1) * sign(x - session.width / 2.0)).toInt()
@@ -92,10 +104,15 @@ internal class ScrollController(private val isNote: Boolean, private val willSwa
 
     companion object {
 
+        /* How long the mouse needs to be held for it to classify as a long press */
         const val holdTime: Double = .3 * 1000
 
     }
 
+    /**
+     * This thread is solely resposible for listening to where the mouse cursor is and then moving the in app
+     * cursor when in select mode
+     */
     private class DraggingThread(private val controller: ScrollController) : Thread() {
 
         init {
@@ -124,6 +141,8 @@ internal class ScrollController(private val isNote: Boolean, private val willSwa
                 }
 
             }
+
+            // when the drag is over
 
             controller.session.executeSwap()
 

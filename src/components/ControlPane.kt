@@ -13,6 +13,10 @@ import javafx.scene.control.ButtonBar
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 
+/**
+ * This class is a pane that has the different buttons that the user can interact with
+ * @author Kacper Lubisz
+ */
 internal class ControlPane(private val application: MainApplication, scene: Scene, private val session: Session) : BorderPane() {
 
     private val exitButton = Button(EXIT_BUTTON_TEXT)
@@ -90,6 +94,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
                 if (result.get().buttonData == ButtonBar.ButtonData.YES) {
 
                     val dialog = LoadingDialog("Saving to file", "Saving")
+                    // show a saving to file progress bar (indefinite)
                     Platform.runLater {
                         session.recording.save()
                         dialog.dispose()
@@ -121,6 +126,9 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
 
     }
 
+    /**
+     * When the state of the session changes and the buttons need to be updated
+     */
     private fun onStateUpdate(state: Session.SessionState) {
 
         Platform.runLater {

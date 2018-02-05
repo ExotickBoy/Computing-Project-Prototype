@@ -2,6 +2,14 @@ package core
 
 import java.io.Serializable
 
+/**
+ * This enum contains all the different chords that the pattern matching looks for
+ * @author Kacper Lubisz
+ *
+ * @property suffix the suffix that is added to the root to represent this chord
+ * @property notes the list of pitches (relative to the root) that make up this chord
+ * @property maxStringSpan the highest number of strings that a cluster of this chord could span
+ */
 enum class ChordPattern(val suffix: String, val notes: List<Int>, val maxStringSpan: Int? = null) : Serializable {
 
     MAJOR("M", 0, 4, 7),

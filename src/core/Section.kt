@@ -9,6 +9,25 @@ import java.io.ObjectOutputStream
 import java.io.Serializable
 import javax.imageio.ImageIO
 
+/**
+ * This class stores all of the information of each section of recording
+ *
+ * @author Kacper Lubisz
+ *
+ * @property recording the recording the section belongs to
+ * @property sampleStart the index at which the samples of this section start at
+ * @property timeStepStart the index at which the time steps of this section start
+ * @property clusterStart the index at which the time steps of this clusters start
+ * @property isGathered if the section has been fully gathered
+ * @property isPreProcessed if the section has been preprocessed
+ * @property isProcessed if the section has been processed
+ * @property samples list of the samples of this section
+ * @property clusters list of the note clusters of this section
+ * @property melImages list of images of the spectrograms of this section
+ * @property noteImages list of images of the raw output of the neural network
+ * @property dePhased the de-phased visualisations of the time stapes
+ * @property dePhasedPower the volume like value of each step
+ */
 class Section(
         var recording: Recording,
         var sampleStart: Int,
@@ -42,6 +61,9 @@ class Section(
     val clusterRange
         get() = clusterStart until clusterEnd
 
+    /**
+     * This is an override method which is called when a tuning is being written to file
+     */
     @Throws(IOException::class)
     private fun writeObject(output: ObjectOutputStream) {
 
@@ -59,7 +81,7 @@ class Section(
 
         val combined = BufferedImage(
                 melImages[0].width.toInt(),
-                (Model.MEL_BINS_AMOUNT + Model.PITCH_RANGE).toInt(),
+                (Model.MEL_BINS_AMOUNT + Model.PITCH_RANGE),
                 BufferedImage.TYPE_INT_RGB
         )
         combined.graphics.drawImage(
@@ -76,6 +98,9 @@ class Section(
 
     }
 
+    /**
+     * This is an override method which is called when a tuning is being read from file
+     */
     @Throws(ClassNotFoundException::class, IOException::class)
     @Suppress("UNCHECKED_CAST")
     private fun readObject(input: ObjectInputStream) {
@@ -104,6 +129,9 @@ class Section(
 
     }
 
+    /**
+     * Adds samples to the section
+     */
     fun addSamples(newSamples: FloatArray) {
         synchronized(recording) {
             samples.addAll(newSamples.toTypedArray())
@@ -112,7 +140,7 @@ class Section(
 
     companion object {
 
-        const val MIN_STEP_LENGTH = 10
+        const val MIN_STEP_LENGTH = 10 /*The minimal length a section can be cut to */
 
     }
 

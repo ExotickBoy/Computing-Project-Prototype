@@ -4,9 +4,11 @@ import java.io.Serializable
 
 /**
  * This class stores a note that should be played, it stores the pitch and start
+ *
+ * @author Kacper Lubisz
+ *
  * @property pitch the pitch which the note represents
  * @property start the start at which the note is played
- * @author Kacper Lubisz
  */
 class Note(val pitch: Int, val start: Int, var duration: Int) : Serializable {
 
@@ -69,15 +71,28 @@ class Note(val pitch: Int, val start: Int, var duration: Int) : Serializable {
         val Int.noteString: String
             get() = this.noteLetter.replace("/", this.noteOctave.toString() + "/") + this.noteOctave
 
+        /**
+         * This extension function makes it easy to change an int that represents a pitch to a shorter version of the string that describes it
+         */
         val Int.noteStringShort: String
             get() = this.noteLetterShort.replace("/", this.noteOctave.toString() + "/") + this.noteOctave
 
+        /**
+         * This extension function finds the letter of the pitch that this int precedents
+         */
         val Int.noteLetter: String
             get() = noteLetters[this % 12]
 
+        /**
+         * This extension function finds the short version of the letter that the pitch represents
+         * For example D#/Eb are the same pitch, so this would only output 'D#'
+         */
         val Int.noteLetterShort: String
             get() = noteLetters[this % 12].split("/")[0]
 
+        /**
+         * This extension function finds the ocateve number related to each pitch
+         */
         val Int.noteOctave: Int
             get() = this / 12
 

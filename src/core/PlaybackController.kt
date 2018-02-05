@@ -1,13 +1,11 @@
 package core
 
 import core.MicrophoneController.Companion.SAMPLE_BUFFER_SIZE
-import core.SoundUtils.floatsToBytes
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.SourceDataLine
 import kotlin.math.min
 import kotlin.math.roundToInt
-
 
 internal class PlaybackController(private val session: Session) : Thread("Playback Thread") {
 
@@ -16,10 +14,10 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
             field = value && isOpen
         }
 
-    var isMuted = false
+    private var isMuted = false
 
-    var currentSectionIndex = 0
-    var sectionPlayHead = 0
+    private var currentSectionIndex = 0
+    private var sectionPlayHead = 0
 
     private var sourceLine: SourceDataLine? = null
 
@@ -70,14 +68,14 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
 
                     if (!isMuted) {
                         val currentFloats = min(to, section.samples.size) - sectionPlayHead
-                        floatsToBytes(section.samples, data,
+                        SoundUtils.floatsToBytes(section.samples, data,
                                 sectionPlayHead,
                                 0,
                                 currentFloats
                         )
                         if (currentSectionIndex != session.recording.sections.size - 1) {
 
-                            floatsToBytes(session.recording.sections[currentSectionIndex + 1].samples, data,
+                            SoundUtils.floatsToBytes(session.recording.sections[currentSectionIndex + 1].samples, data,
                                     0,
                                     currentFloats,
                                     SAMPLE_BUFFER_SIZE - currentFloats

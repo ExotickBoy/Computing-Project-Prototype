@@ -3,6 +3,7 @@ package core
 import org.tensorflow.SavedModelBundle
 import org.tensorflow.Tensor
 import java.nio.FloatBuffer
+import java.util.*
 
 /**
  * The object that interfaces with the model created in TensorFlow
@@ -19,7 +20,7 @@ internal object Model {
     const val PITCH_RANGE: Int = END_PITCH - START_PITCH
     val POSSIBLE_PITCHES = START_PITCH..END_PITCH
 
-    const val CONFIDENCE_CUT_OFF = .2 // the confidence below which predictions will be discarded
+    const val CONFIDENCE_CUT_OFF = .5 // the confidence below which predictions will be discarded
     const val MEL_BINS_AMOUNT: Int = 124 // the size of the output spectrum
 
     // The names of tensors in the model
@@ -32,8 +33,7 @@ internal object Model {
     private const val DEPHASED_SAMPLES: String = "de_phased_reconstruction"
     private const val DE_PHASED_POWER: String = "de_phased_rms"
 
-    //82 is good
-    private const val MODEL_LOCATION = "res/model82" // the location of the model
+    private const val MODEL_LOCATION = "res/model82" // the location of the model (82)
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -57,9 +57,10 @@ internal object Model {
 
     /**
      * This method forwards the samples through the TensorFlow model of a new TimeStep
+     *
      * @param samples The sound samples for this TimeStep
      * @return The object that represents the output of the model at this TimeStep
-     * @see Analyser
+     *
      * @see TimeStep
      * @see StepOutput
      */
@@ -101,6 +102,9 @@ internal object Model {
 
     }
 
+    /**
+     * This resets or initialises the sample queue inside the tensorflow model
+     */
     internal fun setQueue(samples: FloatArray) {
 
         samplesInputBuffer.rewind()
@@ -128,15 +132,39 @@ internal object Model {
     /**
      * This data class is the output of each TimeStep created by the model
      *
-     * @author Kacper Lubisz
-     *
      * @see Model
      * @see TimeStep
      *
      * @property predictions The list of predictions for each pitch created by the model
      * @property spectrum The spectrum of the samples of a TimeStep
      * @property dePhased The dePhased visualisation of the TimeStep
+     * @property dePhasedPower A representation of the volume of each step
      */
-    internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val dePhased: FloatArray, val dePhasedPower: Float)
+    internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val dePhased: FloatArray, val dePhasedPower: Float) {
+
+        /* auto generated equals and hashcode*/
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as StepOutput
+
+            if (!Arrays.equals(predictions, other.predictions)) return false
+            if (!Arrays.equals(spectrum, other.spectrum)) return false
+            if (!Arrays.equals(dePhased, other.dePhased)) return false
+            if (dePhasedPower != other.dePhasedPower) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = Arrays.hashCode(predictions)
+            result = 31 * result + Arrays.hashCode(spectrum)
+            result = 31 * result + Arrays.hashCode(dePhased)
+            result = 31 * result + dePhasedPower.hashCode()
+            return result
+        }
+
+    }
 
 }

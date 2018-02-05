@@ -10,7 +10,16 @@ import javafx.scene.layout.BorderPane
 import javafx.stage.Modality
 import javafx.stage.Stage
 
-
+/**
+ * This class is for making a small temporary dialog that shows an indeterminate progress bar.
+ * It is mainly fr user interaction purposes since it allows the user to see that the program is doing something and
+ * not just frozen
+ *
+ * @author Kacper Lubisz
+ *
+ * @param labelText The text that is to be displayed above the progress bar
+ * @param title The title of the window
+ */
 class LoadingDialog(labelText: String, title: String) {
 
     private val stage: Stage = Stage()
@@ -20,7 +29,8 @@ class LoadingDialog(labelText: String, title: String) {
         stage.isResizable = false
         stage.initModality(Modality.APPLICATION_MODAL)
         stage.title = title
-        stage.icons.add(MainApplication.icon)
+        if (MainApplication.icon != null)
+            stage.icons.add(MainApplication.icon)
 
         val root = BorderPane()
         root.padding = Insets(10.0)
@@ -35,32 +45,11 @@ class LoadingDialog(labelText: String, title: String) {
         stage.scene = scene
         stage.show()
 
-
-//        val content = JPanel(BorderLayout())
-//        content.border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-//
-//        val label = JLabel(labelText)
-//        label.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
-
-//        val progressBar = JProgressBar()
-//        progressBar.isIndeterminate = true
-//
-//        content.add(label, BorderLayout.NORTH)
-//        content.add(progressBar, BorderLayout.CENTER)
-//
-//        contentPane = content
-//        pack()
-//        setLocationRelativeTo(owner)
-//        defaultCloseOperation = JFrame.DO_NOTHING_ON_CLOSE
-//
-//        thread(name = "Loading Worker") {
-//            action.invoke()
-////            dispose()
-//        }
-//        isVisible = true
-
     }
 
+    /**
+     * This method can be called externally an gets rid of the dialog
+     */
     fun dispose() {
 
         stage.close()

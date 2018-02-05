@@ -5,6 +5,8 @@ import static java.lang.Math.*;
 /**
  * This class contains all the static methods for calculating the fft.
  * It's deprecated because it doesn't make the best use of resources.
+ *
+ * @author Kacper Lubisz
  */
 @Deprecated
 public class FFT {

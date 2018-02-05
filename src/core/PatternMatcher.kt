@@ -1,9 +1,17 @@
 package core
 
-import java.io.Serializable
 import kotlin.math.max
 
-// not serializable
+/**
+ * This is the object which does all of the pattern matching and chord recognition
+ * @author Kacper Lubisz
+ * @property tuning the tuning the recording this is part of uses
+ * @property clusters the mutable list of clusters that is also a property of the section this is acting on
+ * @property notes the notes that the matcher has already seen
+ * @property liveStates the list of pattern matching states that are still alive
+ * @property chosenMatches the matches that have been chosen by the matcher
+ * @property paths the 2d array of the placement paths taked by the best choices
+ */
 class PatternMatcher(private val tuning: Tuning, private val clusters: MutableList<NoteCluster>) {
 
     private val notes: MutableList<Note> = mutableListOf()
@@ -11,6 +19,10 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
     private val chosenMatches: MutableList<PossibleMatch> = mutableListOf()
     private val paths: MutableList<List<Path>> = mutableListOf()
 
+    /**
+     * Adds the note to the mather. This checks if the note has been added, and if not adds them individually
+     * @param newNotes the notes that are being added at the new timeStep
+     */
     internal fun feed(newNotes: List<Note>) {
 
         newNotes.filter { it.pitch in tuning } // the pitch must be within the playable range of the guitar
@@ -22,6 +34,13 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
 
     }
 
+
+    /**
+     * This adds the note to the states that are still alive and then checks if those states came up with any matches.
+     * The best match is then chosen and put into chosenMatches.  Then the states that can't produce new matches are
+     * removed. A new state is created containing the the new note
+     * @param note the new note beign added
+     */
     private fun feed(note: Note) {
 
         val newState = PatternMatchingState(tuning, chosenMatches.size)
@@ -117,14 +136,29 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
 
     }
 
-    private class PatternMatchingState(val tuning: Tuning, val clusterStart: Int) : Serializable {
+    /**
+     * PatternMatchingStates are made each time a new note is added.
+     * This means that the matcher considered any chord starting with any note
+     * @property tuning the tuning used
+     * @property clusterStart the start of the state in clusters
+     */
+    private class PatternMatchingState(val tuning: Tuning, val clusterStart: Int) {
 
+        /* The notes the state has seen */
         private val notes = mutableListOf<Note>()
+        /* The matches that haven't been excluded yet*/
         private var possibleMatches = mutableListOf<PossibleMatch>()
 
+        /* Whether all of the matches have been excluded */
         var isDead = false
+        /* The valid matches that have been found */
         val matches: MutableList<PossibleMatch> = mutableListOf()
 
+        /**
+         * Adds the note to all the possible matches and then removes the ones that won't make
+         * matches and groups the ones that create valid placements
+         * @param note the note being added
+         */
         fun add(note: Note) {
 
             if (notes.isEmpty()) {
@@ -133,6 +167,7 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
                     PossibleMatch(note.start, clusterStart, tuning, pattern, mutableListOf(note))
                 })
                 matches.add(PossibleMatch(note.start, clusterStart, tuning, null, mutableListOf(note)))
+                // create all the possible matches, one for each pattern and one for no pattern
 
             } else {
 
@@ -142,8 +177,10 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
 
                 possibleMatches.forEach { it.addNote(note) }
                 possibleMatches.removeIf { !it.isPossible }
+                // remove matches that are impossible
 
                 possibleMatches.filter { it.isValid }.forEach { matches.add(it.copy()) }
+                // add the possible ones to matches
 
                 if (possibleMatches.isEmpty()) {
                     isDead = true
@@ -155,7 +192,18 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
 
     }
 
-    private data class PossibleMatch constructor(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) : Serializable {
+    /**
+     * This stores a possible match which evolves as new notes are added.
+     * As notes are added to the match its validity and possibility changes, which changes if it gets eliminated or not in it's state
+     * When a PatternMatchingState is made it starts with possible matches for each pattern which are then eliminated as new notes are added
+     *
+     * @property stepStart the relative step start
+     * @property clusterStart the realtive cluster start
+     * @property tuning the tuning used by the matcher/recording
+     * @property pattern the pattern that this state is testing
+     * @property notes the notes that this match already has
+     */
+    private data class PossibleMatch constructor(val stepStart: Int, val clusterStart: Int, private val tuning: Tuning, val pattern: ChordPattern?, val notes: MutableList<Note>) {
 
         val isValid: Boolean
             get() = (pattern?.notes?.size ?: 1 <= tuning.size) && validRoots.isNotEmpty()
@@ -163,13 +211,17 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
             get() = (pattern?.notes?.size ?: 1 <= tuning.size) && possibleRoots.isNotEmpty()
 
         private var placementCombinations: List<List<Int>> = listOf()
+        /* Similar to a path but stores the permutations of possible placements */
         private val possibleRoots: MutableList<Note> = mutableListOf()
+        /* The list of roots that still could be possible with this pattern*/
 
         val validRoots: MutableList<Note> = mutableListOf()
+        /* The roots that are valid and are matches at the current state of the match*/
         val possiblePlacement: List<List<Int>>
             get() = placementCombinations.map { combination ->
                 combination.mapIndexed { index, i -> tuning.findPlacements(notes[index].pitch)[i] }
             }
+        /* converts placementCombinations to lists of placement indices in terms of the tuning and not the notes */
 
         init {
             val startNotes = notes.toList()
@@ -177,6 +229,10 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
             startNotes.forEach { addNote(it) }
         }
 
+        /**
+         * Adds a new note to the PossibleMatch and then updates if the match is valid
+         * @param newNote the note beig added
+         */
         internal fun addNote(newNote: Note) {
 
             notes.add(newNote)
@@ -200,10 +256,6 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
                 }
             }
 
-//            if (notes.size == 2 && notes.distinctBy { it.pitch }.size == notes.size && pattern == ChordPattern.SIMPLE_POWER_CHORD) {
-//                println("bam, this is the hot case")
-//            } TODO get rid of this after debugging is over
-
             possibleRoots.add(newNote)
             possibleRoots.removeIf { !possibleWithRoot(it) }
             validRoots.clear()
@@ -226,7 +278,14 @@ class PatternMatcher(private val tuning: Tuning, private val clusters: MutableLi
 
     }
 
-    private data class Path(val route: List<Int>, val distance: Double) : Serializable
+    /**
+     * This object stores thr rout through the placements and the resultant distance
+     * For example, possible placements may be = [[a, b],[c, d]], and a path may be [0,1]
+     * This would mean that the path taken is placement [a, d]
+     * @property route the placement choices for each chosen match
+     * @property distance a rating of how bad a path is, this is what is minimised
+     */
+    private data class Path(val route: List<Int>, val distance: Double)
 
     companion object {
 

@@ -4,6 +4,7 @@ import java.lang.Math.hypot
 
 /**
  * The complex number class that's used for storing complex numbers
+ * @author Kacper Lubisz
  * @see FFT
  */
 @Deprecated("This class shouldn't be used because it isn't efferent and only used to compute the fft")

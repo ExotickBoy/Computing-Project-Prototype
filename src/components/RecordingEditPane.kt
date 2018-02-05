@@ -25,7 +25,7 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     private val root = VBox()
     private val scene = Scene(root)
 
-    private val dePhaserView = DePhaserView(application, session)
+    private val dePhaserView = DePhaserView(session)
     private val melOutputView = HistoryView(session, 300.0, true) { it.melImages }
     private val networkOutputView = HistoryView(session, Model.PITCH_RANGE.toDouble(), false) { it.noteImages }
     private val noteOutputView = NoteOutputView(session)
@@ -93,6 +93,10 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
     }
 
+    /**
+     * This method adds a key listener to the scene.  The runnable will run with recording synchronized
+     * and only when the session is edit safe
+     */
     private fun addKeyListener(keyCombination: KeyCombination, runnable: Runnable) {
         scene.accelerators[keyCombination] = Runnable {
             synchronized(session.recording) {
@@ -111,6 +115,7 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
     override fun onResume() {
 
+        // adds the name of the current recording to the title of the frame
         setTitle()
         session.width = root.width.toInt()
         session.clusterWidth = root.width / noteOutputView.spacing
@@ -132,6 +137,8 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     }
 
     override fun onClose() {
+
+        // attempt to save changes when the user requests to close
 
         when {
             session.state == Session.SessionState.EDIT_SAFE && session.isEdited -> {
@@ -162,6 +169,7 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
         // These need to be two separate methods because the superclass both these types of range share, only store comparators
         // for if something is in range, thus you can't know the start and end values
 
+        /* These are how much the cursors change when using hot keys*/
         const val SHIFT_STEP_MOVE = 1
         const val SHIFT_CLUSTER_MOVE = 1
 
@@ -170,10 +178,15 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
         const val SHOW_NETWORK_OUTPUT = true
 
+        /**
+         * This shows the dialog that asks the user if they want to 'save', 'don't save' or 'cancel'
+         * @return an optional pressed button
+         */
         fun showSaveDialog(): Optional<ButtonType> {
 
             val alert = Alert(Alert.AlertType.WARNING)
-            (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+            if (MainApplication.icon != null)
+                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
             alert.title = "Save"
             alert.headerText = "Do you want to save your changes?"
 

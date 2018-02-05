@@ -16,14 +16,20 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
+/**
+ * This class displays the tuning and the output of the clustering
+ *
+ * @author Kacper Lubisz
+ *
+ */
 internal class NoteOutputView(private val session: Session) : Canvas() {
 
-    private var lineHeight: Double = 0.0
-    private val margin: Double
-    private val padding: Double
-    private val headerHeight: Double
+    private var lineHeight: Double = 0.0 /*The height of each string*/
+    private val margin: Double /*The width of the left tuning string axis */
+    private val padding: Double /* How much room is left between the margin and notes */
+    private val headerHeight: Double /* The height of the top line where the chord names go*/
 
-    val spacing: Double
+    val spacing: Double /* The horizontal distance between notes */
 
     init {
 
@@ -59,12 +65,21 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
 
     }
 
+    /**
+     *  Finds the width in pixels of a string
+     *  @param message the string who's width will be found
+     *  @param g the graphics context
+     *  @return the width
+     */
     private fun stringWidth(message: String, g: GraphicsContext): Double {
         val text = Text(message)
         text.font = g.font
         return text.layoutBounds.width
     }
 
+    /**
+     * Repaints the canvas
+     */
     private fun redraw() {
         Platform.runLater {
             // this is because drawing can only be done from the JavaFx thread, and this may be done from an external one
@@ -73,6 +88,10 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
         }
     }
 
+    /**
+     * Draws the components on the canvas
+     * @param g the graphics context
+     */
     private fun draw(g: GraphicsContext = graphicsContext2D) {
 
         g.lineWidth = 0.5
@@ -100,6 +119,7 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
                     if (index + it.clusterStart in clusterRange) {
                         g.fill = color(86, 86, 86)
                         cluster.placements.forEach { placement ->
+                            // draw a cluster
                             val asPlacementObject = session.recording.tuning.placements[placement]
                             g.fillText(
                                     asPlacementObject.fret.toString(),
@@ -124,7 +144,7 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
                                 cluster.heading,
                                 (headerHeight - stringWidth(cluster.heading, g)) / 2,
                                 (g.font.size + (spacing - g.font.size) / 2)
-                        )
+                        ) // draw heading
                         g.transform = transformBefore //making sure that I reset the transformation I set so that the rest of the ui doesn't renter incorrectly
 
                     }
@@ -177,6 +197,9 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
 
     }
 
+    /**
+     * Refreshes the session's width when the element resizes
+     */
     private fun updateSize() {
 
         synchronized(session.recording) {
@@ -190,6 +213,9 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
 
     }
 
+    /**
+     * Converts an int range to a double range
+     */
     private fun IntRange.toDoubleRange(): ClosedFloatingPointRange<Double> = start.toDouble()..endInclusive.toDouble()
 
     companion object {
@@ -198,6 +224,9 @@ internal class NoteOutputView(private val session: Session) : Canvas() {
         private val STRIPE_LIGHT = color(232, 232, 232)
         private val STRIPE_DARK = color(245, 245, 245)
 
+        /**
+         * A convenient extension function for convenient int rgp to a Colour object
+         */
         fun color(r: Int, g: Int, b: Int): Color = Color.color(r / 255.0, g / 255.0, b / 255.0)
 
 

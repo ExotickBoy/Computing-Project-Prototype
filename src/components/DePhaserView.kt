@@ -1,6 +1,5 @@
 package components
 
-import core.MainApplication
 import core.Session
 import javafx.application.Platform
 import javafx.scene.canvas.Canvas
@@ -9,12 +8,16 @@ import javafx.scene.paint.Color
 import kotlin.math.max
 import kotlin.math.min
 
-internal class DePhaserView(private val application: MainApplication, private val session: Session) : Canvas(500.0, 150.0) {
+/**
+ * This class shows the phase removed visualisation of the current step
+ * @author Kacper Lubisz
+ */
+internal class DePhaserView(private val session: Session) : Canvas(500.0, 150.0) {
 
-    private var scale: Double = 0.0
-    private var colour: Double = 0.0
+    private var scale: Double = 0.0 /* This indicates the progress of the collapse animation of the wave, it decreases quickly over time */
+    private var colour: Double = 0.0 /* Indicates the colour of the wave, it is red when recording*/
 
-    private val animationThread = AnimationThread(this)
+    private val animationThread = AnimationThread(this) /*Updates the animation*/
 
     init {
 
@@ -32,16 +35,26 @@ internal class DePhaserView(private val application: MainApplication, private va
 
     }
 
+    /**
+     * Kills the animation thread
+     */
     fun end() {
         animationThread.interrupt()
     }
 
+    /**
+     * Repaints the canvas
+     */
     private fun redraw() {
         Platform.runLater {
             draw()
         }
     }
 
+    /**
+     * Draws the components on the canvas
+     * @param g the graphics context
+     */
     private fun draw(g: GraphicsContext = graphicsContext2D) {
 
         g.clearRect(0.0, 0.0, width, height)
@@ -91,10 +104,12 @@ internal class DePhaserView(private val application: MainApplication, private va
 
     }
 
-    private class AnimationThread(val phaserPane: DePhaserView) : Thread("Animation Thread") {
+    /**
+     *  This thread is responsible for updating the value of the animation properties
+     */
+    private class AnimationThread(val dePhaserPane: DePhaserView) : Thread("Animation Thread") {
 
         override fun run() {
-
 
             val period = 1000 / ANIMATION_REFRESH_RATE
             var last = System.currentTimeMillis()
@@ -109,28 +124,28 @@ internal class DePhaserView(private val application: MainApplication, private va
 
                 while (accumulated > period) {
                     accumulated -= period
-                    if (!phaserPane.session.recording.isGathered) {
+                    if (!dePhaserPane.session.recording.isGathered) {
 
-                        val scaleBefore = phaserPane.scale
-                        val colourBefore = phaserPane.colour
+                        val scaleBefore = dePhaserPane.scale
+                        val colourBefore = dePhaserPane.colour
 
-                        phaserPane.scale = 1f + ANIMATION_TIME / IMMUNE_TIME
-                        phaserPane.colour = phaserPane.scale
+                        dePhaserPane.scale = 1f + ANIMATION_TIME / IMMUNE_TIME
+                        dePhaserPane.colour = dePhaserPane.scale
 
-                        if (phaserPane.scale != scaleBefore || phaserPane.colour != colourBefore) {
-                            phaserPane.redraw()
+                        if (dePhaserPane.scale != scaleBefore || dePhaserPane.colour != colourBefore) {
+                            dePhaserPane.redraw()
                         }
 
                     } else {
 
-                        val scaleBefore = phaserPane.scale
-                        val colourBefore = phaserPane.colour
+                        val scaleBefore = dePhaserPane.scale
+                        val colourBefore = dePhaserPane.colour
 
-                        phaserPane.scale = max(0.0, phaserPane.scale - ANIMATION_STEP)
-                        phaserPane.colour = max(0.0, phaserPane.colour - ANIMATION_STEP)
+                        dePhaserPane.scale = max(0.0, dePhaserPane.scale - ANIMATION_STEP)
+                        dePhaserPane.colour = max(0.0, dePhaserPane.colour - ANIMATION_STEP)
 
-                        if (phaserPane.scale != scaleBefore || phaserPane.colour != colourBefore) {
-                            phaserPane.redraw()
+                        if (dePhaserPane.scale != scaleBefore || dePhaserPane.colour != colourBefore) {
+                            dePhaserPane.redraw()
                         }
 
                     }

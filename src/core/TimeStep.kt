@@ -9,21 +9,26 @@ import kotlin.math.min
 
 /**
  * This class is for storing the data related to each section of time.
- * This object interacts with the model by passing the samples to it.
+ * This class is only used to temporarily store the information before it is added to a section of recording.
+ * This is because storing lots of these time steps was inefficient when it came to writing to file
  *
  * @author Kacper Lubisz
  *
  * @see Model
- * @see StepOutput
+ * @see Model.StepOutput
  * @see Note
  *
  * @property section The section that this time step belongs to
- * @property dePhased The reconstructed samples after the phase of the sinusoid that make it up is removed
+ * @property sampleStart The sample at which the frame of this step starts
+ * @property time The time which the step represents in relation to the current section
  * @property melImage The image that can be drawn on screen of the frequencies on the mel scale
- * @property modelOutput The object that represents the outputs of the Model
- * @property notes The notes that are present in the time step
+ * @property noteImage The image that can be drawn on screen of the output of the neural network
+ * @property dePhased The reconstructed samples after the phase of the sinusoid that make it up is removed
+ * @property dePhasedPower This value represents the volume of the TimeStep
+ * @property pitches The pitches that are present in the time step
+ * @property notes The notes(linked with the same notes in the previous step) that are present in the time step
  */
-class TimeStep private constructor(val section: Section, private val sampleStart: Int, private val time: Int, private val previous: TimeStep? = null) { // start in steps
+class TimeStep private constructor(val section: Section, private val sampleStart: Int, private val time: Int, previous: TimeStep? = null) { // start in steps
 
     constructor(section: Section, sampleStart: Int, previous: TimeStep?) :
             this(section, sampleStart, (previous?.time ?: -1) + 1, previous)
@@ -52,9 +57,10 @@ class TimeStep private constructor(val section: Section, private val sampleStart
 
         if (time == 0) {
             Model.setQueue(samples)
-        }
+        } // resets the sample input queue in the tensorflow session
 
         val (predictions, spectrum, dePhased, dePhasedPower) = Model.feedForward(samples)
+        // pass the samples through the neural network
         this.dePhased = dePhased
         this.dePhasedPower = dePhasedPower
 
@@ -93,9 +99,6 @@ class TimeStep private constructor(val section: Section, private val sampleStart
             val value = min(max(predictions[y], 0f), 1f)
             noteImage.pixelWriter.setColor(0, y, mapToColour(value.toDouble()))
         }
-
-//        this.melImage = SwingFXUtils.toFXImage(melImage, null)
-//        this.noteImage = SwingFXUtils.toFXImage(noteImage, null)
 
     }
 

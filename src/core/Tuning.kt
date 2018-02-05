@@ -7,13 +7,12 @@ import java.io.ObjectOutputStream
 import java.io.Serializable
 
 /**
- * This class stores the permutation of strings that a guitar could have
+ * This class is for storing the permutation of strings, capo and max fret that a guitar could have
  *
- * @author Kacper Lubisz
+ * @property name The display name of the tuning
+ * @property capo Which fret the capo is on, this is like an offset the string notes
+ * @property maxFret The highest fret that the pattern matching will take into consideration when using this tuning
  *
- * @property strings The list of strings that the tuning has
- * @property capo The placement of the capo in the guitar, (this also acts as a minimum fret and should be displayed as 0)
- * @property maxFret The highest fret that the tuning has
  */
 data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFAULT_CAPO, val maxFret: Int = DEFAULT_MAX_FRET) : Serializable {
 
@@ -24,7 +23,7 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
     constructor(name: String, vararg strings: String, capo: Int = DEFAULT_CAPO, maxFret: Int = DEFAULT_MAX_FRET)
             : this(name, strings.mapNotNull { it.pitch }.reversed(), capo, maxFret)
 
-    @Transient
+    @Transient // transient means that it won't be written to file
     var samePlacements: Map<Int, List<Int>>
     @Transient
     var placements: List<Placement>
@@ -36,16 +35,28 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
 
     }
 
+    /**
+     * Finds all the placements possible with the current tuning
+     * @return all the possible placements
+     */
     private fun calculatePlacements() = (0 until strings.size).flatMap { string ->
         (0..maxFret - capo).map { fret ->
             Placement(fret, string)
         }
     }
 
+    /**
+     * This finds all the possible groups all the placements it is fed into what pitch they are
+     * @return a map of pitch to list of possible placement
+     */
     private fun groupNotes(placements: List<Placement>) = placements.mapIndexed { index, _ -> index }
             .groupBy { strings[placements[it].string] + placements[it].fret + capo }
 
 
+    /**
+     * This method finds the indices of the placements that a particular pitch can be played on
+     * @return The list of indices
+     */
     internal fun findPlacements(pitch: Int): List<Int> = samePlacements.getOrElse(pitch) { listOf() }
 
     /**
@@ -66,11 +77,17 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
      */
     operator fun contains(pitch: Int): Boolean = findPlacements(pitch).isNotEmpty()
 
+    /**
+     * This is an override method which is called when a tuning is being written to file
+     */
     @Throws(IOException::class)
     private fun writeObject(output: ObjectOutputStream) {
         output.defaultWriteObject()
     }
 
+    /**
+     * This is an override method which is called when a tuning is being read from file
+     */
     @Throws(IOException::class, ClassNotFoundException::class)
     private fun readObject(input: ObjectInputStream) {
         input.defaultReadObject()
@@ -81,6 +98,7 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
 
     companion object {
 
+        // the standard tunings that are most likely to be used
         val DEFAULT_TUNINGS: List<Tuning> = mutableListOf(
                 Tuning("Standard Guitar", "E2", "A2", "D3", "G3", "B3", "E4"),
                 Tuning("Standard Bass", "E1", "A1", "D2", "G2")

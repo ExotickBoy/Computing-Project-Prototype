@@ -17,19 +17,22 @@ import kotlin.math.min
  * @see Session
  *
  * @property recording The recording that this session is to edit
- * @property stepCursor The cursor of the recording measured in TimeSteps
- * @property clusterCursor The cursor of the recording measured in NoteClusters
  */
 class Session(val recording: Recording) {
 
+    /* List of call backs that are called when the session updates */
     private val onUpdated: MutableList<() -> Unit> = mutableListOf()
+    /* List of call backs that are called when the recording is edited */
     private val onEdit: MutableList<() -> Unit> = mutableListOf()
 
+    /* This is the backing field to stepCursor, used to prevent recursion in the setter */
     private var stepCursorField: Int? = 0
+    /* This is the backing field to clusterCursor, used to prevent recursion in the setter */
     private var clusterCursorField: Double? = 0.0
 
+    /* The location of the cursor in steps */
     var stepCursor: Int?
-        set(value) {
+        set(value) { /*This setter updates the cluster cursor which changes independently */
             synchronized(recording) {
                 val toBecome = if (value == null || value >= recording.timeStepLength) null else max(value, 0)
                 if (toBecome != stepCursorField) {
@@ -69,8 +72,9 @@ class Session(val recording: Recording) {
         }
         get() = stepCursorField
 
+    /* The location of the cursor in clusters */
     var clusterCursor: Double?
-        set(value) {
+        set(value) { /* This setter updates the step cursor which changes independently */
             synchronized(recording) {
 
                 val toBecome = if (value == null || value - 0.5 >= recording.clusterLength) null else max(value, 0.0)
@@ -116,68 +120,65 @@ class Session(val recording: Recording) {
         }
         get() = clusterCursorField
 
-    val correctedStepCursor: Int
+    val correctedStepCursor: Int /* This is the real value of the step cursor*/
         get() {
             synchronized(recording) {
                 return stepCursor ?: max(recording.timeStepLength - 1, 0)
             }
         }
-    val correctedClusterCursor: Double
+    val correctedClusterCursor: Double /* This is the real value of the cluster cursor*/
         get() {
             synchronized(recording) {
                 return clusterCursor ?: (recording.clusterLength.toDouble())
             }
         }
-    var onScreenStepCursor: Int = 0
+    var onScreenStepCursor: Int = 0 /* Where the cursor is on the screen in terms of steps */
         private set
-    var onScreenClusterCursor: Double = 0.0
+    var onScreenClusterCursor: Double = 0.0 /* Where the cursor is on the screen in terms of clusters */
         private set
-    var stepFrom: Int = 0
+    var stepFrom: Int = 0 /* The smaller side of the currently visible range of steps */
         private set
-    var clusterFrom: Double = 0.0
+    var clusterFrom: Double = 0.0 /* The smaller side of the currently visible range of clusters */
         private set
 
-    private var stepTo: Int = 0
-    private var clusterTo: Double = 0.0
+    private var clusterTo: Double = 0.0 /* The larger side of the currently visible range of clusters */
 
-    val visibleStepRange
-        get() = stepFrom..stepTo
-    val visibleClusterRange
+    val visibleClusterRange /* The currently visible range of clusters */
         get() = clusterFrom..clusterTo
 
-    var width: Int = 0
+    var width: Int = 0 /* The width of the window */
         set(value) {
             field = value
             updateLocations()
             onUpdated()
         }
-    var clusterWidth: Double = 0.0
+    var clusterWidth: Double = 0.0 /* The width of the window in clusters */
         set(value) {
             field = value
             updateLocations()
             onUpdated()
         }
 
-    var lastX: Int = 0
+    var lastX: Int = 0 /* The last x location of the cursor */
         set(value) {
             field = value
             onUpdated()
         }
-    var lastY: Double = 0.0
+    var lastY: Double = 0.0 /* The last y location of the cursor on a scale from 0 to 1*/
         set(value) {
             field = value
             onUpdated()
         }
 
-    var swap: Int? = null
+    var swap: Int? = null /* This represents which section of recording is currently being swapped, null means none*/
         set(value) {
             field = value
             onUpdated()
         }
-    var swapWith: Int = 0
-    var swapWithSection: Boolean? = false
+    var swapWith: Int = 0 /* This is where the swap is going */
+    var swapWithSection: Boolean? = false /* If the 'to' of the swap is a section or between two */
 
-    val state: SessionState
+    val state: SessionState /* The current state of the session */
         get() = when {
             !playbackController.isPaused -> SessionState.PLAYING_BACK
             swap != null -> SessionState.SWAPPING
@@ -187,7 +188,7 @@ class Session(val recording: Recording) {
             else -> SessionState.GATHERING
         }
 
-    var isEdited = false
+    var isEdited = false /* Whether the recording has been edited in this session */
         private set (value) {
             field = value
         }
@@ -211,7 +212,6 @@ class Session(val recording: Recording) {
         synchronized(recording) {
             onScreenStepCursor = min(max(width - (recording.timeStepLength - correctedStepCursor), width / 2), correctedStepCursor)
             stepFrom = max(correctedStepCursor - onScreenStepCursor, 0)
-            stepTo = min(correctedStepCursor + (width - onScreenStepCursor), recording.timeStepLength)
 
             onScreenClusterCursor = min(max(clusterWidth - (recording.clusterLength - correctedClusterCursor), clusterWidth / 2), correctedClusterCursor)
             clusterFrom = max(correctedClusterCursor - onScreenClusterCursor, 0.0)
@@ -219,6 +219,9 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Toggles the mute of the playback
+     */
     fun toggleMute(): Boolean {
 
         onUpdated()
@@ -226,6 +229,9 @@ class Session(val recording: Recording) {
 
     }
 
+    /**
+     * Disposes of all the background threads and ends the session
+     */
     fun dispose() {
 
         microphoneController.end()
@@ -247,7 +253,8 @@ class Session(val recording: Recording) {
                     } catch (e: Exception) {
 
                         val alert = Alert(AlertType.ERROR)
-                        (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                        if (MainApplication.icon != null)
+                            (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
                         alert.title = "Error"
                         alert.headerText = "An error occurred"
                         alert.contentText = "Failed to open microphone\n" + when (e) {
@@ -296,7 +303,8 @@ class Session(val recording: Recording) {
                 } catch (e: Exception) {
 
                     val alert = Alert(AlertType.ERROR)
-                    (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                    if (MainApplication.icon != null)
+                        (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
                     alert.title = "Error"
                     alert.headerText = "An error occurred"
                     alert.contentText = "Failed to open playback device\n" + when (e) {
@@ -333,24 +341,36 @@ class Session(val recording: Recording) {
         }
     }
 
+    /**
+     * Adds a callback which will run when the session is updated
+     */
     fun addOnUpdate(callback: () -> Unit) {
         synchronized(onUpdated) {
             onUpdated.add(callback)
         }
     }
 
+    /**
+     * Adds a callback which will run when the recording is edited
+     */
     fun addOnEdited(callback: () -> Unit) {
         synchronized(onEdit) {
             onEdit.add(callback)
         }
     }
 
+    /**
+     * Calls all the onUpdate callbacks
+     */
     internal fun onUpdated() {
         synchronized(onUpdated) {
             onUpdated.forEach { it.invoke() }
         }
     }
 
+    /**
+     * Calls all the onEdited callbacks
+     */
     internal fun onEdited() {
 
         updateLocations()
@@ -444,9 +464,13 @@ class Session(val recording: Recording) {
     }
 
     companion object {
+        /* The proportion distance from the top of the screen in which a section can be deleted*/
         const val DELETE_DISTANCE = .3
     }
 
+    /**
+     * This enum represents all the states in which the session can be in
+     */
     enum class SessionState {
         GATHERING,
         PRE_PROCESSING,
