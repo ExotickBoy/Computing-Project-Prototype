@@ -105,6 +105,10 @@ class MainApplication : Application() {
 
     }
 
+    fun setTitle(title: String) {
+        stage.title = title
+    }
+
 }
 
 fun main(args: Array<String>) {

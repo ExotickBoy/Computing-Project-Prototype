@@ -2,14 +2,17 @@ package components
 
 import core.MainApplication
 import core.Session
+import dialogs.LoadingDialog
+import javafx.embed.swing.SwingNode
 import javafx.scene.Scene
-import javafx.scene.control.Label
 import javafx.scene.layout.VBox
+import java.awt.BorderLayout
+import java.awt.GridLayout
 import java.awt.event.ActionEvent
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.awt.geom.Line2D
-import javax.swing.KeyStroke
+import javax.swing.*
 import kotlin.math.max
 import kotlin.math.min
 
@@ -24,42 +27,59 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
     override fun onCreate(): Scene {
 
-        val root = VBox()
+        session.addOnEdited {
+            setTitle()
+        }
 
-        session.addOnEdited { setTitle() }
-
-//        val historyPanel = JPanel(GridLayout())
-//        historyPanel.border = BorderFactory.createEtchedBorder()
+        val historyPanel = JPanel(GridLayout())
+        historyPanel.border = BorderFactory.createEtchedBorder()
 //        historyPanel.add(historyPane)
 
-        root.children.addAll(historyPane, Label("Some text goes here"))
+        val phaserPanel = JPanel(GridLayout())
+        phaserPanel.border = BorderFactory.createEtchedBorder()
+        phaserPanel.add(phaserPane)
 
-//        val phaserPanel = JPanel(GridLayout())
-//        phaserPanel.border = BorderFactory.createEtchedBorder()
-//        phaserPanel.add(phaserPane)
-//
-//        val networkOutputPanel = JPanel(GridLayout())
-//        networkOutputPanel.border = BorderFactory.createEtchedBorder()
-//        networkOutputPanel.add(networkOutputPane)
-//
-//        val noteOutputPanel = JPanel(GridLayout())
-//        noteOutputPanel.border = BorderFactory.createEtchedBorder()
-//        noteOutputPanel.add(noteOutputPane)
-//
-//        val controlPanel = JPanel(GridLayout())
-//        controlPanel.border = BorderFactory.createEtchedBorder()
-//        controlPanel.add(controlPane)
-//
-//        val topPanel = JPanel()
-//        topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
-//        topPanel.add(phaserPanel)
-//        topPanel.add(historyPanel)
-//        topPanel.add(networkOutputPanel)
-//        topPanel.add(noteOutputPanel)
+        val networkOutputPanel = JPanel(GridLayout())
+        networkOutputPanel.border = BorderFactory.createEtchedBorder()
+        networkOutputPanel.add(networkOutputPane)
 
-//        layout = BorderLayout()
-//        add(topPanel, BorderLayout.CENTER)
-//        add(controlPanel, BorderLayout.SOUTH)
+        val noteOutputPanel = JPanel(GridLayout())
+        noteOutputPanel.border = BorderFactory.createEtchedBorder()
+        noteOutputPanel.add(noteOutputPane)
+
+        val controlPanel = JPanel(GridLayout())
+        controlPanel.border = BorderFactory.createEtchedBorder()
+        controlPanel.add(controlPane)
+
+        val topPanel = JPanel()
+        topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
+        topPanel.add(phaserPanel)
+        topPanel.add(historyPanel)
+        topPanel.add(networkOutputPanel)
+        topPanel.add(noteOutputPanel)
+
+        val content = JPanel()
+        content.layout = BorderLayout()
+        content.add(topPanel, BorderLayout.CENTER)
+        content.add(controlPanel, BorderLayout.SOUTH)
+
+        val phaserPanelWrapper = SwingNode()
+        phaserPanelWrapper.content = phaserPanel
+        val historyPanelWrapper = SwingNode()
+        historyPanelWrapper.content = historyPanel
+        val networkOutputPanelWrapper = SwingNode()
+        networkOutputPanelWrapper.content = networkOutputPanel
+        val noteOutputPanelWrapper = SwingNode()
+        noteOutputPanelWrapper.content = noteOutputPanel
+        val controlPanelWrapper = SwingNode()
+        controlPanelWrapper.content = controlPanel
+        val root = VBox(
+                phaserPanelWrapper,
+                historyPanelWrapper,
+                networkOutputPanelWrapper,
+                noteOutputPanelWrapper,
+                controlPanelWrapper
+        )
 
         addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0)) {
             session.stepCursor = session.correctedStepCursor - REGULAR_STEP_MOVE
@@ -98,10 +118,10 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
             session.stepCursor = null
         }
 
-
         return Scene(root)
 
     }
+
 
     private fun addSynchronizedSafeKeyListener(stroke: KeyStroke, action: (ActionEvent) -> (Unit)) {
 //        inputMap.put(stroke, stroke.hashCode())
@@ -123,15 +143,15 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
     override fun onResume() {
 
-        setTitle()
-//        session.width = width
-//        session.clusterWidth = width.toDouble() / noteOutputPane.spacing
+//        setTitle()
+//        session.width = root.width.toInt()
+//        session.clusterWidth = root.width / noteOutputPane.spacing
 
     }
 
     private fun setTitle() {
 
-//        MainApplication.title = "${session.recording.name}${if (session.isEdited) "*" else ""} - ${core.FRAME_TITLE}"
+//        application.setTitle("${session.recording.name}${if (session.isEdited) "*" else ""} - ${MainApplication.TITLE}")
 
     }
 
@@ -144,34 +164,32 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
     override fun onClose() {
 
-//        val back = if (session.isEdited) {
-//
-//            val options = arrayOf("Save", "Don't save", "Cancel")
-//
-//            val choice = JOptionPane.showOptionDialog(MainApplication,
-//                    "Do you want to save your changes?",
-//                    "Save and Exit?",
-//                    JOptionPane.YES_NO_CANCEL_OPTION,
-//                    JOptionPane.QUESTION_MESSAGE,
-//                    null,
-//                    options,
-//                    options[2])
-//
-//            when (choice) {
-//                0 -> {
-//                    LoadingDialog(MainApplication, "Saving to file", "Saving") {
-//
-//                        session.recording.save()
-//
-//                    }
-//                    true
-//                }
-//                1 -> true
-//                else -> false
-//            }
-//        } else true
-//
-//        if (back) MainApplication.popAll()
+        val back = if (session.isEdited) {
+
+            val options = arrayOf("Save", "Don't save", "Cancel")
+
+            val choice = JOptionPane.showOptionDialog(null,
+                    "Do you want to save your changes?",
+                    "Save and Exit?",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[2])
+
+            when (choice) {
+                0 -> {
+                    val dialog = LoadingDialog("Saving to file", "Saving")
+                    session.recording.save()
+                    dialog.dispose()
+                    true
+                }
+                1 -> true
+                else -> false
+            }
+        } else true
+
+        if (back) application.popAll()
 
     }
 

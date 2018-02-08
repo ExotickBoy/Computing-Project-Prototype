@@ -3,10 +3,13 @@ package components
 import components.RecordingEditPane.Companion.overlap
 import core.Session
 import core.Session.Companion.DELETE_DISTANCE
+import javafx.animation.Transition
+import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.paint.Color
 import javafx.scene.transform.Transform
+import javafx.util.Duration
 import kotlin.math.max
 import kotlin.math.sign
 
@@ -16,21 +19,46 @@ internal class HistoryView internal constructor(private val session: Session) : 
 
         draw(graphicsContext2D)
 
+        minWidth(500.0)
+        maxWidth(500.0)
+        minHeight(300.0)
+        maxHeight(300.0)
+
         ScrollController(false, this, session)
 
         session.addOnUpdate {
-            println("updaging")
-            repaint()
+            redraw()
         }
-        session.addOnEdited { repaint() }
+        session.addOnEdited { redraw() }
+
+        val framerate = 60.0
+        object : Transition(framerate) {
+            init {
+                cycleDuration = Duration.INDEFINITE
+            }
+
+            override fun interpolate(frac: Double) {
+                redraw()
+                println("testing $width $height")
+            }
+        }.play()
 
     }
 
-    fun repaint() {
-        graphicsContext2D.clearRect(0.0, 0.0, width, height)
+    var x = 1.0
+
+    private fun redraw() {
+        Platform.runLater {
+            draw()
+        }
     }
 
-    private fun draw(g: GraphicsContext) {
+    private fun draw(g: GraphicsContext = graphicsContext2D) {
+
+        x += 1
+        g.strokeLine(x, 0.0, x, 100.0)
+
+        g.clearRect(0.0, 0.0, width, height)
 
         synchronized(session.recording) {
 

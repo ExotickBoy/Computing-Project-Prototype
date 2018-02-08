@@ -34,7 +34,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
     override fun onCreate(): Scene {
 
-        val root = BorderPane()
+        val root = VBox()
         val scene = Scene(root)
 
         val newButton = Button("New Recording")
@@ -59,7 +59,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
                 it.consume()
             }
         }
-        recordingList.selectionModel.selectedIndexProperty().addListener({ observable ->
+        recordingList.selectionModel.selectedIndexProperty().addListener({ _ ->
             deleteButton.isDisable = recordingList.selectionModel.selectedIndices.isEmpty()
             editButton.isDisable = recordingList.selectionModel.selectedIndices.size != 1
         })
@@ -77,7 +77,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
             }
         }
         newButton.setOnAction {
-            NewRecordingDialog(recordings)
+            NewRecordingDialog(application, recordings)
         }
         deleteButton.setOnAction {
 
@@ -116,8 +116,8 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         listPanel.children.addAll(recordingLabel, recordingList)
         listPanel.padding = Companion.makeInsets(top = 5.0)
 
-        root.top = buttonPanel
-        root.center = listPanel
+        root.children.addAll(buttonPanel, listPanel)
+        root.maxHeight = Double.MAX_VALUE
         root.padding = Insets(10.0)
 
         return scene
