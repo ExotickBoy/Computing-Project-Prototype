@@ -74,7 +74,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
                     left.timeStepEnd,
                     left.clusterEnd,
                     cutSection.samples.subList((time - cutSection.timeStepStart) * SAMPLES_BETWEEN_FRAMES + SAMPLE_PADDING, cutSection.samples.size).toMutableList(),
-                    cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeSteps.size).toMutableList(),
+                    cutSection.timeSteps.subList(time - cutSection.timeStepStart, cutSection.timeStepLength).toMutableList(),
                     cutSection.clusters.subList(clusterCut, cutSection.clusters.size).map {
                         it.copy(relTimeStepStart = it.relTimeStepStart - left.timeSteps.size)
 //                        NoteCluster(it.relTimeStepStart - left.timeSteps.size, it.placements, it.heading, it.boldHeading)
@@ -133,14 +133,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         sections[a] = sections[b]
         sections[b] = temp
 
-        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
-        for (i in 1 until sections.size) {
-            sections[i] = sections[i].copy(
-                    sampleStart = sections[i - 1].sampleEnd,
-                    timeStepStart = sections[i - 1].timeStepEnd,
-                    clusterStart = sections[i - 1].clusterEnd
-            )
-        }
+        relabelStarts()
 
     }
 
@@ -150,14 +143,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
         sections.removeAt(from)
         sections.add(corrected, it)
 
-        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
-        for (i in 1 until sections.size) {
-            sections[i] = sections[i].copy(
-                    sampleStart = sections[i - 1].sampleStart + sections[i - 1].samples.size,
-                    timeStepStart = sections[i - 1].timeStepStart + sections[i - 1].timeSteps.size,
-                    clusterStart = sections[i - 1].clusterStart + sections[i - 1].clusters.size
-            )
-        }
+        relabelStarts() //TODO
 
     }
 
@@ -166,16 +152,22 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         if (sections.isNotEmpty()) {
 
-            sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
-            for (i in 1 until sections.size) {
-                sections[i] = sections[i].copy(
-                        sampleStart = sections[i - 1].sampleEnd,
-                        timeStepStart = sections[i - 1].timeStepEnd,
-                        clusterStart = sections[i - 1].clusterEnd
-                )
-            }
+            relabelStarts() //TODO
 
         }
+    }
+
+    private fun relabelStarts(from: Int = 0){
+
+        sections[0] = sections[0].copy(sampleStart = 0, timeStepStart = 0, clusterStart = 0)
+        for (i in 1 until sections.size) {
+            sections[i] = sections[i].copy(
+                    sampleStart = sections[i - 1].sampleEnd,
+                    timeStepStart = sections[i - 1].timeStepEnd,
+                    clusterStart = sections[i - 1].clusterEnd
+            )
+        }
+
     }
 
     private fun getMetaData(): RecordingMetaData = RecordingMetaData(name, length, created, System.currentTimeMillis())

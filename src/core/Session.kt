@@ -354,7 +354,7 @@ class Session(val recording: Recording) {
                 if (sectionIndex != null) {
 
                     val section = recording.sections[sectionIndex]
-                    val distanceFromEdge = min(10, (section.timeSteps.size * .2).toInt())
+                    val distanceFromEdge = min(10, (section.timeStepLength * .2).toInt())
 
                     when {
                         location - section.timeStepStart < distanceFromEdge -> { // left edge

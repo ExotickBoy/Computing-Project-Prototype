@@ -2,9 +2,9 @@ package components
 
 import components.RecordingEditPane.Companion.line
 import components.RecordingEditPane.Companion.overlap
+import core.ChordPattern
 import core.Model
 import core.Note.Companion.noteStringShort
-import core.Section
 import core.Session
 import java.awt.*
 import java.awt.event.ComponentEvent
@@ -39,7 +39,7 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
             fontMetrics.stringWidth(it.toString())
         }.max() ?: 0) + 2.5f
         headerHeight = (Model.START_PITCH..Model.END_PITCH).flatMap {
-            return@flatMap Section.patters.map { chordPattern ->
+            return@flatMap ChordPattern.values().map { chordPattern ->
                 return@map "${it.noteStringShort}${chordPattern.suffix}"
             }
         }.map { fontMetrics.stringWidth(it) }.max() ?: 0
@@ -92,11 +92,11 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                     if (index + it.clusterStart in clusterRange) {
                         g.color = Color(86, 86, 86)
                         cluster.placements.forEach { placement ->
-
+                            val asPlacementObject = session.recording.tuning.placements[placement]
                             g.drawString(
-                                    placement.fret.toString(),
-                                    (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(placement.fret.toString()) / 2,
-                                    (lineHeight * (placement.string + 1) - (lineHeight - g.font.size) / 2 + headerHeight).toFloat()
+                                    asPlacementObject.fret.toString(),
+                                    (stringHeaderOffset).toFloat() + (it.clusterStart - session.clusterFrom + 0.5f + index).toFloat() * spacing - g.fontMetrics.stringWidth(asPlacementObject.fret.toString()) / 2,
+                                    (lineHeight * (asPlacementObject.string + 1) - (lineHeight - g.font.size) / 2 + headerHeight).toFloat()
                             )
 
                         }
@@ -111,9 +111,10 @@ internal class NoteOutputPane(private val session: Session) : JPanel(), Componen
                                 headerHeight.toDouble()
                         ))
 
-                        g.color = if (cluster.boldHeading) Color(86, 86, 86) else Color(150, 150, 150)
+                        g.color = if (cluster.pattern != null) Color(86, 86, 86) else Color(150, 150, 150)
+                        val heading = cluster.heading
                         g.drawString(
-                                cluster.heading, (headerHeight - fontMetrics.stringWidth(cluster.heading)) / 2, (font.size + (spacing - font.size) / 2).toInt()
+                                heading, (headerHeight - fontMetrics.stringWidth(heading)) / 2, (font.size + (spacing - font.size) / 2).toInt()
                         )
                         g.transform = transformBefore //making sure that I reset the transformation I set so that the rest of the ui doesn't renter incorrectly
 

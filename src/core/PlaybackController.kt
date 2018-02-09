@@ -30,7 +30,7 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
 
         currentSectionIndex = session.recording.sectionAt(session.correctedStepCursor) ?: return false
         val section = session.recording.sections[currentSectionIndex]
-        sectionPlayHead = (section.samples.size * ((session.correctedStepCursor - section.timeStepStart).toDouble() / section.timeSteps.size)).roundToInt()
+        sectionPlayHead = (section.samples.size * ((session.correctedStepCursor - section.timeStepStart).toDouble() / section.timeStepLength)).roundToInt()
 
         open()
         start()
@@ -88,7 +88,7 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
 
                     sectionPlayHead = when {
                         to <= section.samples.size -> {
-                            session.stepCursor = (section.timeStepStart + section.timeSteps.size.toDouble()
+                            session.stepCursor = (section.timeStepStart + section.timeStepLength.toDouble()
                                     * sectionPlayHead / section.samples.size).roundToInt()
                             to
                         }
@@ -96,7 +96,7 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
                             isPaused = true
                             session.onUpdated()
 
-                            session.stepCursor = (section.timeStepStart + section.timeSteps.size.toDouble()
+                            session.stepCursor = (section.timeStepStart + section.timeStepLength.toDouble()
                                     * sectionPlayHead / section.samples.size).roundToInt()
 
                             section.samples.size
@@ -104,7 +104,7 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
                         else -> {
                             currentSectionIndex += 1
                             val newSection = session.recording.sections[currentSectionIndex]
-                            session.stepCursor = (newSection.timeStepStart + newSection.timeSteps.size.toDouble()
+                            session.stepCursor = (newSection.timeStepStart + newSection.timeStepLength.toDouble()
                                     * (to - section.samples.size) / newSection.samples.size).roundToInt()
                             to - section.samples.size
                         }
@@ -127,7 +127,7 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
                 } else {
                     currentSectionIndex = sectionIndex
                     val section = session.recording.sections[currentSectionIndex]
-                    sectionPlayHead = (section.samples.size * ((session.correctedStepCursor - section.timeStepStart).toDouble() / section.timeSteps.size)).roundToInt()
+                    sectionPlayHead = (section.samples.size * ((session.correctedStepCursor - section.timeStepStart).toDouble() / section.timeStepLength)).roundToInt()
 
                 }
             }

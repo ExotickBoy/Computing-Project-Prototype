@@ -8,7 +8,6 @@ import java.awt.Insets
 import java.io.File
 import java.io.IOException
 import javax.swing.*
-import javax.swing.filechooser.FileNameExtensionFilter
 
 
 class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
@@ -36,11 +35,11 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
         loadButton.setMnemonic('L')
         loadButton.addActionListener {
 
-            val fileChooser = JFileChooser()
-            fileChooser.fileFilter = FileNameExtensionFilter("WAV(16 bit PMC)", "wav")
-            fileChooser.currentDirectory = File("res/smallEd.wav")
-            val returnVal = fileChooser.showOpenDialog(parent)
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
+//            val fileChooser = JFileChooser()
+//            fileChooser.fileFilter = FileNameExtensionFilter("WAV(16 bit PMC)", "wav")
+//            fileChooser.currentDirectory = File("res/smallEd.wav")
+//            val returnVal = fileChooser.showOpenDialog(parent)
+            if (true) {
 
                 val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
                 val regex = "$name(\\d| )*".toRegex()
@@ -56,12 +55,12 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                     Tuning.DEFAULT_TUNINGS[tuningComboBox.selectedIndex]
 
                 val recording = Recording(tuning, newName)
-                val reader = SoundFileReader(recording, fileChooser.selectedFile)
+                val reader = SoundFileReader(recording, File("res/cosmofamille30.wav"))
 
                 try {
 
                     reader.open()
-                    LoadingDialog(this@NewRecordingDialog, "Reading ${fileChooser.selectedFile.name}", "Reading from file", {
+                    LoadingDialog(this@NewRecordingDialog, "Reading ", "Reading from file", {
 
                         reader.start()
                         reader.join()
@@ -76,7 +75,7 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
 
                 } catch (e: Exception) {
                     JOptionPane.showMessageDialog(this@NewRecordingDialog,
-                            "Loading ${fileChooser.selectedFile.name} failed\n${
+                            "Loading failed\n${
                             when (e) {
                                 is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
                                 is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"

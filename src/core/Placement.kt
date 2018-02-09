@@ -1,5 +1,8 @@
 package core
 
+import java.io.IOException
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.io.Serializable
 import kotlin.math.abs
 import kotlin.math.pow
@@ -20,6 +23,16 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
         // high frets are punished for the purpose of encouraging the placements to be lower on the guitar
     }
 
+    @Throws(IOException::class)
+    private fun writeObject(output: ObjectOutputStream) {
+        output.defaultWriteObject()
+    }
+
+    @Throws(ClassNotFoundException::class, IOException::class)
+    private fun readObject(input: ObjectInputStream) {
+        input.defaultReadObject()
+    }
+
     companion object {
 
         /**
@@ -34,7 +47,7 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
          */
         private const val TIME_FACTOR_BASE = 1.04
 
-        fun isPossible(placements: List<Placement>, pattern: Section.ChordPattern?): Boolean {
+        fun isPossible(placements: List<Placement>, pattern: ChordPattern?): Boolean {
 
             val strings = placements.map { it.string }
             val stringSep = strings.range()
@@ -50,8 +63,11 @@ data class Placement(val fret: Int, val string: Int) : Serializable {
 
         fun internalDistance(placements: List<Placement>): Double {
 
-            return INTERNAL_SCALING_FACTOR * (placements.map { it.startDistance() }.average() + euclideanNorm(placements.map { it.fret }.range(), placements.map { it.string }.range()) * placements.size)
-
+            return INTERNAL_SCALING_FACTOR * (placements.map { it.startDistance() }.average() +
+                    euclideanNorm(
+                            placements.map { it.fret }.range(),
+                            placements.map { it.string }.range()
+                    ) * placements.size)
         }
 
         fun physicalDistance(firsts: List<Placement>, seconds: List<Placement>): Double {

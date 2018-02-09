@@ -1,6 +1,9 @@
 package core
 
 import core.Note.Companion.pitch
+import java.io.IOException
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.io.Serializable
 
 /**
@@ -14,21 +17,36 @@ import java.io.Serializable
  */
 data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFAULT_CAPO, val maxFret: Int = DEFAULT_MAX_FRET) : Serializable {
 
+    /**
+     * An easy to use constructor for testing the Tuning class
+     * e.g. Tuning("E2","A3")
+     */
     constructor(name: String, vararg strings: String, capo: Int = DEFAULT_CAPO, maxFret: Int = DEFAULT_MAX_FRET)
             : this(name, strings.mapNotNull { it.pitch }.reversed(), capo, maxFret)
-    // an easy to use constructor for testing the Tuning class
-    // e.g. Tuning("E2","A3")
 
-    private val placements: MutableMap<Int, List<Placement>> = mutableMapOf()
+    @Transient
+    var samePlacements: Map<Int, List<Int>>
+    @Transient
+    var placements: List<Placement>
 
-    internal fun getPlacements(pitch: Int): List<Placement> = placements.getOrPut(pitch) { findPlacements(pitch) }
+    init {
 
-    private fun findPlacements(pitch: Int): List<Placement> = strings.mapIndexedNotNull { index, it ->
-        val placement = Placement(pitch - it - capo, index)
-        if (placement.fret in 0..(maxFret - capo)) placement else null
+        placements = calculatePlacements()
+        samePlacements = groupNotes(placements)
+
     }
 
-    fun getPlacements(pitch: Note): List<Placement> = getPlacements(pitch.pitch)
+    private fun calculatePlacements() = (0 until strings.size).flatMap { string ->
+        (0..maxFret - capo).map { fret ->
+            Placement(fret, string)
+        }
+    }
+
+    private fun groupNotes(placements: List<Placement>) = placements.mapIndexed { index, _ -> index }
+            .groupBy { strings[placements[it].string] + placements[it].fret + capo }
+
+
+    internal fun findPlacements(pitch: Int): List<Int> = samePlacements.getOrElse(pitch) { listOf() }
 
     /**
      * Returns the indexed string of the tuning
@@ -44,9 +62,22 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
         get() = strings.size
 
     /**
-     * Checks if a pitch has any placements in this tuning
+     * Checks if a pitch has any samePlacements in this tuning
      */
     operator fun contains(pitch: Int): Boolean = findPlacements(pitch).isNotEmpty()
+
+    @Throws(IOException::class)
+    private fun writeObject(output: ObjectOutputStream) {
+        output.defaultWriteObject()
+    }
+
+    @Throws(IOException::class, ClassNotFoundException::class)
+    private fun readObject(input: ObjectInputStream) {
+        input.defaultReadObject()
+        placements = calculatePlacements()
+        samePlacements = groupNotes(placements)
+
+    }
 
     companion object {
 

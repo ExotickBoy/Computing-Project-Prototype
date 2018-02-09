@@ -19,7 +19,7 @@ import java.util.*
  */
 internal class SoundProcessingController(val session: Session) : Thread("Sound Processing Thread") {
 
-    private val timeStepQueue: LinkedList<TimeStep> = LinkedList()
+    private val timeStepQueue: LinkedList<IntRange> = LinkedList()
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
 
     fun begin() {
@@ -41,20 +41,14 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
             }
             if (section != null) {
                 var processingCursor = 0
-                var previousStep: TimeStep? = null
 
                 while (!section.isGathered || processingCursor + FRAME_SIZE < section.samples.size) {
 
                     if (processingCursor + FRAME_SIZE < section.samples.size) {
 
-                        val newStep = TimeStep(
-                                section,
-                                processingCursor,
-                                if (previousStep?.section != section) null else previousStep
-                        )
-
-                        previousStep = newStep
+                        val newStep = processingCursor..(processingCursor + FRAME_SIZE)
                         synchronized(timeStepQueue) { timeStepQueue }.add(newStep)
+                        section.preProcessTimeStep(newStep)
                         processingCursor += SAMPLES_BETWEEN_FRAMES
                     } else {
                         onSpinWait()
@@ -106,7 +100,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
      * @property session The session the timeStep is to be added to
      * @property queue The mutable queue of TimeSteps which is served from
      */
-    private class TimeStepBufferThread(val session: Session, val queue: LinkedList<TimeStep>)
+    private class TimeStepBufferThread(val session: Session, val queue: LinkedList<IntRange>)
         : Thread("TimeStepBufferThread") {
 
         private var fastProcess: MutableList<Section> = mutableListOf()
@@ -148,7 +142,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                             if (!synchronized(queue) { queue }.isEmpty()) {
                                 synchronized(session.recording) {
-                                    section.addTimeStep(queue.removeFirst())
+                                    section.presentTimeStep(queue.removeFirst())
                                     session.onEdited()
                                     session.onUpdated()
                                     // add time step to recording where further processing happens

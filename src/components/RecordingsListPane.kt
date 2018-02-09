@@ -178,6 +178,7 @@ class RecordingsListPane : ApplicationPane() {
             val minutes = this / 60
             return when {
                 this == 0.0 -> "-"
+                this < 1 -> "< 1s"
                 this < 60 -> "${this.roundToInt()}s"
                 minutes < 5 -> "${minutes.roundToInt()}m"
                 else -> "${minutes.roundToInt()}m ${this.rem(60).roundToInt()}s"
@@ -194,7 +195,7 @@ class RecordingsListPane : ApplicationPane() {
             val weeks = days / 7
 
             return when {
-                seconds < 10 -> "just now"
+                seconds < 30 -> "just now"
                 seconds < 60 -> "${seconds.roundToInt()} seconds ago"
                 minutes < 2 -> "1 minute ago"
                 minutes < 60 -> "${minutes.roundToInt()} minutes ago"

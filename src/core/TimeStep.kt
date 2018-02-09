@@ -32,18 +32,16 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     constructor(section: Section, sampleStart: Int, previous: TimeStep?) :
             this(section, sampleStart, (previous?.time ?: -1) + 1, previous)
 
-    private val modelOutput: StepOutput
-
     @Transient
     var melImage: BufferedImage
     @Transient
     var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
 
-    val dePhased
-        get() = modelOutput.dePhased
-
-    val dePhasedPower
-        get() = modelOutput.dePahsedPower
+    @Transient
+    val pitches: List<Int>
+    val dePhased: FloatArray
+    @Transient
+    val dePhasedPower: Float
 
     private val samples: FloatArray
         get() {
@@ -52,26 +50,37 @@ class TimeStep private constructor(val section: Section, private val sampleStart
             }
         }
 
+    @Transient
     val notes: List<Note>
 
     init {
 
         val samples = samples
         // so that the samples don't need to be sub-listed twice
+
         if (time == 0) {
             Model.setQueue(samples)
         }
 
-        modelOutput = Model.feedForward(samples)
+        val (predictions, spectrum, dePhased, dePhasedPower) = Model.feedForward(samples)
+        this.dePhased = dePhased
+        this.dePhasedPower = dePhasedPower
+
+        pitches = predictions.mapIndexed { index, confidence -> index to confidence }
+                .filter {
+                    return@filter it.second >= Model.CONFIDENCE_CUT_OFF
+                }.map {
+                    it.first + Model.START_PITCH
+                }
 
         // identify notes present in the current timestep and link them with the ones in the previous one to make one note object
         notes = if (previous == null) {
-            modelOutput.pitches.map {
+            pitches.map {
                 Note(it, time, 1)
             }
         } else {
-            modelOutput.pitches.map {
-                if (previous.modelOutput.pitches.contains(it)) {
+            pitches.map {
+                if (previous.pitches.contains(it)) {
                     val note = previous.notes.find { p -> p.pitch == it }!!
                     note.duration++
                     return@map note
@@ -84,12 +93,12 @@ class TimeStep private constructor(val section: Section, private val sampleStart
         // This buffered image is a slice of the spectrogram at this time step
         melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
-            val value = ((min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
+            val value = ((min(max(spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
             melImage.setRGB(0, y, mapToColour(value))
         }
         noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.PITCH_RANGE) {
-            val value = min(max(modelOutput.predictions[y], 0f), 1f)
+            val value = min(max(predictions[y], 0f), 1f)
             noteImage.setRGB(0, y, mapToColour(value))
         }
 
@@ -98,6 +107,8 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     @Throws(IOException::class)
     private fun writeObject(output: ObjectOutputStream) {
         output.defaultWriteObject()
+
+        println("writing $time")
 
 //        val resultImage = BufferedImage(1, melImage.height + noteImage.height, BufferedImage.TYPE_INT_RGB)
 //        val g = resultImage.graphics

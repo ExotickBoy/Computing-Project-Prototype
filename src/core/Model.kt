@@ -32,7 +32,7 @@ internal object Model {
     private const val DEPHASED_SAMPLES: String = "de_phased_reconstruction"
     private const val DE_PHASED_POWER: String = "de_phased_rms"
 
-    private const val MODEL_LOCATION = "res/model78" // the location of the model
+    private const val MODEL_LOCATION = "res/model76" // the location of the model
 
     private val tensorFlowSession = SavedModelBundle.load(MODEL_LOCATION, "serve").session()
     // The TensorFlow session which is an instance of the execution of the TensorFlow computation
@@ -123,5 +123,19 @@ internal object Model {
 
         }
     }
+
+    /**
+     * This data class is the output of each TimeStep created by the model
+     *
+     * @author Kacper Lubisz
+     *
+     * @see Model
+     * @see TimeStep
+     *
+     * @property predictions The list of predictions for each pitch created by the model
+     * @property spectrum The spectrum of the samples of a TimeStep
+     * @property dePhased The dePhased visualisation of the TimeStep
+     */
+    internal data class StepOutput(val predictions: FloatArray, val spectrum: FloatArray, val dePhased: FloatArray, val dePhasedPower: Float)
 
 }
