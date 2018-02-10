@@ -9,6 +9,7 @@ import javafx.geometry.Insets
 import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.control.Alert.AlertType
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyCodeCombination
 import javafx.scene.input.KeyCombination
@@ -21,7 +22,6 @@ import javafx.scene.text.Font
 import javafx.scene.text.Text
 import java.io.File
 import java.io.FileInputStream
-import javax.swing.JOptionPane
 import kotlin.math.roundToInt
 
 
@@ -30,7 +30,8 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
     private val recordings: MutableList<Recording.PossibleRecording> = mutableListOf()
     private lateinit var recordingList: ListView<Recording.PossibleRecording>
 
-    private val repaintThread = RepaintThread(this)
+    private val root = VBox()
+    private val repaintThread = RepaintThread(root)
 
     override fun onCreate(): Scene {
 
@@ -81,21 +82,23 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         }
         deleteButton.setOnAction {
 
-            val choice = JOptionPane.showOptionDialog(null,
-                    "Are you sure you want to delete recording" +
-                            "${if (recordingList.selectionModel.selectedIndices.size == 1) "" else "s"} " +
-                            "\n${recordingList.selectionModel.selectedIndices.map {
-                                recordings[it].metaData.name
-                            }.reduce { acc, s -> "$acc, ${if (acc.length - acc.lastIndexOf("\n") >= 30) "\n" else ""}$s" }}?",
-                    "Delete Confirmation",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    listOf("Delete", "No").toTypedArray(),
-                    0)
+            val alert = Alert(AlertType.WARNING)
+            alert.title = "Delete Confirmation"
+            alert.headerText = "Are you sure you want to delete recording" +
+                    "${if (recordingList.selectionModel.selectedIndices.size == 1) "" else "s"} " +
+                    "\n${recordingList.selectionModel.selectedIndices.map {
+                        recordings[it].metaData.name
+                    }.reduce { acc, s -> "$acc, ${if (acc.length - acc.lastIndexOf("\n") >= 30) "\n" else ""}$s" }}?"
 
-            if (choice == 0)  // delete pressed
+            val deleteButtonType = ButtonType("Delete", ButtonBar.ButtonData.YES)
+            val cancelButtonType = ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE)
+
+            alert.buttonTypes.setAll(deleteButtonType, cancelButtonType)
+
+            val result = alert.showAndWait()
+            if (result.get() == deleteButtonType) { // delete pressed
                 delete()
+            }
 
         }
         editButton.setOnAction {
@@ -171,7 +174,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         application.popAll()
     }
 
-    private class RepaintThread(val pane: RecordingsListPane) : Thread("Repaint Thread") {
+    private class RepaintThread(val root: VBox) : Thread("Repaint Thread") {
 
         init {
             start()
@@ -187,7 +190,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
                         onSpinWait()
                     }
                 else {
-//                    pane.repaint()
+                    root.layout()
                     sleep(100)
                 }
             }

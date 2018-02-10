@@ -228,7 +228,7 @@ class Recording(val tuning: Tuning, val name: String) : Serializable {
 
         private const val serialVersionUID = 354634135413L // this is used in serializing to make sure class versions match
         private const val FILE_EXTENSION = ".rec"
-        const val DEFAULT_NAME = "Nameless Recording"
+        const val DEFAULT_NAME = "Recording"
         const val DEFAULT_PATH = "recordings/"
         const val USE_COMPRESSION = false
 

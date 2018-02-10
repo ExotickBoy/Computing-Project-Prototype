@@ -7,10 +7,7 @@ import core.*
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Scene
-import javafx.scene.control.Button
-import javafx.scene.control.ComboBox
-import javafx.scene.control.Label
-import javafx.scene.control.TextField
+import javafx.scene.control.*
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
@@ -19,8 +16,6 @@ import javafx.stage.Modality
 import javafx.stage.Stage
 import java.io.File
 import java.io.IOException
-import javax.swing.JOptionPane
-
 
 class NewRecordingDialog(private val application: MainApplication, private val recordings: MutableList<Recording.PossibleRecording>) {
 
@@ -46,7 +41,7 @@ class NewRecordingDialog(private val application: MainApplication, private val r
         val scene = Scene(root)
 
         nameField = TextField()
-        nameField.promptText = Recording.DEFAULT_NAME
+        nameField.promptText = "Recording Name"
         nameField.setFocusMnemonic("N", scene)
 
         val tunings = Tuning.DEFAULT_TUNINGS.map { it.name }.toMutableList()
@@ -102,7 +97,7 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
         val buttons = HBox(5.0)
         buttons.children.addAll(loadButton, recordButton)
-        buttons.padding = makeInsets(top = 5.0)
+        buttons.padding = makeInsets(top = 10)
         buttons.alignment = Pos.CENTER
 
         root.center = grid
@@ -153,21 +148,25 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                 val session = Session(recording)
                 session.stepCursor = null
                 session.onEdited()
+                stage.close()
                 application.push(RecordingEditPane(session, application))
 
-                stage.close()
-
             } catch (e: Exception) {
-                JOptionPane.showMessageDialog(null,
-                        "Loading $result failed\n${
-                        when (e) {
-                            is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
-                            is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
-                            is SoundFileReader.UnsupportedChannelsException -> "Only mono supported"
-                            is IOException -> "Read error occurred"
-                            else -> "Unknown error occurred"
-                        }
-                        }", "Error", JOptionPane.ERROR_MESSAGE)
+
+                val alert = Alert(Alert.AlertType.ERROR)
+                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                alert.title = "Error"
+                alert.headerText = "An error occurred"
+                alert.contentText = when (e) {
+                    is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
+                    is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
+                    is SoundFileReader.UnsupportedChannelsException -> "Only mono supported"
+                    is IOException -> "Read error occurred"
+                    else -> "Unknown error occurred ${e.message}"
+                }
+
+                alert.showAndWait()
+
             }
 
         }

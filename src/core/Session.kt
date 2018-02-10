@@ -1,9 +1,12 @@
 package core
 
+import javafx.scene.control.Alert
+import javafx.scene.control.Alert.AlertType
+import javafx.stage.Stage
 import javax.sound.sampled.LineUnavailableException
-import javax.swing.JOptionPane
 import kotlin.math.max
 import kotlin.math.min
+
 
 /**
  * This object stores all the properties relevant to the current session of editing a recording
@@ -243,12 +246,17 @@ class Session(val recording: Recording) {
                         microphoneController.begin()
                     } catch (e: Exception) {
 
-                        JOptionPane.showMessageDialog(null,
-                                "Failed to open microphone\n" + when (e) {
-                                    is LineUnavailableException -> "Couldn't find a valid microphone"
-                                    is IllegalArgumentException -> "Couldn't find a valid microphone"
-                                    else -> "Unknown error occurred"
-                                }, "Error", JOptionPane.ERROR_MESSAGE)
+                        val alert = Alert(AlertType.ERROR)
+                        (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                        alert.title = "Error"
+                        alert.headerText = "An error occurred"
+                        alert.contentText = "Failed to open microphone\n" + when (e) {
+                            is LineUnavailableException -> "Couldn't find a valid microphone"
+                            is IllegalArgumentException -> "Couldn't find a valid microphone"
+                            else -> "Unknown error occurred ${e.message}"
+                        }
+
+                        alert.showAndWait()
                         return false
 
                     }
@@ -316,7 +324,6 @@ class Session(val recording: Recording) {
     }
 
     internal fun onUpdated() {
-
         onUpdated.forEach { it.invoke() }
     }
 

@@ -1,5 +1,7 @@
 package core
 
+import javafx.embed.swing.SwingFXUtils
+import javafx.scene.image.Image
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.IOException
@@ -35,9 +37,9 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     private val modelOutput: StepOutput
 
     @Transient
-    var melImage: BufferedImage
+    var melImage: Image
     @Transient
-    var noteImage: BufferedImage // TODO this is only for debugging in the desktop version
+    var noteImage: Image // TODO this is only for debugging in the desktop version
 
     val dePhased
         get() = modelOutput.dePhased
@@ -82,16 +84,19 @@ class TimeStep private constructor(val section: Section, private val sampleStart
         }
 
         // This buffered image is a slice of the spectrogram at this time step
-        melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
+        val melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
             val value = ((min(max(modelOutput.spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
             melImage.setRGB(0, y, mapToColour(value))
         }
-        noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
+        val noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.PITCH_RANGE) {
             val value = min(max(modelOutput.predictions[y], 0f), 1f)
             noteImage.setRGB(0, y, mapToColour(value))
         }
+
+        this.melImage = SwingFXUtils.toFXImage(melImage, null)
+        this.noteImage = SwingFXUtils.toFXImage(noteImage, null)
 
     }
 

@@ -113,7 +113,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         }
 
         nameField = TextField(tuning?.name ?: "")
-        nameField.promptText = Tuning.DEFAULT_NAME
+        nameField.promptText = "Tuning Name"
         nameField.maxWidth = Double.MAX_VALUE
         nameField.setFocusMnemonic("N", scene)
 

@@ -30,19 +30,17 @@ internal class ScrollController(private val isNote: Boolean, private val owner: 
                     // im using != true, because it cold be null
 
                     if (!isNote) {
-
                         session.stepCursor = max(min(session.correctedStepCursor - dx, session.recording.timeStepLength.toDouble()), 0.0).roundToInt()
-
                     } else {
                         session.clusterCursor = session.correctedClusterCursor - session.clusterWidth * dx / session.width
                     }
+                    it.consume()
 
                 }
                 session.lastX = it.x.roundToInt()
                 session.lastY = it.y / owner.height
             }
 
-            it.consume()
 
         }
 
@@ -59,7 +57,7 @@ internal class ScrollController(private val isNote: Boolean, private val owner: 
 
         owner.setOnMouseClicked {
 
-            if (!isNote) {
+            if (!isNote && it.isPrimaryButtonDown && it.isStillSincePress) {
                 session.stepCursor = (session.stepFrom + it.x).roundToInt()
                 it.consume()
             }
@@ -81,9 +79,7 @@ internal class ScrollController(private val isNote: Boolean, private val owner: 
             }
         }
 
-        owner.addEventHandler(MouseEvent.MOUSE_PRESSED, {
-            holdTimer.playFromStart()
-        })
+        owner.addEventHandler(MouseEvent.MOUSE_PRESSED, { holdTimer.playFromStart() })
         owner.addEventHandler(MouseEvent.MOUSE_RELEASED) { holdTimer.stop() }
         owner.addEventHandler(MouseEvent.DRAG_DETECTED) { holdTimer.stop() }
 

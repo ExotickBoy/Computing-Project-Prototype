@@ -3,162 +3,124 @@ package components
 import core.MainApplication
 import core.Session
 import dialogs.LoadingDialog
-import javafx.embed.swing.SwingNode
+import javafx.application.Platform
 import javafx.scene.Scene
+import javafx.scene.control.Alert
+import javafx.scene.control.ButtonBar
+import javafx.scene.control.ButtonType
+import javafx.scene.control.Label
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyCodeCombination
+import javafx.scene.input.KeyCombination
 import javafx.scene.layout.VBox
-import java.awt.BorderLayout
-import java.awt.GridLayout
-import java.awt.event.ActionEvent
-import java.awt.event.InputEvent
-import java.awt.event.KeyEvent
-import java.awt.geom.Line2D
-import javax.swing.*
+import javafx.stage.Stage
+import java.util.*
 import kotlin.math.max
 import kotlin.math.min
 
 
 class RecordingEditPane(val session: Session, application: MainApplication) : MainApplication.Activity(application) {
 
-    private val historyPane = HistoryView(session)
-    private val phaserPane = DePhaserPane(session)
-    private val networkOutputPane = NetworkOutputPane(session)
-    private val noteOutputPane = NoteOutputPane(session)
-    private val controlPane = ControlPane(session)
+    private val root = VBox()
+    private val scene = Scene(root)
+
+    private val historyView = HistoryView(session)
+    private val phaserView = DePhaserView(application, session)
+    private val networkOutputView = NetworkOutputView(session)
+    private val noteOutputView = NoteOutputView(session)
+
+    private val controlPane = ControlPane(application, scene, session)
 
     override fun onCreate(): Scene {
 
         session.addOnEdited {
             setTitle()
         }
+        root.children.addAll(
+                Label("Visualisation"),
+                phaserView,
+                Label("Frequency Analysis"),
+                historyView)
 
-        val historyPanel = JPanel(GridLayout())
-        historyPanel.border = BorderFactory.createEtchedBorder()
-//        historyPanel.add(historyPane)
+        if (SHOW_NETWORK_OUTPUT)
+            root.children.addAll(
+                    Label("Raw Network Output"),
+                    networkOutputView)
 
-        val phaserPanel = JPanel(GridLayout())
-        phaserPanel.border = BorderFactory.createEtchedBorder()
-        phaserPanel.add(phaserPane)
-
-        val networkOutputPanel = JPanel(GridLayout())
-        networkOutputPanel.border = BorderFactory.createEtchedBorder()
-        networkOutputPanel.add(networkOutputPane)
-
-        val noteOutputPanel = JPanel(GridLayout())
-        noteOutputPanel.border = BorderFactory.createEtchedBorder()
-        noteOutputPanel.add(noteOutputPane)
-
-        val controlPanel = JPanel(GridLayout())
-        controlPanel.border = BorderFactory.createEtchedBorder()
-        controlPanel.add(controlPane)
-
-        val topPanel = JPanel()
-        topPanel.layout = BoxLayout(topPanel, BoxLayout.Y_AXIS)
-        topPanel.add(phaserPanel)
-        topPanel.add(historyPanel)
-        topPanel.add(networkOutputPanel)
-        topPanel.add(noteOutputPanel)
-
-        val content = JPanel()
-        content.layout = BorderLayout()
-        content.add(topPanel, BorderLayout.CENTER)
-        content.add(controlPanel, BorderLayout.SOUTH)
-
-        val phaserPanelWrapper = SwingNode()
-        phaserPanelWrapper.content = phaserPanel
-        val historyPanelWrapper = SwingNode()
-        historyPanelWrapper.content = historyPanel
-        val networkOutputPanelWrapper = SwingNode()
-        networkOutputPanelWrapper.content = networkOutputPanel
-        val noteOutputPanelWrapper = SwingNode()
-        noteOutputPanelWrapper.content = noteOutputPanel
-        val controlPanelWrapper = SwingNode()
-        controlPanelWrapper.content = controlPanel
-        val root = VBox(
-                phaserPanelWrapper,
-                historyPanelWrapper,
-                networkOutputPanelWrapper,
-                noteOutputPanelWrapper,
-                controlPanelWrapper
+        root.children.addAll(
+                noteOutputView,
+                controlPane
         )
 
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0)) {
+        // shift means move slowly
+        // alt means move cluster
+
+        addKeyListener(KeyCodeCombination(KeyCode.LEFT), Runnable {
             session.stepCursor = session.correctedStepCursor - REGULAR_STEP_MOVE
-        }
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.SHIFT_DOWN_MASK)) {
+        })
+        addKeyListener(KeyCodeCombination(KeyCode.LEFT, KeyCombination.SHIFT_DOWN), Runnable {
             session.stepCursor = session.correctedStepCursor - SHIFT_STEP_MOVE
-        }
-
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK)) {
+        })
+        addKeyListener(KeyCodeCombination(KeyCode.LEFT, KeyCombination.ALT_DOWN), Runnable {
             session.clusterCursor = session.correctedClusterCursor - REGULAR_CLUSTER_MOVE
-        }
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.SHIFT_DOWN_MASK
-                or InputEvent.ALT_DOWN_MASK)) {
+        })
+        addKeyListener(KeyCodeCombination(KeyCode.LEFT, KeyCombination.ALT_DOWN, KeyCombination.SHIFT_DOWN), Runnable {
             session.clusterCursor = session.correctedClusterCursor - SHIFT_CLUSTER_MOVE
-        }
+        })
 
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0)) {
+        addKeyListener(KeyCodeCombination(KeyCode.RIGHT), Runnable {
             session.stepCursor = session.correctedStepCursor + REGULAR_STEP_MOVE
-        }
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.SHIFT_DOWN_MASK)) {
+        })
+        addKeyListener(KeyCodeCombination(KeyCode.RIGHT, KeyCombination.SHIFT_DOWN), Runnable {
             session.stepCursor = session.correctedStepCursor + SHIFT_STEP_MOVE
-        }
-
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK)) {
+        })
+        addKeyListener(KeyCodeCombination(KeyCode.RIGHT, KeyCombination.ALT_DOWN), Runnable {
             session.clusterCursor = session.correctedClusterCursor + REGULAR_CLUSTER_MOVE
-        }
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.SHIFT_DOWN_MASK
-                or InputEvent.ALT_DOWN_MASK)) {
+        })
+        addKeyListener(KeyCodeCombination(KeyCode.RIGHT, KeyCombination.ALT_DOWN, KeyCombination.SHIFT_DOWN), Runnable {
             session.clusterCursor = session.correctedClusterCursor + SHIFT_CLUSTER_MOVE
-        }
+        })
 
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_HOME, 0)) {
-            session.stepCursor = 0
-        }
-        addSynchronizedSafeKeyListener(KeyStroke.getKeyStroke(KeyEvent.VK_END, 0)) {
-            session.stepCursor = null
-        }
+        addKeyListener(KeyCodeCombination(KeyCode.HOME), Runnable { session.stepCursor = 0 })
+        addKeyListener(KeyCodeCombination(KeyCode.END), Runnable { session.stepCursor = null })
 
-        return Scene(root)
+        return scene
 
     }
 
-
-    private fun addSynchronizedSafeKeyListener(stroke: KeyStroke, action: (ActionEvent) -> (Unit)) {
-//        inputMap.put(stroke, stroke.hashCode())
-//        actionMap.put(stroke.hashCode(), object : AbstractAction() {
-//            override fun actionPerformed(e: ActionEvent) {
-//                synchronized(session.recording) {
-//                    if (session.state == Session.SessionState.EDIT_SAFE)
-//                        action.invoke(e)
-//                }
-//            }
-//        })
+    private fun addKeyListener(keyCombination: KeyCombination, runnable: Runnable) {
+        synchronized(session.recording) {
+            if (session.state == Session.SessionState.EDIT_SAFE) {
+                scene.accelerators[keyCombination] = runnable
+            }
+        }
     }
 
     override fun onPause() {
 
-//        MainApplication.title = core.FRAME_TITLE
+        setTitle(MainApplication.TITLE)
 
     }
 
     override fun onResume() {
 
-//        setTitle()
-//        session.width = root.width.toInt()
-//        session.clusterWidth = root.width / noteOutputPane.spacing
+        setTitle()
+        session.width = root.width.toInt()
+        session.clusterWidth = root.width / noteOutputView.spacing
 
     }
 
-    private fun setTitle() {
-
-//        application.setTitle("${session.recording.name}${if (session.isEdited) "*" else ""} - ${MainApplication.TITLE}")
-
+    private fun setTitle(title: String? = null) {
+        Platform.runLater {
+            application.setTitle(title ?: session.recording.name+(if (session.isEdited) "*" else "")+" - "
+            +MainApplication.TITLE)
+        }
     }
 
     override fun onDestroy() {
 
         session.dispose()
-        phaserPane.end()
+        phaserView.end()
 
     }
 
@@ -166,25 +128,16 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
         val back = if (session.isEdited) {
 
-            val options = arrayOf("Save", "Don't save", "Cancel")
+            val choice = RecordingEditPane.showSaveDialog()
 
-            val choice = JOptionPane.showOptionDialog(null,
-                    "Do you want to save your changes?",
-                    "Save and Exit?",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    options,
-                    options[2])
-
-            when (choice) {
-                0 -> {
+            when (choice.get().buttonData) {
+                ButtonBar.ButtonData.YES -> {
                     val dialog = LoadingDialog("Saving to file", "Saving")
                     session.recording.save()
                     dialog.dispose()
                     true
                 }
-                1 -> true
+                ButtonBar.ButtonData.NO -> true
                 else -> false
             }
         } else true
@@ -194,9 +147,6 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     }
 
     companion object {
-
-        fun line(x1: Number, y1: Number, x2: Number, y2: Number): Line2D.Double =
-                Line2D.Double(x1.toDouble(), y1.toDouble(), x2.toDouble(), y2.toDouble())
 
         infix fun IntRange.overlap(other: IntRange): IntRange = max(this.start, other.start)..min(this.endInclusive, other.endInclusive)
 
@@ -209,6 +159,25 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
         const val REGULAR_STEP_MOVE = 15
         const val REGULAR_CLUSTER_MOVE = 5
+
+        const val SHOW_NETWORK_OUTPUT = true
+
+        fun showSaveDialog(): Optional<ButtonType> {
+
+            val alert = Alert(Alert.AlertType.WARNING)
+            (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+            alert.title = "Save"
+            alert.headerText = "Do you want to save your changes?"
+
+            val saveButtonType = ButtonType("Save", ButtonBar.ButtonData.YES)
+            val notSaveButtonType = ButtonType("Don't Save", ButtonBar.ButtonData.NO)
+            val cancelButtonType = ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE)
+
+            alert.buttonTypes.setAll(saveButtonType, notSaveButtonType, cancelButtonType)
+
+            return alert.showAndWait()
+
+        }
 
     }
 

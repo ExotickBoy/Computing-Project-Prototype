@@ -1,6 +1,7 @@
 package components
 
 import components.RecordingEditPane.Companion.overlap
+import core.Model
 import core.Session
 import core.Session.Companion.DELETE_DISTANCE
 import javafx.application.Platform
@@ -12,12 +13,12 @@ import kotlin.math.max
 import kotlin.math.sign
 
 
-internal class HistoryView internal constructor(private val session: Session) : Canvas() {
+internal class NetworkOutputView internal constructor(private val session: Session) : Canvas() {
 
     init {
 
         width = 500.0
-        height = 300.0
+        height = Model.PITCH_RANGE.toDouble()
         isFocusTraversable = true
 
         ScrollController(false, this, session)
@@ -55,7 +56,7 @@ internal class HistoryView internal constructor(private val session: Session) : 
 
                         for (x in overlap) {
                             g.drawImage(
-                                    it.timeSteps[x - it.timeStepStart].melImage,
+                                    it.timeSteps[x - it.timeStepStart].noteImage,
                                     x.toDouble() - session.stepFrom,
                                     0.0,
                                     1.0,
@@ -114,7 +115,7 @@ internal class HistoryView internal constructor(private val session: Session) : 
                 val y = height * (max(-session.lastY / (2 * DELETE_DISTANCE) + 0.5, 0.0) * sign(session.lastY - 0.5) + 0.1)
                 g.transform(Transform.affine(1.0, 0.0, 0.0, 0.8, 0.0, y))
                 for (x in 0 until section.timeSteps.size) {
-                    g.drawImage(section.timeSteps[x].melImage, session.lastX + x.toDouble(), 0.0, 1.0, height)
+                    g.drawImage(section.timeSteps[x].noteImage, session.lastX + x.toDouble(), 0.0, 1.0, height)
                 }
 
                 g.transform = transformBefore

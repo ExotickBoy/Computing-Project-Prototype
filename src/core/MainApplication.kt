@@ -18,6 +18,7 @@ class MainApplication : Application() {
     override fun start(primaryStage: Stage) {
 
         this.stage = primaryStage
+        stage.isResizable = false
 
         stage.title = TITLE
         stage.setOnCloseRequest {
