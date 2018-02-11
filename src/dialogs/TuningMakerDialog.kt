@@ -1,55 +1,64 @@
 package dialogs
 
+import components.RecordingsListPane.Companion.setFocusMnemonic
+import core.MainApplication
 import core.Model
 import core.Note.Companion.noteStringShort
 import core.Note.Companion.pitch
 import core.Tuning
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
-import java.awt.Insets
-import java.awt.event.WindowEvent
-import java.awt.event.WindowListener
-import javax.swing.*
+import javafx.geometry.Insets
+import javafx.geometry.Pos
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.layout.GridPane
+import javafx.scene.layout.VBox
+import javafx.stage.Modality
+import javafx.stage.Stage
 
-class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning?)
-    : JDialog(previous, "Tuning Editor", ModalityType.APPLICATION_MODAL), WindowListener {
+class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning?) {
+
+    private val stage: Stage = Stage()
 
     private val strings = mutableListOf<Int>()
 
-    private val nameField: JTextField
-    private val capoSpinner: JSpinner
-    private val maxFretSpinner: JSpinner
+    private val nameField: TextField
+    private val capoSpinner: Spinner<Int>
+    private val maxFretSpinner: Spinner<Int>
 
-    private val stringsDataModel: DefaultListModel<String>
-    private val stringList: JList<String>
-    private val newNoteField: JTextField
+    private val stringList: ListView<String>
+    private val newStringField: TextField
 
-    private val addButton: JButton
-    private val removeButton: JButton
-    private val upButton: JButton
-    private val downButton: JButton
-    private val createButton: JButton
+    private val addButton: Button
+    private val removeButton: Button
+    private val upButton: Button
+    private val downButton: Button
+    private val createButton: Button
 
     private fun addString() {
 
-        val field = newNoteField.text
+        val field = newStringField.text
         val fieldAsInt = field.toIntOrNull()
         val fieldAsString = field.pitch
 
         when {
-            fieldAsInt != null -> {
-                if (fieldAsInt in Model.POSSIBLE_PITCHES) {
-                    strings.add(fieldAsInt)
-                    stringsDataModel.addElement(fieldAsInt.noteStringShort)
-                }
-                newNoteField.text = ""
+            fieldAsInt != null && fieldAsInt in Model.POSSIBLE_PITCHES -> {
+
+                strings.add(fieldAsInt)
+                stringList.items.add(fieldAsInt.noteStringShort)
+
+                newStringField.text = ""
+                newStringField.style = ""
             }
-            fieldAsString != null -> {
-                if (fieldAsString in Model.POSSIBLE_PITCHES) {
-                    strings.add(fieldAsString)
-                    stringsDataModel.addElement(fieldAsString.noteStringShort)
-                }
-                newNoteField.text = ""
+            fieldAsString != null && fieldAsString in Model.POSSIBLE_PITCHES -> {
+
+                strings.add(fieldAsString)
+                stringList.items.add(fieldAsString.noteStringShort)
+
+                newStringField.text = ""
+                newStringField.style = ""
+            }
+            else -> {
+                newStringField.style = "-fx-focus-color:red;"
             }
         }
 
@@ -61,267 +70,190 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         strings[a] = strings[b]
         strings[b] = temp
 
-        stringsDataModel[a] = stringsDataModel[b]
-        stringsDataModel[b] = temp.noteStringShort
+        stringList.items[a] = stringList.items[b]
+        stringList.items[b] = temp.noteStringShort
 
     }
 
     init {
-        val constraint = GridBagConstraints()
 
-        val capoSpinnerModel = SpinnerNumberModel(tuning?.capo ?: Tuning.DEFAULT_CAPO, 0, Tuning.MAX_MAX_FRET, 1)
-        val maxFretSpinnerModel = SpinnerNumberModel(tuning?.maxFret
-                ?: Tuning.DEFAULT_MAX_FRET, 0, Tuning.MAX_MAX_FRET, 1)
+        stage.initModality(Modality.APPLICATION_MODAL)
+        stage.title = "New Tuning"
+        if (MainApplication.icon != null)
+            stage.icons.add(MainApplication.icon)
 
-        nameField = JTextField()
-        capoSpinner = JSpinner(capoSpinnerModel)
-        maxFretSpinner = JSpinner(maxFretSpinnerModel)
+        val root = GridPane()
+        val scene = Scene(root)
 
-        stringsDataModel = DefaultListModel()
-        tuning?.strings?.forEach {
-            stringsDataModel.addElement(it.noteStringShort)
+        val capoSpinnerValueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(
+                0,
+                Tuning.MAX_MAX_FRET,
+                tuning?.capo ?: Tuning.DEFAULT_CAPO,
+                1
+        )
+        capoSpinner = Spinner(capoSpinnerValueFactory)
+        capoSpinner.maxWidth = Double.MAX_VALUE
+        capoSpinner.setFocusMnemonic("A", scene)
+
+        val maxFretSpinnerValueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(
+                0,
+                Tuning.MAX_MAX_FRET,
+                tuning?.maxFret ?: Tuning.DEFAULT_MAX_FRET,
+                1
+        )
+        maxFretSpinner = Spinner(maxFretSpinnerValueFactory)
+        maxFretSpinner.maxWidth = Double.MAX_VALUE
+        maxFretSpinner.setFocusMnemonic("M", scene)
+
+        capoSpinner.valueProperty().addListener { _ ->
+            maxFretSpinnerValueFactory.min = capoSpinner.value as Int + 1
         }
-        stringList = JList<String>(stringsDataModel)
+        maxFretSpinner.valueProperty().addListener { _ ->
+            capoSpinnerValueFactory.max = maxFretSpinner.value as Int - 1
+        }
 
-        val stringsLabel = JLabel("Strings")
-        val newNoteLabel = JLabel("To Add:")
-        val capoLabel = JLabel("Capo:")
-        val maxFretLabel = JLabel("Max Fret:")
-        val nameLabel = JLabel("Name:")
+        nameField = TextField(tuning?.name ?: "")
+        nameField.promptText = "Tuning Name"
+        nameField.maxWidth = Double.MAX_VALUE
+        nameField.setFocusMnemonic("N", scene)
 
-        addButton = JButton("Add")
-        removeButton = JButton("Remove")
-        createButton = JButton("Create")
+        newStringField = TextField()
+        newStringField.promptText = "New Note (Enter to Add)"
+        newStringField.setFocusMnemonic("O", scene)
+        newStringField.textProperty().addListener { _ -> newStringField.style = "" }
+        newStringField.setOnAction { addString() }
 
-        upButton = JButton("Up")
-        upButton.isEnabled = false
-        downButton = JButton("Down")
-        downButton.isEnabled = false
+        upButton = Button("Up")
+        upButton.maxWidth = Double.MAX_VALUE
+        upButton.isDisable = true
+        downButton = Button("Down")
+        downButton.maxWidth = Double.MAX_VALUE
+        downButton.isDisable = true
 
-        layout = GridBagLayout()
+        stringList = ListView()
+        stringList.setFocusMnemonic("S", scene)
+        stringList.prefHeight = 150.0
+        stringList.selectionModel.selectionMode = SelectionMode.MULTIPLE
+        tuning?.strings?.forEach {
+            stringList.items.add(it.noteStringShort)
+            strings.add(it)
+        }
+        stringList.selectionModel.selectedIndexProperty().addListener { _ ->
 
+            upButton.isDisable = stringList.selectionModel.selectedIndices.min() == 0
+            downButton.isDisable = stringList.selectionModel.selectedIndices.max() == strings.size - 1
 
-        nameField.addActionListener { nameField.transferFocus() }
-        nameLabel.setDisplayedMnemonic('N')
+        }
+
+        val stringsLabel = Label("Strings")
+        stringsLabel.labelFor = stringList
+        val capoLabel = Label("Capo:")
+        capoLabel.labelFor = capoSpinner
+        val maxFretLabel = Label("Max Fret:")
+        maxFretLabel.labelFor = maxFretSpinner
+        val nameLabel = Label("Name:")
         nameLabel.labelFor = nameField
 
-        capoSpinner.addChangeListener {
-            maxFretSpinnerModel.minimum = capoSpinnerModel.number as Int + 1
-        }
-        capoLabel.setDisplayedMnemonic('p')
-        capoLabel.labelFor = capoSpinner
+        addButton = Button("Add")
+        addButton.maxWidth = Double.MAX_VALUE
+        addButton.setFocusMnemonic("A", scene)
+        addButton.setOnAction { addString() }
 
-        maxFretSpinner.addChangeListener {
-            capoSpinnerModel.maximum = maxFretSpinnerModel.number as Int - 1
-        }
-        maxFretLabel.setDisplayedMnemonic('M')
-        maxFretLabel.labelFor = maxFretSpinner
-
-        stringsLabel.labelFor = stringList
-        stringsLabel.setDisplayedMnemonic('S')
-        stringList.addListSelectionListener {
-
-            upButton.isEnabled = stringList.selectedIndices.min() != 0
-            downButton.isEnabled = stringList.selectedIndices.max() != strings.size - 1
-
-        }
-
-        newNoteField = JTextField()
-        newNoteField.addActionListener { addString() }
-        newNoteLabel.setDisplayedMnemonic('T')
-        newNoteLabel.labelFor = newNoteField
-
-        addButton.setMnemonic('A')
-        addButton.addActionListener { addString() }
-
-        removeButton.setMnemonic('R')
-        removeButton.addActionListener {
-            stringList.selectedIndices.reversed().forEach {
-                stringsDataModel.removeElementAt(it)
+        removeButton = Button("Remove")
+        removeButton.maxWidth = Double.MAX_VALUE
+        removeButton.setFocusMnemonic("R", scene)
+        removeButton.setOnAction {
+            stringList.selectionModel.selectedIndices.reversed().forEach {
                 strings.removeAt(it)
+                stringList.items.removeAt(it)
             }
-            stringList.grabFocus()
-            repaint()
         }
 
-        upButton.setMnemonic('U')
-        upButton.addActionListener {
-            if (stringList.selectedIndices.min() ?: 0 != 0) {
-                stringList.selectedIndices.sorted().forEach {
-                    swapIndices(it - 1, it)
-                }
-            }
-            stringList.selectedIndices = stringList.selectedIndices.map { it - 1 }.toIntArray()
-            stringList.grabFocus()
-
-        }
-
-        downButton.setMnemonic('D')
-        downButton.addActionListener {
-            if (stringList.selectedIndices.max() ?: (strings.size - 1) != strings.size - 1) {
-                stringList.selectedIndices.sortedDescending().forEach {
-                    swapIndices(it, it + 1)
-                }
-            }
-            stringList.selectedIndices = stringList.selectedIndices.map { it + 1 }.toIntArray()
-            stringList.grabFocus()
-        }
-
-        createButton.setMnemonic('C')
-        createButton.addActionListener {
+        createButton = Button("Create")
+        createButton.maxWidth = Double.MAX_VALUE
+        createButton.setFocusMnemonic("C", scene)
+        createButton.setOnAction {
             val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
                     strings,
                     capoSpinner.value as Int,
                     maxFretSpinner.value as Int)
 
             previous.refresh(if (strings.isEmpty()) null else newTuning)
-            dispose()
+            stage.close()
         }
 
-        // LAYOUT
+        upButton.setFocusMnemonic("U", scene)
+        upButton.setOnAction {
+            if (stringList.selectionModel.selectedIndices.min() != 0) {
+                val indices = stringList.selectionModel.selectedIndices.sorted().toList()
+                indices.forEach {
+                    swapIndices(it - 1, it)
+                }
+                stringList.selectionModel.clearSelection()
+                indices.map { it - 1 }.forEach {
+                    stringList.selectionModel.select(it)
+                }
+            }
+        }
+        downButton.setFocusMnemonic("D", scene)
+        downButton.setOnAction {
+            if (stringList.selectionModel.selectedIndices.max() != strings.size - 1) {
 
-        val topPanel = JPanel(GridBagLayout())
+                val indices = stringList.selectionModel.selectedIndices.sortedDescending().toList()
+                indices.forEach {
+                    swapIndices(it, it + 1)
+                }
+                stringList.selectionModel.clearSelection()
+                indices.map { it + 1 }.forEach {
+                    stringList.selectionModel.select(it)
+                }
 
-        constraint.weightx = 0.0
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridx = 0
-        constraint.gridy = 0
-        constraint.insets = Insets(0, 0, INTERNAL_SPACING, INTERNAL_SPACING)
-        topPanel.add(nameLabel, constraint)
+            }
+        }
 
-        constraint.weightx = 1.0
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.gridy = 0
-        constraint.insets = Insets(0, INTERNAL_SPACING, INTERNAL_SPACING, 0)
-        topPanel.add(nameField, constraint)
 
-        constraint.weightx = 0.0
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridx = 0
-        constraint.gridy = 1
-        constraint.insets = Insets(INTERNAL_SPACING, 0, INTERNAL_SPACING, INTERNAL_SPACING)
-        topPanel.add(capoLabel, constraint)
+        val detailPanel = GridPane()
+        detailPanel.hgap = 5.0
+        detailPanel.vgap = 5.0
+        detailPanel.add(nameLabel, 0, 0)
+        detailPanel.add(nameField, 1, 0)
+        detailPanel.add(capoLabel, 0, 1)
+        detailPanel.add(capoSpinner, 1, 1)
+        detailPanel.add(maxFretLabel, 0, 2)
+        detailPanel.add(maxFretSpinner, 1, 2)
+        detailPanel.maxWidth = Double.MAX_VALUE
+        detailPanel.alignment = Pos.CENTER
 
-        constraint.weightx = 1.0
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.gridy = 1
-        constraint.insets = Insets(0, INTERNAL_SPACING, INTERNAL_SPACING, 0)
-        topPanel.add(capoSpinner, constraint)
+        val listPanel = VBox()
+        listPanel.children.addAll(stringsLabel, stringList)
+        listPanel.maxWidth = Double.MAX_VALUE
 
-        constraint.weightx = 0.0
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridx = 0
-        constraint.gridy = 2
-        constraint.gridwidth = 1
-        constraint.insets = Insets(INTERNAL_SPACING, 0, 0, INTERNAL_SPACING)
-        topPanel.add(maxFretLabel, constraint)
+        val buttonPanel = GridPane()
+        buttonPanel.hgap = 5.0
+        buttonPanel.vgap = 5.0
+        buttonPanel.maxWidth = Double.MAX_VALUE
+        buttonPanel.alignment = Pos.CENTER
+        buttonPanel.add(newStringField, 0, 0, 4, 1)
+        buttonPanel.add(addButton, 0, 1)
+        buttonPanel.add(removeButton, 1, 1)
+        buttonPanel.add(upButton, 2, 1)
+        buttonPanel.add(downButton, 3, 1)
+        buttonPanel.add(createButton, 0, 2, 4, 1)
 
-        constraint.weightx = 1.0
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.gridy = 2
-        constraint.gridwidth = 2
-        constraint.insets = Insets(INTERNAL_SPACING, INTERNAL_SPACING, 0, 0)
-        topPanel.add(maxFretSpinner, constraint)
+        root.add(detailPanel, 0, 0)
+        root.add(listPanel, 0, 1)
+        root.add(buttonPanel, 0, 2)
+        root.vgap = 5.0
+        root.padding = Insets(10.0)
 
-        val middlePanel = JPanel(GridBagLayout())
+        stage.scene = scene
+        stage.setOnCloseRequest {
+            it.consume()
+            previous.refresh(null)
+            stage.close()
+        }
+        stage.showAndWait()
 
-        constraint.gridx = 0
-        constraint.gridy = 0
-        constraint.anchor = GridBagConstraints.WEST
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        middlePanel.add(stringsLabel, constraint)
-
-        constraint.gridx = 0
-        constraint.gridy = 1
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        middlePanel.add(JScrollPane(stringList), constraint)
-
-        val bottomPanel = JPanel(GridBagLayout())
-
-        constraint.weightx = 1.0
-        constraint.fill = GridBagConstraints.NONE
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.gridx = 0
-        constraint.gridy = 0
-        constraint.gridwidth = 1
-
-        constraint.insets = Insets(0, 0, INTERNAL_SPACING, INTERNAL_SPACING)
-        bottomPanel.add(newNoteLabel, constraint)
-
-        constraint.gridx = 1
-        constraint.gridy = 0
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.insets = Insets(0, INTERNAL_SPACING, INTERNAL_SPACING, INTERNAL_SPACING)
-        bottomPanel.add(newNoteField, constraint)
-
-        constraint.gridx = 2
-        constraint.gridy = 0
-        constraint.insets = Insets(0, INTERNAL_SPACING, INTERNAL_SPACING, 0)
-        bottomPanel.add(addButton, constraint)
-
-        constraint.gridx = 0
-        constraint.gridy = 1
-        constraint.insets = Insets(INTERNAL_SPACING, 0, INTERNAL_SPACING, INTERNAL_SPACING)
-        bottomPanel.add(removeButton, constraint)
-
-        constraint.gridx = 1
-        constraint.gridy = 1
-        constraint.insets = Insets(INTERNAL_SPACING, INTERNAL_SPACING, INTERNAL_SPACING, INTERNAL_SPACING)
-        bottomPanel.add(upButton, constraint)
-
-        constraint.gridx = 2
-        constraint.gridy = 1
-        constraint.insets = Insets(INTERNAL_SPACING, INTERNAL_SPACING, INTERNAL_SPACING, 0)
-        bottomPanel.add(downButton, constraint)
-
-        constraint.gridx = 0
-        constraint.gridy = 2
-        constraint.gridwidth = 4
-        constraint.insets = Insets(INTERNAL_SPACING, 0, 0, 0)
-        bottomPanel.add(createButton, constraint)
-
-        constraint.gridx = 0
-        constraint.gridy = 0
-        constraint.gridwidth = 1
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.insets = Insets(10, 10, 10, 10)
-        add(topPanel, constraint)
-
-        constraint.gridx = 0
-        constraint.gridy = 1
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.insets = Insets(0, 10, 0, 10)
-        add(middlePanel, constraint)
-
-        constraint.gridx = 0
-        constraint.gridy = 2
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.insets = Insets(10, 10, 10, 10)
-        add(bottomPanel, constraint)
-
-        pack()
-        setLocationRelativeTo(previous)
-        defaultCloseOperation = JDialog.DISPOSE_ON_CLOSE
-        isVisible = true
-
-    }
-
-    override fun windowClosing(e: WindowEvent?) {
-        previous.refresh(null)
-        dispose()
     }
 
     companion object {
@@ -329,18 +261,5 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         const val INTERNAL_SPACING = 2
 
     }
-
-
-    override fun windowDeiconified(e: WindowEvent?) {}
-
-    override fun windowClosed(e: WindowEvent?) {}
-
-    override fun windowActivated(e: WindowEvent?) {}
-
-    override fun windowDeactivated(e: WindowEvent?) {}
-
-    override fun windowOpened(e: WindowEvent?) {}
-
-    override fun windowIconified(e: WindowEvent?) {}
 
 }

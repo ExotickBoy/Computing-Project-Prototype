@@ -187,7 +187,7 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
 
                             accumulated -= period
 
-                            if (!synchronized(queue) { queue }.isEmpty()) {
+                            if (!synchronized(queue) { queue.isEmpty() }) {
                                 synchronized(session.recording) {
 
                                     val newStep: TimeStep = queue.removeFirst()

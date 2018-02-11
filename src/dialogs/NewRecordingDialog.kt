@@ -1,103 +1,126 @@
 package dialogs
 
 import components.RecordingEditPane
+import components.RecordingsListPane.Companion.makeInsets
+import components.RecordingsListPane.Companion.setFocusMnemonic
 import core.*
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
-import java.awt.Insets
+import javafx.geometry.Insets
+import javafx.geometry.Pos
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.layout.BorderPane
+import javafx.scene.layout.GridPane
+import javafx.scene.layout.HBox
+import javafx.stage.FileChooser
+import javafx.stage.Modality
+import javafx.stage.Stage
 import java.io.File
 import java.io.IOException
-import javax.swing.*
-import javax.swing.filechooser.FileNameExtensionFilter
 
-
-class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
-    : JDialog(AppInstance, "New Recording", ModalityType.APPLICATION_MODAL) {
+class NewRecordingDialog(private val application: MainApplication, private val recordings: MutableList<Recording.PossibleRecording>) {
 
     private var customTuning: Tuning? = null
-    private var tuningComboBox: JComboBox<String>
+    private val stage: Stage = Stage()
+
+    private val nameLabel: Label
+    private val nameField: TextField
+    private val tuningLabel: Label
+    private var tuningComboBox: ComboBox<String>
+
+    private val recordButton: Button
+    private val loadButton: Button
 
     init {
-        layout = GridBagLayout()
 
-        val constraint = GridBagConstraints()
+        stage.initModality(Modality.APPLICATION_MODAL)
+        stage.title = "New Recording"
+        if (MainApplication.icon != null)
+            stage.icons.add(MainApplication.icon)
 
-        val nameField = JTextField()
+        val root = BorderPane()
+        val scene = Scene(root)
+
+        nameField = TextField()
+        nameField.promptText = "Recording Name"
+        nameField.setFocusMnemonic("N", scene)
+
         val tunings = Tuning.DEFAULT_TUNINGS.map { it.name }.toMutableList()
-        tunings.add("Custom Tuning")
-        tuningComboBox = JComboBox(tunings.toTypedArray())
-        tuningComboBox.addActionListener {
-            if (tuningComboBox.selectedIndex == Tuning.DEFAULT_TUNINGS.size) {
-                tuningComboBox.transferFocus()
+        tunings.add(MAKE_TUNING_TEXT)
+        tuningComboBox = ComboBox()
+        tuningComboBox.items.addAll(tunings.toTypedArray())
+        tuningComboBox.selectionModel.select(0)
+        tuningComboBox.selectionModel.selectedIndexProperty().addListener { _ ->
+            if (tuningComboBox.selectionModel.selectedIndex == tuningComboBox.items.lastIndex) {
                 TuningMakerDialog(this@NewRecordingDialog, customTuning)
             }
         }
-        val loadButton = JButton("Load File")
-        loadButton.setMnemonic('L')
-        loadButton.addActionListener {
-
-            val fileChooser = JFileChooser()
-            fileChooser.fileFilter = FileNameExtensionFilter("WAV(16 bit PMC)", "wav")
-            fileChooser.currentDirectory = File("res/smallEd.wav")
-            val returnVal = fileChooser.showOpenDialog(parent)
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-
-                val selectedFile = fileChooser.selectedFile
-
-                val name = if (nameField.text.isEmpty()) selectedFile.name.substring(0, selectedFile.name.length - 4) else nameField.text
-                val regex = "$name(\\d| )*".toRegex()
-                val sameNames = recordings.map { it.metaData.name }
-                        .filter { regex.matches(it) }
-                        .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
-                        .max()
-                val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
-
-                val tuning = if (tuningComboBox.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
-                    customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
-                else
-                    Tuning.DEFAULT_TUNINGS[tuningComboBox.selectedIndex]
-
-                val recording = Recording(tuning, newName)
-                val reader = SoundFileReader(recording, selectedFile)
-
-                try {
-
-                    reader.open()
-                    LoadingDialog(this@NewRecordingDialog, "Reading ${selectedFile.name}", "Reading from file", {
-
-                        reader.start()
-                        reader.join()
-
-                    })
-
-                    val session = Session(recording)
-                    session.stepCursor = null
-                    session.onEdited()
-                    AppInstance.push(RecordingEditPane(session))
-                    dispose()
-
-                } catch (e: Exception) {
-                    JOptionPane.showMessageDialog(this@NewRecordingDialog,
-                            "Loading ${fileChooser.selectedFile.name} failed\n${
-                            when (e) {
-                                is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
-                                is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
-                                is SoundFileReader.UnsupportedChannelsException -> "Only mono supported"
-                                is IOException -> "Read error occurred"
-                                else -> "Unknown error occurred"
-                            }
-                            }", "Error", JOptionPane.ERROR_MESSAGE)
-                }
-
+        tuningComboBox.setOnAction {
+            if (tuningComboBox.selectionModel.selectedIndex == tuningComboBox.items.lastIndex) {
+//                tuningComboBox.transferFocus() TODO
+//                TuningMakerDialog(this@NewRecordingDialog, customTuning)
             }
+        }
+        tuningComboBox.setFocusMnemonic("T", scene)
 
+        loadButton = Button("Load File")
+        loadButton.setFocusMnemonic("L", scene)
+        loadButton.setOnAction {
+            load()
         }
 
-        val recordButton = JButton("Record")
-        recordButton.setMnemonic('R')
-        recordButton.addActionListener {
+        recordButton = Button("Record")
+        recordButton.setFocusMnemonic("R", scene)
+        recordButton.setOnAction {
+            record(nameField, recordings)
+        }
+        nameField.setOnAction {
+            record(nameField, recordings)
+        }
 
-            val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
+        nameLabel = Label("Name:")
+        nameLabel.labelFor = nameField
+
+        tuningLabel = Label("Tuning:")
+        tuningLabel.labelFor = tuningComboBox
+
+        val grid = GridPane()
+
+        tuningComboBox.maxWidth = Double.MAX_VALUE
+        nameField.maxWidth = Double.MAX_VALUE
+
+        grid.add(nameLabel, 0, 0)
+        grid.add(nameField, 1, 0)
+        grid.add(tuningLabel, 0, 1)
+        grid.add(tuningComboBox, 1, 1)
+        grid.hgap = 5.0
+        grid.vgap = 5.0
+
+        val buttons = HBox(5.0)
+        buttons.children.addAll(loadButton, recordButton)
+        buttons.padding = makeInsets(top = 10)
+        buttons.alignment = Pos.CENTER
+
+        root.center = grid
+        root.bottom = buttons
+        root.padding = Insets(10.0)
+
+        stage.scene = scene
+        stage.showAndWait()
+
+    }
+
+    private fun load() {
+
+        val fileChooser = FileChooser()
+        fileChooser.title = "Open Resource File"
+        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("WAV(16 bit PMC)", "*.wav"))
+        fileChooser.initialDirectory = File("").absoluteFile
+        // this makes the directory start in the same folder as the location of the executable
+        val result: File? = fileChooser.showOpenDialog(stage)
+
+        if (result != null) {
+
+            val name = if (nameField.text.isEmpty()) result.name.substring(0, result.name.length - 4)  else nameField.text
             val regex = "$name(\\d| )*".toRegex()
             val sameNames = recordings.map { it.metaData.name }
                     .filter { regex.matches(it) }
@@ -105,87 +128,110 @@ class NewRecordingDialog(recordings: MutableList<Recording.PossibleRecording>)
                     .max()
             val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
 
-            val tuning = if (tuningComboBox.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
+            val tuning = if (tuningComboBox.selectionModel.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
                 customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
             else
-                Tuning.DEFAULT_TUNINGS[tuningComboBox.selectedIndex]
+                Tuning.DEFAULT_TUNINGS[tuningComboBox.selectionModel.selectedIndex]
 
-            val session = Session(Recording(tuning, newName))
-            AppInstance.push(RecordingEditPane(session))
-            dispose()
+            val recording = Recording(tuning, newName)
+            val reader = SoundFileReader(recording, result)
+
+            try {
+
+
+                reader.open()
+                val dialog = LoadingDialog("Reading ${result.name}", "Reading from file")
+                reader.start()
+                reader.join()
+                dialog.dispose()
+
+                val session = Session(recording)
+                session.stepCursor = null
+                session.onEdited()
+                stage.close()
+                application.push(RecordingEditPane(session, application))
+
+            } catch (e: Exception) {
+
+                val alert = Alert(Alert.AlertType.ERROR)
+                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
+                alert.title = "Error"
+                alert.headerText = "An error occurred"
+                alert.contentText = when (e) {
+                    is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
+                    is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
+                    is SoundFileReader.UnsupportedChannelsException -> "Only mono supported"
+                    is IOException -> "Read error occurred"
+                    else -> "Unknown error occurred ${e.message}"
+                }
+
+                alert.showAndWait()
+
+            }
 
         }
-        nameField.addActionListener {
-            recordButton.doClick()
-        }
-
-        val nameLabel = JLabel("Name:")
-        nameLabel.setDisplayedMnemonic('N')
-        nameLabel.labelFor = nameField
-
-        val tuningLabel = JLabel("Tuning:")
-        tuningLabel.setDisplayedMnemonic('T')
-        tuningLabel.labelFor = tuningComboBox
-
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridy = 0
-        constraint.gridx = 0
-        constraint.insets = Insets(10, 10, 5, 5)
-        add(nameLabel, constraint)
-
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.insets = Insets(10, 5, 5, 10)
-        add(nameField, constraint)
-
-        constraint.anchor = GridBagConstraints.EAST
-        constraint.gridy = 1
-        constraint.fill = GridBagConstraints.NONE
-        constraint.gridx = 0
-        constraint.insets = Insets(5, 10, 5, 5)
-        add(tuningLabel, constraint)
-
-        constraint.anchor = GridBagConstraints.CENTER
-        constraint.fill = GridBagConstraints.HORIZONTAL
-        constraint.gridx = 1
-        constraint.insets = Insets(5, 5, 5, 10)
-        add(tuningComboBox, constraint)
-
-        val buttons = JPanel()
-        buttons.add(loadButton, constraint)
-        buttons.add(recordButton, constraint)
-
-
-        constraint.gridx = 0
-        constraint.gridy = 2
-        constraint.gridwidth = 2
-        constraint.insets = Insets(0, 5, 5, 5)
-        add(buttons, constraint)
-
-        pack()
-        setLocationRelativeTo(AppInstance)
-        isVisible = true
     }
 
-    fun refresh(tuning: Tuning?) {
+    private fun record(nameField: TextField, recordings: MutableList<Recording.PossibleRecording>) {
+        val name = if (nameField.text.isEmpty()) "Nameless" else nameField.text
+        val regex = "$name(\\d| )*".toRegex()
+        val sameNames = recordings.map { it.metaData.name }
+                .filter { regex.matches(it) }
+                .map { if (it.length == name.length) 0 else it.substring(name.length).trim().toInt() }
+                .max()
+        val newName = name + if (sameNames == null) "" else " ${sameNames + 1}"
 
-        customTuning = tuning
+        val tuning = if (tuningComboBox.selectionModel.selectedIndex == Tuning.DEFAULT_TUNINGS.size)
+            customTuning ?: Tuning.DEFAULT_TUNINGS[0] // this null case shouldn't happen
+        else
+            Tuning.DEFAULT_TUNINGS[tuningComboBox.selectionModel.selectedIndex]
 
-        if (tuning == null) {
+        val session = Session(Recording(tuning, newName))
+        application.push(RecordingEditPane(session, application))
+        stage.close()
 
-            tuningComboBox.selectedIndex = 0
+    }
 
+    fun refresh(newTuning: Tuning?) {
+
+        if (customTuning == null) {
+            if (newTuning == null) {
+
+                tuningComboBox.selectionModel.select(0)
+
+            } else { // added
+
+                tuningComboBox.items[tuningComboBox.items.lastIndex] = newTuning.name
+                tuningComboBox.items.add("Edit ${newTuning.name}")
+
+                // the new one will already be selected
+
+            }
         } else {
+            if (newTuning == null) {
 
-            tuningComboBox.removeItemAt(tuningComboBox.itemCount - 1)
-            tuningComboBox.addItem(tuning.name)
-            tuningComboBox.selectedIndex = tuningComboBox.itemCount - 1
+                tuningComboBox.selectionModel.select(0)
+                tuningComboBox.items.removeAt(tuningComboBox.items.lastIndex)
+                tuningComboBox.items[tuningComboBox.items.lastIndex] = MAKE_TUNING_TEXT
 
+
+            } else { // changed
+
+                tuningComboBox.items[tuningComboBox.items.lastIndex - 1] = newTuning.name
+                tuningComboBox.items[tuningComboBox.items.lastIndex] = "Edit ${newTuning.name}"
+
+                tuningComboBox.selectionModel.select(tuningComboBox.items.lastIndex - 1)
+
+            }
         }
-        pack()
-        setLocationRelativeTo(AppInstance)
+
+        customTuning = newTuning
+
+    }
+
+    companion object {
+
+        const val MAKE_TUNING_TEXT = "Create New Tuning"
 
     }
 

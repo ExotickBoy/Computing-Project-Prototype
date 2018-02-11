@@ -86,7 +86,7 @@ data class Tuning(val name: String, val strings: List<Int>, val capo: Int = DEFA
                 Tuning("Standard Bass", "E1", "A1", "D2", "G2")
         )
 
-        const val DEFAULT_NAME: String = "Nameless Tuning"
+        const val DEFAULT_NAME: String = "Tuning"
         const val DEFAULT_CAPO = 0
         const val DEFAULT_MAX_FRET = 15
 

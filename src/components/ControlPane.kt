@@ -1,156 +1,119 @@
 package components
 
-import core.AppInstance
+import components.RecordingsListPane.Companion.setFocusMnemonic
+import core.MainApplication
 import core.Session
 import dialogs.LoadingDialog
-import java.awt.BorderLayout
-import java.awt.FlowLayout
-import javax.swing.BorderFactory
-import javax.swing.JButton
-import javax.swing.JOptionPane
-import javax.swing.JPanel
+import javafx.application.Platform
+import javafx.geometry.Insets
+import javafx.geometry.Pos
+import javafx.scene.Scene
+import javafx.scene.control.Button
+import javafx.scene.control.ButtonBar
+import javafx.scene.layout.BorderPane
+import javafx.scene.layout.HBox
 
-internal class ControlPane(private val session: Session) : JPanel() {
+internal class ControlPane(private val application: MainApplication, scene: Scene, private val session: Session) : BorderPane() {
 
-    private val exitButton = JButton(EXIT_BUTTON_TEXT)
+    private val exitButton = Button(EXIT_BUTTON_TEXT)
 
-    private val recordButton = JButton(RECORD_EMOJI)
-    private val pauseRecordingButton = JButton(STOP_EMOJI)
-    private val playbackButton = JButton(PLAY_EMOJI)
-    private val pausePlaybackButton = JButton(PAUSE_EMOJI)
-    private val cutButton = JButton(SCISSORS_EMOJI)
+    private val recordButton = Button(RECORD_TEXT)
+    private val playbackButton = Button(PLAY_TEXT)
+    private val cutButton = Button(SCISSORS_TEXT)
 
-    private val muteButton = JButton(UNMUTED_EMOJI)
+    private val muteButton = Button(UN_MUTED_TEXT)
 
     init {
 
         session.addOnUpdate {
             onStateUpdate(session.state)
         }
-        recordButton.setMnemonic(RECORD_MNEMONIC)
-        recordButton.isEnabled = false
-        recordButton.addActionListener {
-            if (session.record() && session.state == Session.SessionState.EDIT_SAFE) {
-
-                pauseRecordingButton.isVisible = true
-                recordButton.isVisible = false
-
-                playbackButton.isEnabled = false
-                cutButton.isEnabled = false
-
+        recordButton.setFocusMnemonic(RECORD_MNEMONIC, scene)
+        recordButton.minWidth = 40.0
+        recordButton.isFocusTraversable = false
+        // make it so that these buttons can't be focused means that the accelerators in EditPane never stop working
+        recordButton.setOnAction {
+            if (session.state == Session.SessionState.EDIT_SAFE && session.record()) {
+                onStateUpdate(Session.SessionState.GATHERING)
+            } else if (session.state == Session.SessionState.GATHERING && session.pauseRecording()) {
+                onStateUpdate(Session.SessionState.EDIT_SAFE)
             }
-            parent.parent.requestFocusInWindow()
-            // pass the focus back onto RecordingEditPane for the key listeners there to work
         }
 
-        pauseRecordingButton.setMnemonic(RECORD_MNEMONIC)
-        pauseRecordingButton.isEnabled = false
-        pauseRecordingButton.isVisible = false
-        pauseRecordingButton.addActionListener {
-            if (session.pauseRecording() && session.state == Session.SessionState.EDIT_SAFE) {
+        playbackButton.setFocusMnemonic(PLAY_MNEMONIC, scene)
+        playbackButton.minWidth = 40.0
+        playbackButton.isFocusTraversable = false
+        playbackButton.setOnAction {
+            if (session.state == Session.SessionState.EDIT_SAFE && session.playback()) {
+                // session.playback doesn't get called unless the state is safe
+                // under the condition that it is safe the rest of the else if fails
+                onStateUpdate(Session.SessionState.PLAYING_BACK)
+            } else if (session.state == Session.SessionState.PLAYING_BACK && session.pausePlayback()) {
+                onStateUpdate(Session.SessionState.EDIT_SAFE)
 
-                recordButton.isVisible = true
-                pauseRecordingButton.isVisible = false
-
-                playbackButton.isEnabled = true
-                cutButton.isEnabled = true
             }
-            parent.parent.requestFocusInWindow()
+
         }
 
-        playbackButton.setMnemonic(PLAY_MNEMONIC)
-        playbackButton.isEnabled = false
-        playbackButton.addActionListener {
-            if (session.playback() && session.state == Session.SessionState.EDIT_SAFE) {
-                playbackButton.isVisible = false
-                pausePlaybackButton.isVisible = true
-
-                recordButton.isEnabled = false
-                cutButton.isEnabled = false
-            }
-            parent.parent.requestFocusInWindow()
-        }
-
-        pausePlaybackButton.setMnemonic(PLAY_MNEMONIC)
-        pausePlaybackButton.isEnabled = false
-        pausePlaybackButton.isVisible = false
-        pausePlaybackButton.addActionListener {
-            if (session.pausePlayback() && session.state == Session.SessionState.EDIT_SAFE) {
-                pausePlaybackButton.isVisible = false
-                playbackButton.isVisible = true
-
-                recordButton.isEnabled = true
-                cutButton.isEnabled = true
-            }
-            parent.parent.requestFocusInWindow()
-        }
-
-        cutButton.setMnemonic(CUT_MNEMONIC)
-        cutButton.isEnabled = false
-        cutButton.addActionListener {
+        cutButton.setFocusMnemonic(CUT_MNEMONIC, scene)
+        cutButton.isDisable = true
+        cutButton.minWidth = 40.0
+        cutButton.isFocusTraversable = false
+        cutButton.setOnAction {
             if (session.state == Session.SessionState.EDIT_SAFE && session.recording.cut(session.correctedStepCursor)) {
                 session.stepCursor = session.correctedStepCursor
                 session.onEdited()
             }
-            parent.parent.requestFocusInWindow()
         }
 
-        muteButton.setMnemonic(MUTE_MNEMONIC)
-        muteButton.addActionListener {
+        muteButton.setFocusMnemonic(MUTE_MNEMONIC, scene)
+        muteButton.minWidth = 40.0
+        muteButton.isFocusTraversable = false
+        muteButton.setOnAction {
             val isMuted = session.toggleMute()
             if (isMuted) {
-                muteButton.text = MUTED_EMOJI
+                muteButton.text = MUTED_TEXT
             } else {
-                muteButton.text = UNMUTED_EMOJI
+                muteButton.text = UN_MUTED_TEXT
             }
-            parent.parent.requestFocusInWindow()
         }
 
-        exitButton.setMnemonic(EXIT_MNEMONIC)
-        exitButton.isEnabled = false
-        exitButton.addActionListener {
-            if (session.isEdited) {
+        exitButton.setFocusMnemonic(EXIT_MNEMONIC, scene)
+        exitButton.minWidth = 40.0
+        exitButton.isDisable = true
+        exitButton.isFocusTraversable = false
+        exitButton.setOnAction {
+            if (session.state == Session.SessionState.EDIT_SAFE && session.isEdited) {
 
-                val options = arrayOf("Save", "Don't save", "Cancel")
+                val result = RecordingEditPane.showSaveDialog()
 
-                val choice = JOptionPane.showOptionDialog(AppInstance,
-                        "Do you want to save your changes?",
-                        "Save and Return?",
-                        JOptionPane.YES_NO_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        options,
-                        options[2])
+                if (result.get().buttonData == ButtonBar.ButtonData.YES) {
 
-                when (choice) {
-                    0 -> {
-                        LoadingDialog(AppInstance, "Saving to file", "Saving") {
+                    val dialog = LoadingDialog("Saving to file", "Saving")
+                    session.recording.save()
+                    dialog.dispose()
+                    application.pop()
 
-                            session.recording.save()
+                } else if (result.get().buttonData == ButtonBar.ButtonData.NO) application.pop()
 
-                        }
-                        AppInstance.pop()
-                    }
-                    1 -> AppInstance.pop()
-                }
-            } else AppInstance.pop()
+            } else application.pop()
 
         }
 
 
-        val centrePanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 0))
+        val centrePanel = HBox()
+        centrePanel.alignment = Pos.CENTER
+        centrePanel.spacing = 5.0
+        centrePanel.children.addAll(
+                recordButton,
+                playbackButton,
+                cutButton
+        )
 
-        centrePanel.add(recordButton)
-        centrePanel.add(pauseRecordingButton)
-        centrePanel.add(playbackButton)
-        centrePanel.add(pausePlaybackButton)
-        centrePanel.add(cutButton)
-
-        layout = BorderLayout()
-        border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        add(exitButton, BorderLayout.LINE_START)
-        add(centrePanel, BorderLayout.CENTER)
-        add(muteButton, BorderLayout.EAST)
+        padding = Insets(10.0)
+        left = exitButton
+        center = centrePanel
+        right = muteButton
 
         onStateUpdate(session.state)
 
@@ -158,43 +121,41 @@ internal class ControlPane(private val session: Session) : JPanel() {
 
     private fun onStateUpdate(state: Session.SessionState) {
 
-        recordButton.isVisible = state != Session.SessionState.GATHERING
-        playbackButton.isVisible = state != Session.SessionState.PLAYING_BACK
+        Platform.runLater {
 
-        recordButton.isEnabled = state == Session.SessionState.EDIT_SAFE || state == Session.SessionState.GATHERING
-        playbackButton.isEnabled = state == Session.SessionState.EDIT_SAFE || state == Session.SessionState.PLAYING_BACK
+            recordButton.text = if (state == Session.SessionState.EDIT_SAFE) RECORD_TEXT else STOP_TEXT
+            playbackButton.text = if (state == Session.SessionState.EDIT_SAFE) PLAY_TEXT else PAUSE_TEXT
 
-        cutButton.isEnabled = state == Session.SessionState.EDIT_SAFE
-        muteButton.isEnabled = true
+            recordButton.isDisable = !(state == Session.SessionState.EDIT_SAFE || state == Session.SessionState.GATHERING)
+            playbackButton.isDisable = !(state == Session.SessionState.EDIT_SAFE || state == Session.SessionState.PLAYING_BACK)
 
-        exitButton.isEnabled = state == Session.SessionState.EDIT_SAFE
+            cutButton.isDisable = state != Session.SessionState.EDIT_SAFE
+            muteButton.isDisable = false
 
-        pauseRecordingButton.isVisible = !recordButton.isVisible
-        pausePlaybackButton.isVisible = !playbackButton.isVisible
-        pauseRecordingButton.isEnabled = recordButton.isEnabled
-        pausePlaybackButton.isEnabled = playbackButton.isEnabled
+            exitButton.isDisable = state != Session.SessionState.EDIT_SAFE
+
+        }
 
     }
 
     companion object {
 
-        private const val PLAY_EMOJI = "▶"
-        private const val RECORD_EMOJI = "\u23FA"
-        private const val PAUSE_EMOJI = "❚❚"
-        private const val STOP_EMOJI = "\u23F9"
-        private const val SCISSORS_EMOJI = "\u2702"
+        private const val PLAY_TEXT = "▶"
+        private const val RECORD_TEXT = "\u23FA"
+        private const val PAUSE_TEXT = "\u23F8"
+        private const val STOP_TEXT = "\u23F9"
+        private const val SCISSORS_TEXT = "\u2702"
         private const val EXIT_BUTTON_TEXT = "Save & Exit"
 
-        private const val MUTED_EMOJI = "🔇"
-        private const val UNMUTED_EMOJI = "\uD83D\uDD0A"
+        private const val MUTED_TEXT = "🔇"
+        private const val UN_MUTED_TEXT = "\uD83D\uDD0A"
 
-        private const val MUTE_MNEMONIC = 'M'
-        private const val RECORD_MNEMONIC = 'R'
-        private const val PLAY_MNEMONIC = 'P'
-        private const val CUT_MNEMONIC = 'C'
-        private const val EXIT_MNEMONIC = 'S'
+        private const val MUTE_MNEMONIC = "M"
+        private const val RECORD_MNEMONIC = "R"
+        private const val PLAY_MNEMONIC = "P"
+        private const val CUT_MNEMONIC = "C"
+        private const val EXIT_MNEMONIC = "S"
 
 
     }
-
 }

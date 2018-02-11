@@ -1,5 +1,7 @@
 package core
 
+import javafx.embed.swing.SwingFXUtils
+import javafx.scene.image.Image
 import java.awt.Color
 import java.awt.image.BufferedImage
 import kotlin.math.max
@@ -27,8 +29,8 @@ class TimeStep private constructor(val section: Section, private val sampleStart
     constructor(section: Section, sampleStart: Int, previous: TimeStep?) :
             this(section, sampleStart, (previous?.time ?: -1) + 1, previous)
 
-    var melImage: BufferedImage
-    var noteImage: BufferedImage
+    var melImage: Image
+    var noteImage: Image
 
     val dePhased: FloatArray
     val dePhasedPower: Float
@@ -82,16 +84,19 @@ class TimeStep private constructor(val section: Section, private val sampleStart
         }
 
         // This buffered image is a slice of the spectrogram at this time step
-        melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
+        val melImage = BufferedImage(1, Model.MEL_BINS_AMOUNT, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
             val value = ((min(max(spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
             melImage.setRGB(0, y, mapToColour(value))
         }
-        noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
+        val noteImage = BufferedImage(1, Model.PITCH_RANGE, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until Model.PITCH_RANGE) {
             val value = min(max(predictions[y], 0f), 1f)
             noteImage.setRGB(0, y, mapToColour(value))
         }
+
+        this.melImage = SwingFXUtils.toFXImage(melImage, null)
+        this.noteImage = SwingFXUtils.toFXImage(noteImage, null)
 
     }
 
@@ -115,13 +120,6 @@ class TimeStep private constructor(val section: Section, private val sampleStart
                 Color(248, 230, 33)
         )
 
-        private val infernoColourMap = arrayOf(
-                Color(0.001462f, 0.000466f, 0.013866f),
-                Color(0.335217f, 0.060060f, 0.428524f),
-                Color(0.729909f, 0.212759f, 0.333861f),
-                Color(0.975677f, 0.543798f, 0.043618f),
-                Color(0.988362f, 0.998364f, 0.644924f)
-        )
 
         /**
          * Makes a value between 0 and 1 to a colour for the heat map

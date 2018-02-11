@@ -1,131 +1,153 @@
 package components
 
-import core.AppInstance
-import core.AppInstance.ApplicationPane
+import core.MainApplication
 import core.Recording
 import core.Session
 import dialogs.LoadingDialog
 import dialogs.NewRecordingDialog
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
+import javafx.geometry.Insets
+import javafx.scene.Node
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.control.Alert.AlertType
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyCodeCombination
+import javafx.scene.input.KeyCombination
+import javafx.scene.input.Mnemonic
+import javafx.scene.layout.BorderPane
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
+import javafx.scene.layout.VBox
+import javafx.scene.text.Font
+import javafx.scene.text.Text
 import java.io.File
 import java.io.FileInputStream
-import javax.swing.*
 import kotlin.math.roundToInt
 
 
-class RecordingsListPane : ApplicationPane() {
+class RecordingsListPane(application: MainApplication) : MainApplication.Activity(application) {
 
     private val recordings: MutableList<Recording.PossibleRecording> = mutableListOf()
-    private lateinit var recordingList: JList<Recording.PossibleRecording>
-    private val repaintThread = RepaintThread(this)
-    private lateinit var dataModel: DefaultListModel<Recording.PossibleRecording>
+    private lateinit var recordingList: ListView<Recording.PossibleRecording>
 
-    override fun onCreate() {
+    private val root = VBox()
+    private val repaintThread = RepaintThread(root)
 
-        val newButton = JButton("New Recording")
-        newButton.setMnemonic('N')
+    override fun onCreate(): Scene {
 
-        val editButton = JButton("Edit")
-        editButton.setMnemonic('E')
-        editButton.isEnabled = false
+        val root = VBox()
+        val scene = Scene(root)
 
-        val deleteButton = JButton("Delete")
-        deleteButton.setMnemonic('D')
-        deleteButton.isEnabled = false
+        val newButton = Button("New Recording")
+        newButton.setFocusMnemonic("N", scene)
 
-        dataModel = DefaultListModel()
-        recordingList = JList(dataModel)
-        recordingList.setCellRenderer { _, value, _, isSelected, _ ->
-            ListElement(value, isSelected)
+        val editButton = Button("Edit")
+        editButton.setFocusMnemonic("E", scene)
+        editButton.isDisable = true
+
+        val deleteButton = Button("Delete")
+        deleteButton.setFocusMnemonic("D", scene)
+        deleteButton.isDisable = true
+
+        recordingList = ListView()
+        recordingList.selectionModel.selectionMode = SelectionMode.MULTIPLE
+        recordingList.setCellFactory {
+            ListItem()
         }
-        recordingList.addMouseListener(object : MouseAdapter() {
-            override fun mouseClicked(event: MouseEvent) {
-                if (event.clickCount == 2)  // double click
-                    edit()
+        recordingList.setOnMouseClicked {
+            if (it.clickCount == 2) { // double clicked
+                edit()
+                it.consume()
             }
-
-        })
-        recordingList.addListSelectionListener {
-            deleteButton.isEnabled = !recordingList.selectedIndices.isEmpty()
-            editButton.isEnabled = recordingList.selectedIndices.size == 1
         }
-        recordingList.addKeyListener(object : KeyAdapter() {
-            override fun keyReleased(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_ENTER)
+        recordingList.selectionModel.selectedIndexProperty().addListener({ _ ->
+            deleteButton.isDisable = recordingList.selectionModel.selectedIndices.isEmpty()
+            editButton.isDisable = recordingList.selectionModel.selectedIndices.size != 1
+        })
+        recordingList.setOnKeyPressed {
+            when {
+                it.code == KeyCode.ENTER -> {
                     edit()
-                else if (e.keyCode == KeyEvent.VK_DELETE)
+                    it.consume()
+                }
+                it.code == KeyCode.DELETE -> {
                     delete()
+                    it.consume()
+                }
 
             }
-        })
-        newButton.addActionListener {
-            NewRecordingDialog(recordings)
         }
-        deleteButton.addActionListener {
+        newButton.setOnAction {
+            NewRecordingDialog(application, recordings)
+        }
+        deleteButton.setOnAction {
 
-            val choice = JOptionPane.showOptionDialog(AppInstance,
-                    "Are you sure you want to delete recording${if (recordingList.selectedIndices.size == 1) "" else "s"} \n${recordingList.selectedIndices.map {
+            val alert = Alert(AlertType.WARNING)
+            alert.title = "Delete Confirmation"
+            alert.headerText = "Are you sure you want to delete recording" +
+                    "${if (recordingList.selectionModel.selectedIndices.size == 1) "" else "s"} " +
+                    "\n${recordingList.selectionModel.selectedIndices.map {
                         recordings[it].metaData.name
-                    }.reduce { acc, s -> "$acc, ${if (acc.length - acc.lastIndexOf("\n") >= 30) "\n" else ""}$s" }}?",
-                    "Delete Confirmation",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    listOf("Delete", "No").toTypedArray(),
-                    0)
+                    }.reduce { acc, s -> "$acc, ${if (acc.length - acc.lastIndexOf("\n") >= 30) "\n" else ""}$s" }}?"
 
-            if (choice == 0)  // delete pressed
+            val deleteButtonType = ButtonType("Delete", ButtonBar.ButtonData.YES)
+            val cancelButtonType = ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE)
+
+            alert.buttonTypes.setAll(deleteButtonType, cancelButtonType)
+
+            val result = alert.showAndWait()
+            if (result.get() == deleteButtonType) { // delete pressed
                 delete()
+            }
 
         }
-        editButton.addActionListener {
+        editButton.setOnAction {
             edit()
         }
-        val recentRecordingLabel = JLabel("Recent Recordings:")
-        recentRecordingLabel.setDisplayedMnemonic('R')
-        recentRecordingLabel.labelFor = recordingList
+        val recordingLabel = Label("Recent Recordings:")
+        recordingLabel.setFocusMnemonic("R", scene)
+        recordingLabel.labelFor = recordingList
 
-        val buttonPanel = JPanel()
+        val buttonPanel = HBox()
+        buttonPanel.spacing = 5.0
+        buttonPanel.isCenterShape = true
+        HBox.setHgrow(newButton, Priority.ALWAYS)
+        newButton.maxWidth = Double.MAX_VALUE
+        buttonPanel.children.addAll(newButton, editButton, deleteButton)
 
-        buttonPanel.add(newButton)
-        buttonPanel.add(editButton)
-        buttonPanel.add(deleteButton)
-        buttonPanel.border = BorderFactory.createEmptyBorder(0, 0, 10, 0)
-        val recentRecordingPanel = JPanel(BorderLayout())
+        val listPanel = VBox()
+        listPanel.children.addAll(recordingLabel, recordingList)
+        listPanel.padding = Companion.makeInsets(top = 5.0)
 
-        recentRecordingPanel.add(recentRecordingLabel, BorderLayout.NORTH)
-        recentRecordingPanel.add(JScrollPane(recordingList), BorderLayout.CENTER)
+        root.children.addAll(buttonPanel, listPanel)
+        root.maxHeight = Double.MAX_VALUE
+        root.padding = Insets(10.0)
 
-        layout = BorderLayout()
-        border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        add(recentRecordingPanel, BorderLayout.CENTER)
-        add(buttonPanel, BorderLayout.NORTH)
+        return scene
 
     }
 
     private fun delete() {
-        recordingList.selectedIndices.sortedDescending().forEach {
+        recordingList.selectionModel.selectedIndices.sortedDescending().forEach {
             recordings[it].file.delete()
             recordings.removeAt(it)
-            dataModel.removeElementAt(it)
+            recordingList.items.removeAt(it)
         }
     }
 
     private fun edit() {
-        if (recordingList.selectedIndex != -1) {
+        if (recordingList.selectionModel.selectedIndex != -1) {
 
-            LoadingDialog(AppInstance, "Loading from file", "Loading") {
-                val possibleRecording = recordings[recordingList.selectedIndex]
-                val start = System.currentTimeMillis()
-                val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
-                println("loading -> ${System.currentTimeMillis() - start}ms")
-                AppInstance.push(RecordingEditPane(session))
-            }
+//            val start = System.currentTimeMillis()
+
+            val possibleRecording = recordings[recordingList.selectionModel.selectedIndex]
+            val dialog = LoadingDialog("Loading ${possibleRecording.metaData.name}", "Loading")
+            val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
+            dialog.dispose()
+
+            application.push(RecordingEditPane(session, application))
+
+//            println("loading -> ${System.currentTimeMillis() - start}ms")
 
         }
     }
@@ -140,8 +162,8 @@ class RecordingsListPane : ApplicationPane() {
         recordings.clear()
         recordings.addAll(Recording.findPossibleRecordings(File(Recording.DEFAULT_PATH)))
         recordings.sortByDescending { it.metaData.lastEdited }
-        dataModel.clear()
-        recordings.forEach { dataModel.addElement(it) }
+
+        recordings.forEach { recordingList.items.add(it) }
 
     }
 
@@ -149,28 +171,63 @@ class RecordingsListPane : ApplicationPane() {
     }
 
     override fun onClose() {
-        AppInstance.popAll()
+        application.popAll()
     }
 
-    private class ListElement(possibleRecording: Recording.PossibleRecording, selected: Boolean) : JPanel() {
+    private class RepaintThread(val root: VBox) : Thread("Repaint Thread") {
 
         init {
+            start()
+        }
 
-            layout = BorderLayout()
-            border = BorderFactory.createEmptyBorder(10, 10, 10, 10)
-            val leftLabel = JLabel(possibleRecording.metaData.name)
-            leftLabel.font = leftLabel.font.deriveFont(20f)
+        var isPaused = false
 
-            val rightPanel = JPanel(BorderLayout())
-            rightPanel.add(JLabel(possibleRecording.metaData.lastEdited.toRelativeTime()), BorderLayout.NORTH)
-            rightPanel.add(JLabel(possibleRecording.metaData.length.toLength()), BorderLayout.SOUTH)
+        override fun run() {
 
-            add(leftLabel, BorderLayout.WEST)
-            add(rightPanel, BorderLayout.EAST)
-            rightPanel.border = BorderFactory.createEmptyBorder(0, 10, 0, 0)
+            while (!isInterrupted) {
+                if (isPaused)
+                    while (isPaused) {
+                        onSpinWait()
+                    }
+                else {
+                    root.layout()
+                    sleep(100)
+                }
+            }
 
-            background = if (selected) SELECTED_COLOUR else background
-            rightPanel.background = background
+        }
+
+    }
+
+    companion object {
+        fun makeInsets(top: Number = 0, right: Number = 0, bottom: Number = 0, left: Number = 0): Insets = Insets(top.toDouble(), right.toDouble(), bottom.toDouble(), left.toDouble())
+
+        fun Node.setFocusMnemonic(key: String, scene: Scene) {
+            scene.addMnemonic(Mnemonic(this, KeyCodeCombination(KeyCode.valueOf(key), KeyCombination.ALT_ANY)))
+        }
+
+    }
+
+    internal class ListItem : ListCell<Recording.PossibleRecording>() {
+
+        public override fun updateItem(item: Recording.PossibleRecording?, empty: Boolean) {
+
+            super.updateItem(item, empty)
+
+            if (item != null) {
+                val timeLabel = Text(item.metaData.created.toRelativeTime())
+                val lengthLabel = Text(item.metaData.length.toLength())
+                val nameLabel = Text(item.metaData.name)
+
+                nameLabel.font = Font.font(nameLabel.font.name, 20.0)
+
+                val propertyVBox = VBox(timeLabel, lengthLabel)
+                val root = BorderPane()
+                root.right = propertyVBox
+                root.left = nameLabel
+
+                graphic = root
+            }
 
         }
 
@@ -207,35 +264,6 @@ class RecordingsListPane : ApplicationPane() {
                 weeks < 52 -> "${weeks.roundToInt()} weeks ago"
                 else -> "over a year ago"
             }
-        }
-
-        companion object {
-
-            val SELECTED_COLOUR = Color(186, 212, 255)
-
-        }
-
-    }
-
-    private class RepaintThread(val pane: RecordingsListPane) : Thread("Repaint Thread") {
-        init {
-            start()
-        }
-
-        var isPaused = false
-        override fun run() {
-
-            while (!isInterrupted) {
-                if (isPaused)
-                    while (isPaused) {
-                        onSpinWait()
-                    }
-                else {
-                    pane.repaint()
-                    sleep(100)
-                }
-            }
-
         }
 
     }
