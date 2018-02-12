@@ -26,14 +26,15 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     private val scene = Scene(root)
 
     private val dePhaserView = DePhaserView(session)
-    private val melOutputView = HistoryView(session, 300.0, true) { it.melImages }
+    private val melOutputView = HistoryView(session, RECORDING_EDIT_PANE_WIDTH, true) { it.melImages }
     private val networkOutputView = HistoryView(session, Model.PITCH_RANGE.toDouble(), false) { it.noteImages }
     private val noteOutputView = NoteOutputView(session)
     private val controlPane = ControlPane(application, scene, session)
 
-    private val dePhaserViewLabel = Label("Visualisation")
-    private val melOutputViewLabel = Label("Frequency Analysis")
-    private val netWorkOutputViewLabel = Label("Raw Network Output")
+
+    private val dePhaserViewLabel = Label(DE_PHASED_LABEL)
+    private val melOutputViewLabel = Label(SPECTROGRAM_LABEL)
+    private val netWorkOutputViewLabel = Label(NETWORK_OUTPUT_LABEL)
 
     override fun onCreate(): Scene {
 
@@ -147,7 +148,7 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
 
                 if (choice.get().buttonData == ButtonBar.ButtonData.YES) {
 
-                    val dialog = LoadingDialog("Saving to file", "Saving")
+                    val dialog = LoadingDialog(SAVE_DIALOG_TEXT, SAVE_DIALOG_TITLE)
                     Platform.runLater {
                         session.recording.save()
                         dialog.dispose()
@@ -177,6 +178,15 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
         const val REGULAR_CLUSTER_MOVE = 5
 
         const val SHOW_NETWORK_OUTPUT = true
+
+        const val RECORDING_EDIT_PANE_WIDTH = 500.0
+
+        private const val DE_PHASED_LABEL = "Visualisation"
+        private const val SPECTROGRAM_LABEL = "Frequency Analysis"
+        private const val NETWORK_OUTPUT_LABEL = "Raw Network Output"
+
+        private const val SAVE_DIALOG_TEXT = "Saving to file"
+        private const val SAVE_DIALOG_TITLE = "Saving"
 
         /**
          * This shows the dialog that asks the user if they want to 'save', 'don't save' or 'cancel'

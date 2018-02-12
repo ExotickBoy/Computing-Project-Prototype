@@ -7,7 +7,7 @@ import javax.sound.sampled.SourceDataLine
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-internal class PlaybackController(private val session: Session) : Thread("Playback Thread") {
+internal class PlaybackController(private val session: Session) : Thread(PLAYBACK_THREAD_TITLE) {
 
     var isPaused = true
         set(value) {
@@ -146,6 +146,12 @@ internal class PlaybackController(private val session: Session) : Thread("Playba
     fun end() {
         interrupt()
         sourceLine?.close()
+    }
+
+    companion object {
+
+        private const val PLAYBACK_THREAD_TITLE = "Playback Thread"
+
     }
 
 }

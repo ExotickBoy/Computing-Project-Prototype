@@ -23,7 +23,7 @@ import javax.imageio.ImageIO
  * @property isProcessed if the section has been processed
  * @property samples list of the samples of this section
  * @property clusters list of the note clusters of this section
- * @property melImages list of images of the spectrograms of this section
+ * @property melImages list of images of the spectrogram of this section
  * @property noteImages list of images of the raw output of the neural network
  * @property dePhased the de-phased visualisations of the time stapes
  * @property dePhasedPower the volume like value of each step

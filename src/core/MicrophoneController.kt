@@ -12,7 +12,7 @@ import javax.sound.sampled.*
  * @property targetLine The microphone input line
  * @property isPaused Whether the microphone is currently recording ir not
  */
-internal class MicrophoneController(val session: Session) : Thread("Microphone Thread") {
+internal class MicrophoneController(val session: Session) : Thread(MICROPHONE_THREAD_TITLE) {
 
     private var targetLine: TargetDataLine? = null
 
@@ -99,6 +99,8 @@ internal class MicrophoneController(val session: Session) : Thread("Microphone T
     }
 
     companion object {
+
+        private const val MICROPHONE_THREAD_TITLE = "Microphone Thread"
 
         const val SAMPLE_RATE = 44100
         const val SAMPLE_BUFFER_SIZE = 2205

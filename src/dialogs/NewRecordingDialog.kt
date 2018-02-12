@@ -47,10 +47,11 @@ class NewRecordingDialog(private val application: MainApplication, private val r
     private val recordButton: Button
     private val loadButton: Button
 
+
     init {
 
         stage.initModality(Modality.APPLICATION_MODAL)
-        stage.title = "New Recording"
+        stage.title = DIALOG_TITLE
         if (MainApplication.icon != null)
             stage.icons.add(MainApplication.icon)
 
@@ -58,8 +59,8 @@ class NewRecordingDialog(private val application: MainApplication, private val r
         val scene = Scene(root)
 
         nameField = TextField()
-        nameField.promptText = "Recording Name"
-        nameField.setFocusMnemonic("N", scene)
+        nameField.promptText = NAME_FIELD_PROMPT_TEXT
+        nameField.setFocusMnemonic(NAME_FIELD_MENMONIC, scene)
 
         val tunings = Tuning.DEFAULT_TUNINGS.map { it.name }.toMutableList()
         tunings.add(MAKE_TUNING_TEXT)
@@ -71,18 +72,20 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                 TuningMakerDialog(this@NewRecordingDialog, customTuning)
             }
         }
-        tuningComboBox.setFocusMnemonic("T", scene)
+        tuningComboBox.setFocusMnemonic(TUNING_COMBOBOX_MNEMONIC, scene)
         // the last value of the combo box will be create/edit custom recording.
         // If a custom tuning exists the second to bottom will be that recording
 
-        loadButton = Button("Load File")
-        loadButton.setFocusMnemonic("L", scene)
+
+        loadButton = Button(LOAD_BUTTON_TEXT)
+        loadButton.setFocusMnemonic(LOAD_BUTTON_MENMONIC, scene)
         loadButton.setOnAction {
             load()
         }
 
-        recordButton = Button("Record")
-        recordButton.setFocusMnemonic("R", scene)
+
+        recordButton = Button(RECORD_BUTTON_TEXT)
+        recordButton.setFocusMnemonic(RECORD_BUTTON_MENMONIC, scene)
         recordButton.setOnAction {
             record()
         }
@@ -90,10 +93,10 @@ class NewRecordingDialog(private val application: MainApplication, private val r
             record()
         }
 
-        nameLabel = Label("Name:")
+        nameLabel = Label(NAME_LABEL_TEXT)
         nameLabel.labelFor = nameField
 
-        tuningLabel = Label("Tuning:")
+        tuningLabel = Label(TUNING_LABEL_TEXT)
         tuningLabel.labelFor = tuningComboBox
 
         // layout
@@ -107,17 +110,18 @@ class NewRecordingDialog(private val application: MainApplication, private val r
         grid.add(nameField, 1, 0)
         grid.add(tuningLabel, 0, 1)
         grid.add(tuningComboBox, 1, 1)
-        grid.hgap = 5.0
-        grid.vgap = 5.0
 
-        val buttons = HBox(5.0)
+        grid.hgap = BUTTON_SPACING
+        grid.vgap = BUTTON_SPACING
+
+        val buttons = HBox(BUTTON_SPACING)
         buttons.children.addAll(loadButton, recordButton)
-        buttons.padding = makeInsets(top = 10)
+        buttons.padding = makeInsets(top = PADDING_AMOUNT)
         buttons.alignment = Pos.CENTER
 
         root.center = grid
         root.bottom = buttons
-        root.padding = Insets(10.0)
+        root.padding = Insets(PADDING_AMOUNT)
 
         stage.scene = scene
         stage.showAndWait()
@@ -130,9 +134,10 @@ class NewRecordingDialog(private val application: MainApplication, private val r
     private fun load() {
 
         // the file chooser allows the user to choose a file on their computer
+
         val fileChooser = FileChooser()
-        fileChooser.title = "Open"
-        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter("WAV(16 bit PMC)", "*.wav"))
+        fileChooser.title = FILE_CHOOSER_TITLE
+        fileChooser.extensionFilters.add(FileChooser.ExtensionFilter(FILE_FORMAT_NAME, FILE_FORMAT_FORM))
         fileChooser.initialDirectory = File("").absoluteFile
         // this makes the directory start in the same folder as the location of the executable
         val result: File? = fileChooser.showOpenDialog(stage)
@@ -154,7 +159,8 @@ class NewRecordingDialog(private val application: MainApplication, private val r
             try {
 
                 reader.open()
-                val dialog = LoadingDialog("Reading ${result.name}", "Reading from file")
+
+                val dialog = LoadingDialog(READ_DIALOG_LABEL_PREFIX + result.name, READ_DIALOG_TITLE)
                 Platform.runLater {
                     // this doesn't cause a delay.  The idea of running this later is that otherwise the loading dialog
                     // won't ever repaint.  This is because the process of repainting the dialog is enqueued to happen
@@ -180,14 +186,14 @@ class NewRecordingDialog(private val application: MainApplication, private val r
                 val alert = Alert(Alert.AlertType.ERROR)
                 if (MainApplication.icon != null)
                     (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
-                alert.title = "Error"
-                alert.headerText = "An error occurred"
+                alert.title = ERROR_DIALOG_TITLE
+                alert.headerText = ERROR_DIALOG_HEADER
                 alert.contentText = when (e) {
-                    is javax.sound.sampled.UnsupportedAudioFileException -> "This file format isn't supported"
-                    is SoundFileReader.UnsupportedBitDepthException -> "Only 16 bit depth supported"
-                    is SoundFileReader.UnsupportedChannelsException -> "Only mono supported"
-                    is IOException -> "Read error occurred"
-                    else -> "Unknown error occurred ${e.message}"
+                    is javax.sound.sampled.UnsupportedAudioFileException -> NOT_SUPPORTED_FORMAT_MESSAGE
+                    is SoundFileReader.UnsupportedBitDepthException -> NOT_SUPPORTED_BIT_DEPTH_MESSAGE
+                    is SoundFileReader.UnsupportedChannelsException -> NOT_SUPORTED_NUMBER_OF_CHANNELS_MESSAGE
+                    is IOException -> READ_ERROR_MESSAGE
+                    else -> GENERIC_ERROR_MESSAGE + e.message
                 }
 
                 alert.showAndWait()
@@ -247,7 +253,7 @@ class NewRecordingDialog(private val application: MainApplication, private val r
             } else { // added
 
                 tuningComboBox.items[tuningComboBox.items.lastIndex] = newTuning.name
-                tuningComboBox.items.add("Edit ${newTuning.name}")
+                tuningComboBox.items.add(EDIT_CUSTOM_TUNING_PREFIX + newTuning.name)
 
                 // the new one will already be selected
             }
@@ -264,7 +270,7 @@ class NewRecordingDialog(private val application: MainApplication, private val r
             } else { // changed
 
                 tuningComboBox.items[tuningComboBox.items.lastIndex - 1] = newTuning.name
-                tuningComboBox.items[tuningComboBox.items.lastIndex] = "Edit ${newTuning.name}"
+                tuningComboBox.items[tuningComboBox.items.lastIndex] = EDIT_CUSTOM_TUNING_PREFIX + newTuning.name
 
                 tuningComboBox.selectionModel.select(tuningComboBox.items.lastIndex - 1)
 
@@ -277,6 +283,36 @@ class NewRecordingDialog(private val application: MainApplication, private val r
 
     companion object {
 
+        private const val BUTTON_SPACING = 5.0
+
+        private const val PADDING_AMOUNT = 10.0
+        private const val DIALOG_TITLE = "New Recording"
+        private const val TUNING_COMBOBOX_MNEMONIC = "T"
+        private const val NAME_LABEL_TEXT = "Name:"
+        private const val TUNING_LABEL_TEXT = "Tuning:"
+        private const val RECORD_BUTTON_TEXT = "Record"
+        private const val RECORD_BUTTON_MENMONIC = "R"
+        private const val LOAD_BUTTON_TEXT = "Load File"
+        private const val LOAD_BUTTON_MENMONIC = "L"
+        private const val NAME_FIELD_MENMONIC = "N"
+        private const val NAME_FIELD_PROMPT_TEXT = "Recording Name"
+
+        private const val FILE_CHOOSER_TITLE = "Open"
+        private const val FILE_FORMAT_NAME = "WAV(16 bit PMC)"
+        private const val FILE_FORMAT_FORM = "*.wav"
+
+        private const val READ_DIALOG_TITLE = "Reading from file"
+        private const val READ_DIALOG_LABEL_PREFIX = "Reading "
+
+        private const val ERROR_DIALOG_TITLE = "Error"
+        private const val ERROR_DIALOG_HEADER = "An error occurred"
+        private const val NOT_SUPPORTED_FORMAT_MESSAGE = "This file format isn't supported"
+        private const val NOT_SUPPORTED_BIT_DEPTH_MESSAGE = "Only 16 bit depth supported"
+        private const val NOT_SUPORTED_NUMBER_OF_CHANNELS_MESSAGE = "Only mono supported"
+        private const val READ_ERROR_MESSAGE = "Read error occurred"
+        private const val GENERIC_ERROR_MESSAGE = "Unknown error occurred "
+
+        const val EDIT_CUSTOM_TUNING_PREFIX = "Edit "
         const val MAKE_TUNING_TEXT = "Create New Tuning"
 
     }

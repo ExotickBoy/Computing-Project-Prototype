@@ -33,7 +33,7 @@ class LoadingDialog(labelText: String, title: String) {
             stage.icons.add(MainApplication.icon)
 
         val root = BorderPane()
-        root.padding = Insets(10.0)
+        root.padding = Insets(PADDING_AMOUNT)
 
         val label = Label(labelText)
         label.alignment = Pos.CENTER
@@ -53,6 +53,12 @@ class LoadingDialog(labelText: String, title: String) {
     fun dispose() {
 
         stage.close()
+
+    }
+
+    companion object {
+
+        private const val PADDING_AMOUNT = 10.0
 
     }
 

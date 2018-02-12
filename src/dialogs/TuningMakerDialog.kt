@@ -108,11 +108,13 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
     }
 
+
     init {
 
         // you can't return to the window below the dialog until the dialog is closed
         stage.initModality(Modality.APPLICATION_MODAL)
-        stage.title = "New Tuning"
+
+        stage.title = DIALOG_TITLE
         if (MainApplication.icon != null)
             stage.icons.add(MainApplication.icon)
 
@@ -128,7 +130,8 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         )
         capoSpinner = Spinner(capoSpinnerValueFactory)
         capoSpinner.maxWidth = Double.MAX_VALUE
-        capoSpinner.setFocusMnemonic("A", scene)
+
+        capoSpinner.setFocusMnemonic(CAPO_SPINNER_MNEMONIC, scene)
 
         val maxFretSpinnerValueFactory = SpinnerValueFactory.IntegerSpinnerValueFactory(
                 (tuning?.capo ?: -1) + 1,
@@ -138,7 +141,8 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         )
         maxFretSpinner = Spinner(maxFretSpinnerValueFactory)
         maxFretSpinner.maxWidth = Double.MAX_VALUE
-        maxFretSpinner.setFocusMnemonic("M", scene)
+
+        maxFretSpinner.setFocusMnemonic(MAX_FRET_SPINNER_MNEMONIC, scene)
 
         capoSpinner.valueProperty().addListener { _ ->
             maxFretSpinnerValueFactory.min = capoSpinner.value as Int + 1
@@ -148,28 +152,31 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         }
 
         nameField = TextField(tuning?.name ?: "")
-        nameField.promptText = "Tuning Name"
+        nameField.promptText = NO_TUNING_PROMPT_TEXT
         nameField.maxWidth = Double.MAX_VALUE
-        nameField.setFocusMnemonic("N", scene)
+        nameField.setFocusMnemonic(NEW_FIELD_MNEMONIC, scene)
 
         newStringField = TextField()
-        newStringField.promptText = "New Note (Enter to Add)"
-        newStringField.setFocusMnemonic("O", scene)
+        newStringField.promptText = NEW_STRING_FIELD_PROMPT
+
+        newStringField.setFocusMnemonic(NEW_STRING_FIELD_MNEMONIC, scene)
         newStringField.textProperty().addListener { _ -> newStringField.style = "" }
         newStringField.setOnAction { addString() }
 
-        upButton = Button("Up")
+        upButton = Button(UP_BUTTON_TEXT)
         upButton.maxWidth = Double.MAX_VALUE
         upButton.isDisable = true
-        downButton = Button("Down")
+
+        downButton = Button(DOWN_BUTTON_TEXT)
         downButton.maxWidth = Double.MAX_VALUE
         downButton.isDisable = true
 
-        val placeholderLabel = Label("Type a new note (e.g. G#3)\n&\nPress 'Add' to add a string")
+        val placeholderLabel = Label(NO_STRING_PLACEHOLDER)
         placeholderLabel.textAlignment = TextAlignment.CENTER
         stringList = ListView()
         stringList.placeholder = placeholderLabel
-        stringList.setFocusMnemonic("S", scene)
+
+        stringList.setFocusMnemonic(STRING_LIST_MNEMONIC, scene)
         stringList.prefHeight = 150.0
         stringList.selectionModel.selectionMode = SelectionMode.MULTIPLE
         tuning?.strings?.forEach {
@@ -183,23 +190,23 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
 
         }
 
-        val stringsLabel = Label("Strings")
+        val stringsLabel = Label(STRING_LABEL_TEXT)
         stringsLabel.labelFor = stringList
-        val capoLabel = Label("Capo:")
+        val capoLabel = Label(CAPO_LABEL_TEXT)
         capoLabel.labelFor = capoSpinner
-        val maxFretLabel = Label("Max Fret:")
+        val maxFretLabel = Label(MAX_FRET_LABEL_TEXT)
         maxFretLabel.labelFor = maxFretSpinner
-        val nameLabel = Label("Name:")
+        val nameLabel = Label(NAME_LABEL_TEXT)
         nameLabel.labelFor = nameField
 
-        addButton = Button("Add")
+        addButton = Button(ADD_BUTTON_LABEL)
         addButton.maxWidth = Double.MAX_VALUE
-        addButton.setFocusMnemonic("A", scene)
+        addButton.setFocusMnemonic(ADD_BUTTON_MENMONIC, scene)
         addButton.setOnAction { addString() }
 
-        removeButton = Button("Remove")
+        removeButton = Button(REMOVE_BUTTON_TEXT)
         removeButton.maxWidth = Double.MAX_VALUE
-        removeButton.setFocusMnemonic("R", scene)
+        removeButton.setFocusMnemonic(REMOVE_BUTTON_MNEMONIC, scene)
         removeButton.setOnAction {
             stringList.selectionModel.selectedIndices.reversed().forEach {
                 strings.removeAt(it)
@@ -207,9 +214,9 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
             }
         }
 
-        createButton = Button("Create")
+        createButton = Button(CREATE_BUTTON_TEXT)
         createButton.maxWidth = Double.MAX_VALUE
-        createButton.setFocusMnemonic("C", scene)
+        createButton.setFocusMnemonic(CREATE_BUTTON_MNEMONIC, scene)
         createButton.setOnAction {
             // closes the dialog
             val newTuning = Tuning(if (nameField.text.isEmpty()) Tuning.DEFAULT_NAME else nameField.text,
@@ -221,7 +228,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
             stage.close()
         }
 
-        upButton.setFocusMnemonic("U", scene)
+        upButton.setFocusMnemonic(UP_BUTTON_MNEMONIC, scene)
         upButton.setOnAction {
             // move all the selected strings up by one
             if (stringList.selectionModel.selectedIndices.min() != 0) {
@@ -235,7 +242,7 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
                 }
             }
         }
-        downButton.setFocusMnemonic("D", scene)
+        downButton.setFocusMnemonic(DOWN_BUTTON_MNEMONIC, scene)
         downButton.setOnAction {
             if (stringList.selectionModel.selectedIndices.max() != strings.size - 1) {
 
@@ -254,8 +261,9 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         // laying out
 
         val detailPanel = GridPane()
-        detailPanel.hgap = 5.0
-        detailPanel.vgap = 5.0
+
+        detailPanel.hgap = BUTTON_SPACINGS
+        detailPanel.vgap = BUTTON_SPACINGS
         detailPanel.add(nameLabel, 0, 0)
         detailPanel.add(nameField, 1, 0)
         detailPanel.add(capoLabel, 0, 1)
@@ -270,8 +278,8 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         listPanel.maxWidth = Double.MAX_VALUE
 
         val buttonPanel = GridPane()
-        buttonPanel.hgap = 5.0
-        buttonPanel.vgap = 5.0
+        buttonPanel.hgap = BUTTON_SPACINGS
+        buttonPanel.vgap = BUTTON_SPACINGS
         buttonPanel.maxWidth = Double.MAX_VALUE
         buttonPanel.alignment = Pos.CENTER
         buttonPanel.add(newStringField, 0, 0, 4, 1)
@@ -296,6 +304,39 @@ class TuningMakerDialog(private val previous: NewRecordingDialog, tuning: Tuning
         }
         stage.showAndWait()
         // this will hold the thread here until the stage is closed
+
+    }
+
+    companion object {
+
+        private const val STRING_LABEL_TEXT = "Strings"
+
+        private const val CAPO_LABEL_TEXT = "Capo:"
+        private const val MAX_FRET_LABEL_TEXT = "Max Fret:"
+        private const val NAME_LABEL_TEXT = "Name:"
+        private const val REMOVE_BUTTON_TEXT = "Remove"
+        private const val ADD_BUTTON_LABEL = "Add"
+        private const val CREATE_BUTTON_TEXT = "Create"
+        private const val UP_BUTTON_TEXT = "Up"
+        private const val DOWN_BUTTON_TEXT = "Down"
+        private const val NEW_STRING_FIELD_PROMPT = "New Note (Enter to Add)"
+        private const val NO_TUNING_PROMPT_TEXT = "Tuning Name"
+        private const val ADD_BUTTON_MENMONIC = "A"
+
+        private const val UP_BUTTON_MNEMONIC = "U"
+        private const val DOWN_BUTTON_MNEMONIC = "D"
+        private const val NEW_STRING_FIELD_MNEMONIC = "O"
+        private const val REMOVE_BUTTON_MNEMONIC = "R"
+        private const val CREATE_BUTTON_MNEMONIC = "C"
+        private const val CAPO_SPINNER_MNEMONIC = "A"
+        private const val MAX_FRET_SPINNER_MNEMONIC = "M"
+        private const val NEW_FIELD_MNEMONIC = "N"
+        private const val STRING_LIST_MNEMONIC = "S"
+
+        private const val NO_STRING_PLACEHOLDER = "Type a new note (e.g. G#3)\n&\nPress '$ADD_BUTTON_LABEL' to add a string"
+        private const val DIALOG_TITLE = "New Tuning"
+
+        const val BUTTON_SPACINGS = 5.0
 
     }
 

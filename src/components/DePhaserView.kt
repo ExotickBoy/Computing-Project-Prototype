@@ -12,7 +12,7 @@ import kotlin.math.min
  * This class shows the phase removed visualisation of the current step
  * @author Kacper Lubisz
  */
-internal class DePhaserView(private val session: Session) : Canvas(500.0, 150.0) {
+internal class DePhaserView(private val session: Session) : Canvas(RecordingEditPane.RECORDING_EDIT_PANE_WIDTH, PREFERRED_HEIGHT) {
 
     private var scale: Double = 0.0 /* This indicates the progress of the collapse animation of the wave, it decreases quickly over time */
     private var colour: Double = 0.0 /* Indicates the colour of the wave, it is red when recording*/
@@ -165,6 +165,8 @@ internal class DePhaserView(private val session: Session) : Canvas(500.0, 150.0)
         private const val ANIMATION_STEP = (1 / ANIMATION_TIME / ANIMATION_REFRESH_RATE)
         private const val RESOLUTION = 1
         private const val MULTIPLIER = 7.5
+
+        const val PREFERRED_HEIGHT = 150.0
 
     }
 

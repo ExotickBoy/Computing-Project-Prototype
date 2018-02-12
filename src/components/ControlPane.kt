@@ -33,7 +33,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
             onStateUpdate(session.state)
         }
         recordButton.setFocusMnemonic(RECORD_MNEMONIC, scene)
-        recordButton.minWidth = 40.0
+        recordButton.minWidth = BUTTON_WIDTH
         recordButton.isFocusTraversable = false
         // make it so that these buttons can't be focused means that the accelerators in EditPane never stop working
         recordButton.setOnAction {
@@ -45,7 +45,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
         }
 
         playbackButton.setFocusMnemonic(PLAY_MNEMONIC, scene)
-        playbackButton.minWidth = 40.0
+        playbackButton.minWidth = BUTTON_WIDTH
         playbackButton.isFocusTraversable = false
         playbackButton.setOnAction {
             if (session.state == Session.SessionState.EDIT_SAFE && session.playback()) {
@@ -61,7 +61,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
 
         cutButton.setFocusMnemonic(CUT_MNEMONIC, scene)
         cutButton.isDisable = true
-        cutButton.minWidth = 40.0
+        cutButton.minWidth = BUTTON_WIDTH
         cutButton.isFocusTraversable = false
         cutButton.setOnAction {
             if (session.state == Session.SessionState.EDIT_SAFE && session.recording.cut(session.correctedStepCursor)) {
@@ -71,7 +71,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
         }
 
         muteButton.setFocusMnemonic(MUTE_MNEMONIC, scene)
-        muteButton.minWidth = 40.0
+        muteButton.minWidth = BUTTON_WIDTH
         muteButton.isFocusTraversable = false
         muteButton.setOnAction {
             val isMuted = session.toggleMute()
@@ -83,7 +83,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
         }
 
         exitButton.setFocusMnemonic(EXIT_MNEMONIC, scene)
-        exitButton.minWidth = 40.0
+        exitButton.minWidth = BUTTON_WIDTH
         exitButton.isDisable = true
         exitButton.isFocusTraversable = false
         exitButton.setOnAction {
@@ -166,6 +166,7 @@ internal class ControlPane(private val application: MainApplication, scene: Scen
         private const val CUT_MNEMONIC = "C"
         private const val EXIT_MNEMONIC = "S"
 
+        private const val BUTTON_WIDTH = 40.0
 
     }
 }

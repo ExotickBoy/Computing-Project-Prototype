@@ -98,7 +98,7 @@ internal class ScrollController(private val isNote: Boolean, private val willSwa
      */
     private fun movementDirection(x: Int): Int {
 
-        return ((1.025.pow(max(abs(x - session.width / 2.0) - session.width / 5.0, 0.0)) - 1) * sign(x - session.width / 2.0)).toInt()
+        return ((MOVEMENT_DIRECTION_BASE.pow(max(abs(x - session.width / 2.0) - session.width / 5.0, 0.0)) - 1) * sign(x - session.width / 2.0)).toInt()
 
     }
 
@@ -106,6 +106,9 @@ internal class ScrollController(private val isNote: Boolean, private val willSwa
 
         /* How long the mouse needs to be held for it to classify as a long press */
         const val holdTime: Double = .3 * 1000
+        private const val MOVEMENT_DIRECTION_BASE = 1.025
+        private const val DRAG_THREAD_TITLE = "Drag Thread"
+        private const val DRAGGING_FRAME_RATE = 30
 
     }
 
@@ -113,16 +116,16 @@ internal class ScrollController(private val isNote: Boolean, private val willSwa
      * This thread is solely resposible for listening to where the mouse cursor is and then moving the in app
      * cursor when in select mode
      */
-    private class DraggingThread(private val controller: ScrollController) : Thread() {
+    private class DraggingThread(private val controller: ScrollController) : Thread(DRAG_THREAD_TITLE) {
 
         init {
-            name = "Drag Thread"
+
             start()
         }
 
         override fun run() {
 
-            val period = 1000.0 / 30 // milliseconds per tick
+            val period = 1000.0 / DRAGGING_FRAME_RATE // milliseconds per tick
             var last = System.currentTimeMillis()
             var current = last
             var difference = 0.0

@@ -17,7 +17,7 @@ import java.util.*
  * and machine learning), these will be served at a constant rate
  * @property bufferThread The private thread responsible for serving the session with the time steps at a constant rate
  */
-internal class SoundProcessingController(val session: Session) : Thread("Sound Processing Thread") {
+internal class SoundProcessingController(val session: Session) : Thread(SOUND_PROCESSING_THREAD_TITLE) {
 
     private val timeStepQueue: LinkedList<TimeStep> = LinkedList()
     private val bufferThread = TimeStepBufferThread(session, timeStepQueue)
@@ -96,6 +96,8 @@ internal class SoundProcessingController(val session: Session) : Thread("Sound P
     }
 
     companion object {
+
+        private const val SOUND_PROCESSING_THREAD_TITLE = "Sound Processing Thread"
 
         const val FRAME_RATE = 30
         const val SAMPLE_RATE = 44100

@@ -140,6 +140,13 @@ class MainApplication : Application() {
         abstract fun onClose()
     }
 
+    /**
+     * Sets the title of the window
+     */
+    fun setTitle(title: String) {
+        stage.title = title
+    }
+
     companion object {
 
         const val TITLE: String = "NoteWize"
@@ -149,13 +156,6 @@ class MainApplication : Application() {
             null
         }
 
-    }
-
-    /**
-     * Sets the title of the window
-     */
-    fun setTitle(title: String) {
-        stage.title = title
     }
 
 }

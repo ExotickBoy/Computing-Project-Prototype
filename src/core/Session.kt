@@ -2,6 +2,7 @@ package core
 
 import javafx.scene.control.Alert
 import javafx.scene.control.Alert.AlertType
+import javafx.scene.paint.Color
 import javafx.stage.Stage
 import javax.sound.sampled.LineUnavailableException
 import kotlin.math.max
@@ -255,12 +256,13 @@ class Session(val recording: Recording) {
                         val alert = Alert(AlertType.ERROR)
                         if (MainApplication.icon != null)
                             (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
-                        alert.title = "Error"
-                        alert.headerText = "An error occurred"
-                        alert.contentText = "Failed to open microphone\n" + when (e) {
-                            is LineUnavailableException -> "Couldn't find a valid microphone"
-                            is IllegalArgumentException -> "Couldn't find a valid microphone"
-                            else -> "Unknown error occurred ${e.message}"
+                        alert.title = ERROR_DIALOG_TITLE
+                        alert.headerText = ERROR_DIALOG_HEADER_MESSAGE
+
+                        alert.contentText = OPEN_IN_ERROR_MESSAGE_PREFIX + when (e) {
+                            is LineUnavailableException -> OPEN_IN_FAILED_MESSAGE
+                            is IllegalArgumentException -> OPEN_IN_FAILED_MESSAGE
+                            else -> GENERIC_ERROR_MESSAGE + e.message
                         }
 
                         alert.showAndWait()
@@ -305,12 +307,13 @@ class Session(val recording: Recording) {
                     val alert = Alert(AlertType.ERROR)
                     if (MainApplication.icon != null)
                         (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
-                    alert.title = "Error"
-                    alert.headerText = "An error occurred"
-                    alert.contentText = "Failed to open playback device\n" + when (e) {
-                        is LineUnavailableException -> "Couldn't find an output device"
-                        is IllegalArgumentException -> "Couldn't find an output device"
-                        else -> "Unknown error occurred"
+
+                    alert.title = ERROR_DIALOG_TITLE
+                    alert.headerText = ERROR_DIALOG_HEADER_MESSAGE
+                    alert.contentText = OPEN_OUT_ERROR_MESSAGE_PREFIX + when (e) {
+                        is LineUnavailableException -> OPEN_OUT_FAILED_MESSAGE
+                        is IllegalArgumentException -> OPEN_OUT_FAILED_MESSAGE
+                        else -> GENERIC_ERROR_MESSAGE + e.message
                     }
 
                     alert.showAndWait()
@@ -456,16 +459,32 @@ class Session(val recording: Recording) {
     /**
      * This is just a data class used locally for finding the absolute starts of all notes
      */
-    private data class PlayedCluster(val recordingStart: Int, val index: Int, val section: Section) {
-        override fun toString(): String {
-            return "PlayedCluster(recordingStart=$recordingStart, index=$index)"
-        }
-
-    }
+    private data class PlayedCluster(val recordingStart: Int, val index: Int, val section: Section)
 
     companion object {
         /* The proportion distance from the top of the screen in which a section can be deleted*/
         const val DELETE_DISTANCE = .3
+
+        private const val ERROR_DIALOG_TITLE = "Error"
+        private const val ERROR_DIALOG_HEADER_MESSAGE = "An error occurred"
+        private const val GENERIC_ERROR_MESSAGE = "Unknown error occurred "
+
+        private const val OPEN_OUT_FAILED_MESSAGE = "Couldn't find an output device"
+        private const val OPEN_OUT_ERROR_MESSAGE_PREFIX = "Failed to open playback device\n"
+
+        private const val OPEN_IN_ERROR_MESSAGE_PREFIX = "Failed to open microphone\n"
+        private const val OPEN_IN_FAILED_MESSAGE = "Couldn't find a valid microphone"
+
+        const val CURSOR_THICKNESS = 2.0
+        const val SECTION_SPLIT_THICKNESS = 0.75
+        const val SWAP_SEPARATION_THICKNESS = 2.0
+
+        val DELETE_SWAP_COLOUR: Color = Color(1.0, 0.0, 0.0, 0.5)
+        val SWAP_REPLACE_COLOUR: Color = Color(0.0, 1.0, 0.0, .5)
+        val SWAP_SEPARATION_COLOUR: Color = Color.GREEN
+        val CURSOR_COLOUR: Color = Color.RED
+        val SECTION_SPLIT_COLOUR: Color = Color.MAGENTA
+
     }
 
     /**

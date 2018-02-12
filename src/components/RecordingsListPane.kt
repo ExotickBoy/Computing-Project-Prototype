@@ -46,18 +46,19 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         val root = VBox()
         val scene = Scene(root)
 
-        val newButton = Button("New Recording")
-        newButton.setFocusMnemonic("N", scene)
+        val newButton = Button(NEW_RECORDING_BUTTON_TEXT)
+        newButton.setFocusMnemonic(NEW_BUTTON_MENMNIC, scene)
 
-        val editButton = Button("Edit")
-        editButton.setFocusMnemonic("E", scene)
+        val editButton = Button(EDIT_BUTTON_TEXT)
+        editButton.setFocusMnemonic(EDIT_BUTTON_MNEMONIC, scene)
         editButton.isDisable = true
 
-        val deleteButton = Button("Delete")
-        deleteButton.setFocusMnemonic("D", scene)
+
+        val deleteButton = Button(DELETE_BUTTON_TEXT)
+        deleteButton.setFocusMnemonic(DELETE_BUTTON_MENMONIC, scene)
         deleteButton.isDisable = true
 
-        val placeholderLabel = Label("Press 'New Recording'\n to make a new recording")
+        val placeholderLabel = Label(NO_RECORDINGS_PROMPT)
         placeholderLabel.textAlignment = TextAlignment.CENTER
 
         recordingList = ListView()
@@ -89,21 +90,24 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
             }
         }
+
+
+
+
         newButton.setOnAction {
             NewRecordingDialog(application, recordings)
         }
         deleteButton.setOnAction {
 
             val alert = Alert(AlertType.WARNING)
-            alert.title = "Delete Confirmation"
-            alert.headerText = "Are you sure you want to delete recording" +
-                    "${if (recordingList.selectionModel.selectedIndices.size == 1) "" else "s"} " +
+            alert.title = DELETE_DIALOG_TITLE
+            alert.headerText = DELETE_DIALOG_MESSAGE + if (recordingList.selectionModel.selectedIndices.size == 1) "" else "s" +
                     "\n${recordingList.selectionModel.selectedIndices.map {
                         recordings[it].metaData.name
                     }.reduce { acc, s -> "$acc, ${if (acc.length - acc.lastIndexOf("\n") >= 30) "\n" else ""}$s" }}?"
 
-            val deleteButtonType = ButtonType("Delete", ButtonBar.ButtonData.YES)
-            val cancelButtonType = ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE)
+            val deleteButtonType = ButtonType(DELETE_DIALOG_DELETE_TEXT, ButtonBar.ButtonData.YES)
+            val cancelButtonType = ButtonType(DELETE_DIALOG_CANCEL_TEXT, ButtonBar.ButtonData.CANCEL_CLOSE)
 
             alert.buttonTypes.setAll(deleteButtonType, cancelButtonType)
 
@@ -116,14 +120,15 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
         editButton.setOnAction {
             edit()
         }
-        val recordingLabel = Label("Recent Recordings:")
-        recordingLabel.setFocusMnemonic("R", scene)
+
+        val recordingLabel = Label(RECENT_RECORDINGS_LABEL_TEXT)
+        recordingLabel.setFocusMnemonic(RECOENT_RECORDINGS_LABEL_MENMONIC, scene)
         recordingLabel.labelFor = recordingList
 
         // layout
 
         val buttonPanel = HBox()
-        buttonPanel.spacing = 5.0
+        buttonPanel.spacing = SPACING
         buttonPanel.isCenterShape = true
         HBox.setHgrow(newButton, Priority.ALWAYS)
         newButton.maxWidth = Double.MAX_VALUE
@@ -131,11 +136,11 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
         val listPanel = VBox()
         listPanel.children.addAll(recordingLabel, recordingList)
-        listPanel.padding = Companion.makeInsets(top = 5.0)
+        listPanel.padding = Companion.makeInsets(top = SPACING)
 
         root.children.addAll(buttonPanel, listPanel)
         root.maxHeight = Double.MAX_VALUE
-        root.padding = Insets(10.0)
+        root.padding = Insets(PADDING)
 
         return scene
 
@@ -161,7 +166,8 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 //            val start = System.currentTimeMillis()
 
             val possibleRecording = recordings[recordingList.selectionModel.selectedIndex]
-            val dialog = LoadingDialog("Loading ${possibleRecording.metaData.name}", "Loading")
+
+            val dialog = LoadingDialog(LOADING_DIALOG_TEXT_PREFIX + possibleRecording.metaData.name, LOADING_DIALOG_TITLE)
             Platform.runLater {
                 val session = Session(Recording.deserialize(FileInputStream(possibleRecording.file)))
                 dialog.dispose()
@@ -207,7 +213,7 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
      * This thread is responsible for repainting the scene roughly 10 times per second.
      * This is so that the relative time labels stay consistent
      */
-    private class RepaintThread(val root: VBox) : Thread("Repaint Thread") {
+    private class RepaintThread(val root: VBox) : Thread(REPAINT_THREAD_TITLE) {
 
         init {
             start()
@@ -233,6 +239,32 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
     }
 
     companion object {
+
+        private const val NEW_RECORDING_BUTTON_TEXT = "New Recording"
+        private const val EDIT_BUTTON_TEXT = "Edit"
+        private const val DELETE_BUTTON_TEXT = "Delete"
+        private const val NO_RECORDINGS_PROMPT = "Press '$NEW_RECORDING_BUTTON_TEXT'\n to make a new recording"
+        private const val RECENT_RECORDINGS_LABEL_TEXT = "Recent Recordings:"
+
+        private const val DELETE_DIALOG_DELETE_TEXT = "Delete"
+        private const val DELETE_DIALOG_CANCEL_TEXT = "Cancel"
+        private const val DELETE_DIALOG_TITLE = "Delete Confirmation"
+        private const val DELETE_DIALOG_MESSAGE = "Are you sure you want to delete recording"
+
+        private const val LOADING_DIALOG_TEXT_PREFIX = "Loading "
+        private const val LOADING_DIALOG_TITLE = "Loading"
+
+        private const val NEW_BUTTON_MENMNIC = "N"
+        private const val EDIT_BUTTON_MNEMONIC = "E"
+        private const val DELETE_BUTTON_MENMONIC = "D"
+        private const val RECOENT_RECORDINGS_LABEL_MENMONIC = "R"
+
+        private const val REPAINT_THREAD_TITLE = "Repaint Thread"
+
+        private const val SPACING = 5.0
+        private const val PADDING = 10.0
+
+
         /**
          * Convenience function for creating insets which are used when adding paddign
          */

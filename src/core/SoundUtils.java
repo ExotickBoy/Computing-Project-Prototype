@@ -9,6 +9,8 @@ import java.util.List;
  */
 public final class SoundUtils {
 
+    private static final float SHORT_MAX = 32768.0F;
+
     private SoundUtils() {
     } // so that an object of it can't be made
 
@@ -27,13 +29,13 @@ public final class SoundUtils {
         if (isBigEdian) {
 
             for (int i = 0; i < floats.length; i++) {
-                floats[i] = ((bytes[i * 2] << 8) | (bytes[i * 2 + 1] & 0xFF)) / 32768.0F;
+                floats[i] = ((bytes[i * 2] << 8) | (bytes[i * 2 + 1] & 0xFF)) / SHORT_MAX;
             }
 
         } else {
 
             for (int i = 0; i < floats.length; i++) {
-                floats[i] = ((bytes[i * 2 + 1] << 8) | (bytes[i * 2] & 0xFF)) / 32768.0F;
+                floats[i] = ((bytes[i * 2 + 1] << 8) | (bytes[i * 2] & 0xFF)) / SHORT_MAX;
             }
 
         }
@@ -53,7 +55,7 @@ public final class SoundUtils {
 
         for (int i = 0; i < size; i++) {
 
-            int nSample = Math.round(Math.min(1.0F, Math.max(-1.0F, floats.get(i + inOffset))) * 32767.0F);
+            int nSample = Math.round(Math.min(1.0F, Math.max(-1.0F, floats.get(i + inOffset))) * SHORT_MAX);
             bytes[2 * (i + outOffset)] = (byte) (nSample >> 8 & 0xFF);
             bytes[2 * (i + outOffset) + 1] = (byte) (nSample & 0xFF);
 

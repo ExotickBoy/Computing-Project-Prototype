@@ -3,11 +3,16 @@ package components
 import core.Section
 import core.Session
 import core.Session.Companion.DELETE_DISTANCE
+import core.Session.Companion.DELETE_SWAP_COLOUR
+import core.Session.Companion.SECTION_SPLIT_COLOUR
+import core.Session.Companion.SECTION_SPLIT_THICKNESS
+import core.Session.Companion.SWAP_REPLACE_COLOUR
+import core.Session.Companion.SWAP_SEPARATION_COLOUR
+import core.Session.Companion.SWAP_SEPARATION_THICKNESS
 import javafx.application.Platform
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.image.WritableImage
-import javafx.scene.paint.Color
 import javafx.scene.transform.Transform
 import kotlin.math.max
 import kotlin.math.sign
@@ -29,7 +34,7 @@ internal class HistoryView(
 
     init {
 
-        width = 500.0
+        width = RecordingEditPane.RECORDING_EDIT_PANE_WIDTH
         height = preferredHeight
         isFocusTraversable = true
 
@@ -64,8 +69,8 @@ internal class HistoryView(
 
         synchronized(session.recording) {
 
-            g.lineWidth = 1.0
-            g.stroke = Color.MAGENTA
+            g.lineWidth = SECTION_SPLIT_THICKNESS
+            g.stroke = SECTION_SPLIT_COLOUR
 
             session.recording.sections.filterIndexed { index, _ ->
                 !willSwap || index != session.swap
@@ -99,8 +104,8 @@ internal class HistoryView(
 
                     }
 
-            g.lineWidth = 2.0
-            g.stroke = Color.RED
+            g.lineWidth = Session.CURSOR_THICKNESS
+            g.stroke = Session.CURSOR_COLOUR
             g.strokeLine(session.onScreenStepCursor.toDouble(), 0.0, session.onScreenStepCursor.toDouble(), height)
 
             val swap = session.swap
@@ -115,7 +120,8 @@ internal class HistoryView(
                         val sectionTo = session.recording.sections[swapWith]
                         val from = sectionTo.timeStepStart - session.stepFrom.toDouble()
 
-                        g.fill = Color(0.0, 1.0, 0.0, .5)
+
+                        g.fill = SWAP_REPLACE_COLOUR
                         g.fillRect(from, 0.0, sectionTo.timeStepLength.toDouble(), height)
 
                     }
@@ -129,13 +135,14 @@ internal class HistoryView(
                             sectionTo.timeStepStart - session.stepFrom
                         }.toDouble()
 
-                        g.stroke = Color.GREEN
-                        g.lineWidth = 2.0
+                        g.stroke = SWAP_SEPARATION_COLOUR
+                        g.lineWidth = SWAP_SEPARATION_THICKNESS
                         g.strokeLine(from, 0.0, from, height)
 
                     }
                     else -> {
-                        g.fill = Color(1.0, 0.0, 0.0, 0.5)
+
+                        g.fill = DELETE_SWAP_COLOUR
                         g.fillRect(0.0, 0.0, width, height * DELETE_DISTANCE / 2)
                     }
                 }
