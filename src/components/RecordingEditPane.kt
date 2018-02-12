@@ -26,7 +26,7 @@ class RecordingEditPane(val session: Session, application: MainApplication) : Ma
     private val scene = Scene(root)
 
     private val dePhaserView = DePhaserView(session)
-    private val melOutputView = HistoryView(session, RECORDING_EDIT_PANE_WIDTH, true) { it.melImages }
+    private val melOutputView = HistoryView(session, Model.MEL_BINS_AMOUNT.toDouble() * 2, true) { it.melImages }
     private val networkOutputView = HistoryView(session, Model.PITCH_RANGE.toDouble(), false) { it.noteImages }
     private val noteOutputView = NoteOutputView(session)
     private val controlPane = ControlPane(application, scene, session)

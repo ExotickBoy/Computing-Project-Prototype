@@ -22,6 +22,7 @@ import javafx.scene.layout.VBox
 import javafx.scene.text.Font
 import javafx.scene.text.Text
 import javafx.scene.text.TextAlignment
+import javafx.stage.Stage
 import java.io.File
 import java.io.FileInputStream
 import kotlin.math.roundToInt
@@ -101,6 +102,8 @@ class RecordingsListPane(application: MainApplication) : MainApplication.Activit
 
             val alert = Alert(AlertType.WARNING)
             alert.title = DELETE_DIALOG_TITLE
+            if (MainApplication.icon != null)
+                (alert.dialogPane.scene.window as Stage).icons.add(MainApplication.icon)
             alert.headerText = DELETE_DIALOG_MESSAGE + if (recordingList.selectionModel.selectedIndices.size == 1) "" else "s" +
                     "\n${recordingList.selectionModel.selectedIndices.map {
                         recordings[it].metaData.name

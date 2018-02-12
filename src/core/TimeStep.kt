@@ -92,12 +92,12 @@ class TimeStep private constructor(val section: Section, private val sampleStart
         melImage = WritableImage(1, Model.MEL_BINS_AMOUNT)
         for (y in 0 until Model.MEL_BINS_AMOUNT) {
             val value = ((min(max(spectrum[y], minMagnitude), maxMagnitude) - minMagnitude) / (maxMagnitude - minMagnitude))
-            melImage.pixelWriter.setColor(0, y, mapToColour(value.toDouble()))
+            melImage.pixelWriter.setColor(0, Model.MEL_BINS_AMOUNT - y - 1, mapToColour(value.toDouble()))
         }
         noteImage = WritableImage(1, Model.PITCH_RANGE)
         for (y in 0 until Model.PITCH_RANGE) {
             val value = min(max(predictions[y], 0f), 1f)
-            noteImage.pixelWriter.setColor(0, y, mapToColour(value.toDouble()))
+            noteImage.pixelWriter.setColor(0, Model.PITCH_RANGE - y - 1, mapToColour(value.toDouble()))
         }
 
     }
